@@ -60,7 +60,7 @@ Stop the apps with Ctrl+C. To stop the local database, run `brew services stop p
 Acesse http://localhost:3002 e use as credenciais locais configuradas no `.env`:
 
 - Login: `admin`
-- Senha: `[REVOKED]`
+- Senha: consulte `DASHBOARD_PASSWORD` no arquivo local `.env`.
 
 ### Optional Docker setup
 
