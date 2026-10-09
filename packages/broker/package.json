@@ -1,0 +1,12 @@
+{
+  "name": "@trade/broker",
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./testing": "./src/testing/index.ts"
+  },
+  "dependencies": {
+    "@trade/shared": "workspace:*"
+  }
+}

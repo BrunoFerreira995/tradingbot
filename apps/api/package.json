@@ -1,0 +1,13 @@
+{
+  "name": "@trade/api",
+  "private": true,
+  "scripts": {
+    "dev": "bun --env-file=../../.env --watch src/index.ts"
+  },
+  "dependencies": {
+    "@trade/broker": "workspace:*",
+    "@trade/database": "workspace:*",
+    "@trade/trading": "workspace:*",
+    "@trade/shared": "workspace:*"
+  }
+}

@@ -1,0 +1,50 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: tradingbot
+      POSTGRES_USER: trader
+      POSTGRES_PASSWORD: trader
+    ports: ['5432:5432']
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U trader -d tradingbot']
+      interval: 5s
+      retries: 10
+  api:
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://trader:trader@postgres:5432/tradingbot
+      TRADING_MODE: ${TRADING_MODE:-paper}
+      AUTO_TRADING_ENABLED: ${AUTO_TRADING_ENABLED:-false}
+      EMERGENCY_STOP: ${EMERGENCY_STOP:-false}
+      STRATEGY_RUNNER: ${STRATEGY_RUNNER:-}
+      STRATEGY_TIMEFRAME: ${STRATEGY_TIMEFRAME:-M30}
+      STRATEGY_POLL_MS: ${STRATEGY_POLL_MS:-5000}
+      MT5_PRIMARY_SYMBOL: ${MT5_PRIMARY_SYMBOL:-XAUUSD}
+      MT5_SYMBOLS: ${MT5_SYMBOLS:-XAUUSD}
+      MT5_MAGIC: ${MT5_MAGIC:-}
+      MT5_BRIDGE_DIR: ${MT5_BRIDGE_DIR:-}
+      MT5_LIVE_ACK: ${MT5_LIVE_ACK:-}
+      MT5_RECONNECT_MS: ${MT5_RECONNECT_MS:-15000}
+      TRADINGVIEW_WEBHOOK_SECRET: ${TRADINGVIEW_WEBHOOK_SECRET:-}
+      TRADINGVIEW_HMAC_SECRET: ${TRADINGVIEW_HMAC_SECRET:-}
+      ADMIN_API_KEY: ${ADMIN_API_KEY:-}
+      WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:3000}
+    ports: ['${API_PORT:-3001}:3001']
+    depends_on: { postgres: { condition: service_healthy } }
+    command: sh -c "bun db:migrate && bun apps/api/src/index.ts"
+  web:
+    build: { context: ., dockerfile: apps/web/Dockerfile }
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+      API_INTERNAL_URL: http://api:3001
+      ADMIN_API_KEY: ${ADMIN_API_KEY:-}
+      DASHBOARD_USER: ${DASHBOARD_USER:-}
+      DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD:-}
+    ports: ['${WEB_PORT:-3000}:3000']
+    depends_on: [api]
+volumes:
+  postgres_data:

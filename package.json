@@ -1,0 +1,40 @@
+{
+  "name": "tradingbot",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "packages/strategy"
+  ],
+  "scripts": {
+    "dev": "bun --filter '@trade/api' dev & bun --filter '@trade/web' dev & wait",
+    "typecheck": "bunx tsc --noEmit -p apps/api/tsconfig.json && bunx tsc --noEmit -p apps/web/tsconfig.json",
+    "lint": "bunx eslint .",
+    "format": "bunx prettier --write .",
+    "test": "bun test",
+    "build": "bun --filter '@trade/web' build && bun build apps/api/src/index.ts --target bun --outdir dist/api",
+    "db:generate": "bunx drizzle-kit generate --config packages/database/drizzle.config.ts",
+    "db:migrate": "bun packages/database/src/migrate.ts",
+    "mt5:doctor": "bun packages/broker/scripts/doctor-mt5.ts",
+    "mt5:build": "./packages/broker/scripts/build-mq5.sh",
+    "mt5:install": "./packages/broker/scripts/install-mt5-bridge.sh"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.44.0",
+    "elysia": "^1.4.0",
+    "postgres": "^3.4.7",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@next/eslint-plugin-next": "^15.5.27",
+    "@types/bun": "latest",
+    "@types/node": "^22.0.0",
+    "drizzle-kit": "^0.31.0",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^15.0.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.8.0",
+    "typescript-eslint": "^8.0.0"
+  }
+}

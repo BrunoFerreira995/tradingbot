@@ -1,0 +1,24 @@
+# Runs the API against a real MetaTrader 5 terminal instead of the mock broker.
+#
+#   packages/broker/scripts/install-mt5-bridge.sh
+#   MT5_HOST_BRIDGE_DIR="$HOME/Library/Application Support/net.metaquotes.wine.metatrader5/drive_c/users/user/AppData/Roaming/MetaQuotes/Terminal/Common/Files" \
+#     docker compose -f docker-compose.yml -f docker-compose.mt5.yml up -d
+#
+# The API container cannot see the host's Wine prefix, so the terminal's common
+# files folder is bind-mounted in. Without it the bridge looks alive at compile
+# time and dead at runtime, which is why this stays an explicit overlay.
+services:
+  api:
+    environment:
+      MT5_BRIDGE_DIR: /bridge
+      MT5_MAGIC: ${MT5_MAGIC:-20260101}
+      MT5_PRIMARY_SYMBOL: ${MT5_PRIMARY_SYMBOL:-XAUUSD}
+      MT5_LIVE_ACK: ${MT5_LIVE_ACK:-}
+    volumes:
+      - type: bind
+        source: ${MT5_HOST_BRIDGE_DIR:?set MT5_HOST_BRIDGE_DIR to the terminal Common\\Files folder}
+        target: /bridge
+        bind:
+          # Refuse to invent an empty host directory: that would silently hide a
+          # misconfigured path behind a healthy-looking but empty mount.
+          create_host_path: false

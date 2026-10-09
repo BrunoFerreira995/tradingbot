@@ -1,0 +1,73 @@
+@import 'tailwindcss';
+:root {
+  color-scheme: dark;
+}
+body {
+  background: #090e18;
+  color: #e8edf7;
+  font-family: Arial, Helvetica, sans-serif;
+}
+* {
+  box-sizing: border-box;
+}
+.panel {
+  background: #111927;
+  border: 1px solid #243249;
+  border-radius: 16px;
+}
+.muted {
+  color: #8b9bb2;
+}
+.green {
+  color: #27d7a2;
+}
+.red {
+  color: #fb7185;
+}
+.amber {
+  color: #ffce72;
+}
+.table-wrap {
+  overflow-x: auto;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap;
+}
+th,
+td {
+  text-align: left;
+  padding: 13px 16px;
+  border-bottom: 1px solid #1e2b3e;
+  font-size: 13px;
+}
+th {
+  color: #8b9bb2;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+tr:last-child td {
+  border-bottom: 0;
+}
+.pill {
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.button {
+  border: 1px solid #34445d;
+  border-radius: 9px;
+  padding: 10px 15px;
+  background: #19263a;
+  cursor: pointer;
+  font-weight: 600;
+}
+.button:hover {
+  background: #233650;
+}
