@@ -69,6 +69,7 @@ export interface BridgeCommand {
     | 'positions'
     | 'orders'
     | 'place'
+    | 'check_order'
     | 'close'
     | 'modify'
     | 'find_symbols'
@@ -113,6 +114,12 @@ export interface BridgeReply {
     symbol?: string;
     period?: string;
     rates?: Rate[];
+    approved?: boolean;
+    reason?: string;
+    retcode?: number;
+    equity?: number;
+    margin?: number;
+    freeMargin?: number;
   };
 }
 
@@ -469,6 +476,10 @@ export class MT5Bridge {
 
   place(command: Omit<BridgeCommand, 'op'>) {
     return this.run({ op: 'place', ...command });
+  }
+
+  checkOrder(command: Omit<BridgeCommand, 'op'>) {
+    return this.run({ op: 'check_order', ...command });
   }
 
   close(command: Omit<BridgeCommand, 'op'>) {

@@ -9,6 +9,14 @@ import type {
   SymbolInfo,
   Timeframe,
 } from '@trade/shared';
+export interface MarketOrderCheck {
+  approved: boolean;
+  reason?: string;
+  retcode: number;
+  equity: number;
+  margin: number;
+  freeMargin: number;
+}
 export interface BrokerAdapter {
   readonly connected: boolean;
   connect(): Promise<void>;
@@ -24,6 +32,8 @@ export interface BrokerAdapter {
   getRates(symbol: string, period: Timeframe, count: number): Promise<Rate[]>;
   getPositions(): Promise<Position[]>;
   getOrders(): Promise<Order[]>;
+  /** Read-only terminal preflight; implementations without support must not submit. */
+  checkMarketOrder?(order: MarketOrderRequest): Promise<MarketOrderCheck>;
   placeMarketOrder(order: MarketOrderRequest): Promise<OrderResult>;
   closePosition(positionId: string): Promise<OrderResult>;
   modifyPosition(

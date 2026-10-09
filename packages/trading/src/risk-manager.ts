@@ -139,16 +139,8 @@ export class RiskManager {
       return reject(error instanceof Error ? error.message : 'Invalid lot');
     }
     if (lots < s.minimumLotSize) return reject('Lot below minimum');
-    const estimatedMargin =
-      lots * symbol.contractSize * price.ask * symbol.marginRate;
-    if (estimatedMargin > account.freeMargin)
-      return reject('Insufficient margin');
-    const marginPct =
-      account.equity > 0
-        ? ((account.usedMargin + estimatedMargin) / account.equity) * 100
-        : Infinity;
-    if (marginPct > s.maximumMarginUsagePercentage)
-      return reject('Margin usage limit exceeded');
+    // Margin is checked after sizing through the terminal's OrderCheck.
+    // Contract notional multiplied by marginRate is not broker margin.
     const exposure =
       positions.reduce(
         (sum, p) => sum + p.lots * p.currentPrice * symbol.contractSize,
@@ -170,5 +162,25 @@ export class RiskManager {
       stopDistance: distance,
       stopDistanceAdjusted: distance > requested,
     };
+  }
+
+  evaluateMarginUsage(
+    margin: number,
+    equity: number,
+    maximumMarginUsagePercentage: number,
+  ): RiskDecision {
+    if (
+      !Number.isFinite(margin) ||
+      margin < 0 ||
+      !Number.isFinite(equity) ||
+      equity <= 0
+    )
+      return { approved: false, reason: 'Invalid MetaTrader margin data' };
+    if ((margin / equity) * 100 > maximumMarginUsagePercentage)
+      return {
+        approved: false,
+        reason: 'Margin usage limit exceeded (MetaTrader projection)',
+      };
+    return { approved: true };
   }
 }

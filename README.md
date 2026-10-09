@@ -100,11 +100,17 @@ In development, `POST /api/test/signal` accepts `{ "action": "BUY" }`, `{ "actio
 
 `TRADING_MODE` is independent of that policy and guards the account itself. `paper` refuses to boot against a real-money terminal; `live` refuses to boot against a demo and additionally requires `MT5_LIVE_ACK` to equal the connected login, so neither mode can be reached by flipping one flag.
 
+Before opening an order, the API asks the terminal to run `OrderCheck` with the sized lot and protective prices. Margin, projected equity, free margin and rejection codes come from MetaTrader; contract notional is never used as a substitute for margin. The configured margin usage limit still applies to the terminal's projection. Missing or invalid check data blocks submission. After updating the bridge, run `bun run mt5:install` and restart the `AurumBridge` service in MT5. `OrderCheck` validates without sending an order; a successful check does not guarantee that the subsequent execution will succeed.
+
 The API boots even when the terminal is unreachable: it reports the broker as disconnected, keeps retrying every `MT5_RECONNECT_MS`, and starts serving the moment the AurumBridge service publishes a heartbeat. MetaTrader is the source of truth for account, positions and orders, so nothing is rehydrated from PostgreSQL. Run one API instance: the PostgreSQL lock serializes each account and symbol across processes.
 
 The admin key is server-only and required for dashboard data and settings mutations. The dashboard proxies these requests and uses HTTP Basic authentication in production. Put the API behind HTTPS and restrict public access to the webhook and health endpoints. Never put broker credentials, the webhook secret, or the admin key in `NEXT_PUBLIC_` variables.
 
 ## Operational notes
+
+Open P&L uses the authenticated `/api/open-pnl/stream` SSE endpoint, proxied through `/api/data/open-pnl/stream`. The API checks the terminal position snapshot every 10 ms and sends changed values without querying PostgreSQL. The bridge currently publishes snapshots approximately every 600 ms, so a 10 ms check interval does not guarantee a new market value every 10 ms.
+
+The full dashboard still refreshes every 15 seconds and on signal/order events. The Open P&L stream updates only the aggregate Open P&L; account totals and position table rows use the full dashboard refresh. Stream requests keep the admin key on the server and require the configured dashboard login.
 
 - `/health`, `/ready`, and `/metrics` expose health and counts. `/api/events/stream` streams signal and order events to the dashboard.
 - Audit entries store category, request ID, IP, event, and safe metadata. Raw payloads in `trading_signals` exclude `secret`.
@@ -112,6 +118,9 @@ The admin key is server-only and required for dashboard data and settings mutati
 - Docker daemon unavailable: start Docker Desktop, then rerun `docker compose up -d postgres`.
 - PostgreSQL connection refused: check `DATABASE_URL` and container health; run `bun db:migrate`.
 - No orders executing: check Auto Trading, Emergency Stop, strategy enabled state, stop loss, lot cap, and `/api/logs`.
+- `MetaTrader: AutoTrading disabled by client (retcode 10027)`: enable Algo Trading and the service's trading permission in MT5. Dashboard Auto Trading and terminal Algo Trading are separate controls.
+- `unknown op 'check_order'`: the running service is an older build. Run `bun run mt5:install`, then stop and start `AurumBridge` in the terminal.
+- A signal marked `REJECTED` was not executed. Inspect its reason in `/api/logs`; terminal preflight results appear as `BROKER / order_checked` with source `MetaTrader.OrderCheck`. The bot's configured margin usage cap can still reject a terminal-approved check.
 - Terminal running but the API says disconnected: the API waits for `aurum-heartbeat.json`, so the `AurumBridge` service must be started. Check `bun run mt5:doctor` first.
 - Service responds to `ping` but every `rates` call times out: the service answered with a payload the bot could not parse. The client now says so directly (`wrote a reply that is not valid JSON`) instead of reporting a timeout against a healthy-looking terminal.
 
@@ -260,16 +269,12 @@ dashboard cannot show a healthy run while a symbol it claims to watch is
 unreachable. Repeated identical failures are audited once per symbol rather than
 once per poll.
 
-The strategy row carries its own allowlist that the risk manager checks per
-signal, so the runner widens it to match on boot; a symbol missing from
-`risk_settings.allowedSymbols` is a boot-time refusal, not a silent no-op.
-Two pairs in the default watch list are currently blocked before that point by a
-sizing bug — see [Known gaps](#known-gaps).
-
 Use `op: find_symbols` (or the doctor's suggestion line) rather than guessing a
-name. Crosses may not exist on the account: on the Pepperstone demo used to build
-this, the seven majors and `XAUUSD` are present unsuffixed while `EURJPY` and
-`GBPJPY` are not.
+name. This command lists selected Market Watch symbols, not the entire broker
+catalogue. The locally verified watch list contains nine Forex pairs plus
+`XAUUSD`; other instruments may need to be selected in MT5 first. Updating
+`MT5_SYMBOLS` does not change the persisted Allowed symbols setting: add the
+same symbols under Risk in the dashboard before restarting the runner.
 
 The runner needs a live terminal: it pulls real bars with `op: rates` and stays
 `BLOCKED` with `broker disconnected` until the AurumBridge service is running, so
@@ -330,70 +335,56 @@ Broker rejections come back as `status: 'REJECTED'` with a reason rather than as
 an exception, so an invalid lot step or a stop inside the broker's stop level is
 recorded as a business outcome instead of a failed signal.
 
-Lot size, tick value and margin come from the broker. `marginRate` is derived as
-`SYMBOL_MARGIN_INITIAL / SYMBOL_TRADE_CONTRACT_SIZE`, which is what the risk
-engine's margin estimate expects; `defaultStopLoss` uses the recent 20-bar M30
-range and falls back to `0`, which makes the risk engine reject a signal that
-arrives without stops rather than guess a distance.
+Lot size and tick value come from the broker. The terminal's `OrderCheck`
+supplies projected margin, equity, free margin, rejection code and comment;
+the API does not estimate margin using contract notional or `marginRate`.
+`defaultStopLoss` uses the recent 20-bar M30 range and falls back to `0`.
+Spread, slippage and stop distances retain the symbol's price precision,
+preventing Forex limits from being rounded to zero.
 
 `MT5_MAGIC` tags every order the bot sends so it can tell its own positions from
 a manual trade in the same account.
 
+### Verified demo execution
+
+On 2026-10-09, a test signal completed the signal -> risk validation ->
+MetaTrader OrderCheck -> OrderSend -> position confirmation flow on a demo
+account. The confirmed position was BUY XAUUSD, 0.01 lot, ticket `400591320`,
+entry `4189.25`, stop loss `4164.10`, and take profit `4239.10`. These are
+historical test results, not the current position state. Closing and persisting
+that trade was not verified in this session.
+
+The current checks passed: `bun typecheck`, `bun lint`, 107 tests from
+`bun test`, and bridge compilation with zero errors and zero warnings.
+The Open P&L stream was also verified through the authenticated dashboard
+proxy (HTTP 200), with unauthenticated direct API requests refused (HTTP 403).
+
 ### Known gaps
 
-Verified against the Pepperstone demo on 2026-09-30. None of these has been
-fixed yet; they are ordered by what blocks trading first.
+**Bar timestamps and countdown use broker server time.** `CopyRates` timestamps
+are not normalised to UTC. On the demo verified on 2026-10-09, displayed bars
+were approximately three hours ahead of the host clock and the M1 countdown
+showed roughly 10,800 seconds. The runner still compares successive bar
+identifiers, but the displayed time and countdown need timezone correction.
 
-**1. Stops are sized as a percentage of price, which breaks on sub-1.00 pairs.**
-`stopLossPercent` multiplies the reference price, producing a distance in absolute
-price units. The risk manager compares that against `minimumStopDistance` /
-`maximumStopDistance`, which are also absolute price units and default to
-`0.01` / `1000` when unset. So for any pair quoted below 1.00 a 1% stop is smaller
-than the floor and is rejected every time:
+**Closed-trade profit may still be estimated.** `persistClose` uses terminal
+profit when supplied; otherwise it estimates with the symbol tick size and tick
+value. The estimate does not account for commission or swap. It no longer uses
+a hardcoded XAUUSD contract size.
 
-```
-signal   meanrev-bb-rsi-v1:USDCHF:M5:1790814600:BUY   BUY  0.01
-stop     0.00835265      (0.835265 x 1%)
-floor    0.01            -> 0.00835265 < 0.01
-result   REJECTED  "Stop distance outside limits"
-```
+**Position ticket visibility is incomplete.** API position IDs are MT5 tickets,
+and orders show broker IDs, but the position table does not render the ticket
+and closed trades have no dedicated broker-ticket column.
 
-USDCHF at 0.835 and NZDUSD at 0.56 cannot trade under this configuration at any
-percentage; EURUSD, GBPUSD, USDCAD, AUDUSD, USDJPY and XAUUSD can. The reason
-string does not say which bound failed, so a floor rejection reads like a
-ceiling one. The underlying cause is that risk belongs to the contract, not the
-price: `tickValue`, `tickSize` and `contractSize` already arrive from the
-terminal via `getSymbol`.
+**Open P&L source cadence remains approximately 600 ms.** The API checks every
+10 ms, but the file bridge determines when fresh values become available.
+Only aggregate Open P&L uses this fast stream; other dashboard values keep
+their normal refresh cadence.
 
-**2. Realised P&L hardcodes the XAUUSD contract size.** `persistClose` computes
-`(side ? exit - entry : entry - exit) * lots * 100`. That `100` is XAUUSD's
-contract size; EURUSD's is 100000, so FX P&L is wrong by 10000x. The `trades`
-table is empty, so correcting this now invalidates no recorded data.
-
-**3. Bar timestamps are broker server time, not UTC.** `CopyRates` returns
-timestamps in the terminal's server timezone. On this account the last M5 bar
-was `2026-09-30T23:55:00Z` while the host clock read `21:50Z`, an offset of
-+2.08h that also shifts with DST. Consequences: `lastBarAt` in the dashboard
-renders a bar in the future, and `secondsToNextBar` reports 7489s on a 300s
-timeframe. The offset is a whole number of hours and stable per server, so it
-can be normalised. The bar _interval_ is unaffected, so no decision is wrong —
-only the reporting and the countdown are.
-
-**4. No order has ever been executed.** The only signal in `trading_signals` was
-rejected, so `orders`, `positions` and `trades` are all empty and
-`placeMarketOrder` has never been called against the terminal. What is proven is
-that rejection works; the full place -> confirm -> close -> record cycle is not.
-
-**5. Tickets are not traceable.** `positions.id` is the real MT5 ticket
-(`PositionGetTicket`), but the dashboard's position columns do not render it.
-`trades` has no broker ticket column at all, so a closed trade cannot be tied
-back to the deal that closed it. `orders.brokerOrderId` is populated and shown.
-
-**6. Smaller items.** `stats.winRate` divides by all-time `trades.length` while
-its numerator and `tradesToday` both use the UTC day. `DashboardData` declares
-`symbol` but not the `symbols` array the API returns, so the watch list is not
-listed in the UI. `maxDailyLoss` is null in the database and falls back to 100
-USD, which with `maximumOpenPositions=8` is thin for eight concurrent pairs.
+Stops below the configured or broker minimum are widened to that floor by the
+risk manager, rather than rejected solely for being below it. Stops exceeding
+the configured maximum remain rejected. Forex spread limits now retain symbol
+precision, and margin validation uses terminal OrderCheck results.
 
 ### Still out of scope
 

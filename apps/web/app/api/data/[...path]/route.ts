@@ -4,6 +4,7 @@ const allowed = new Set([
   'logs',
   'events',
   'events/stream',
+  'open-pnl/stream',
   'strategy',
 ]);
 export async function GET(
@@ -21,9 +22,13 @@ export async function GET(
     );
   const response = await fetch(
     `${process.env.API_INTERNAL_URL ?? 'http://localhost:3001'}/api/${path}`,
-    { headers: { 'x-admin-key': key }, cache: 'no-store' },
+    {
+      headers: { 'x-admin-key': key },
+      cache: 'no-store',
+      signal: _request.signal,
+    },
   );
-  if (path === 'events/stream')
+  if (path === 'events/stream' || path === 'open-pnl/stream')
     return new Response(response.body, {
       status: response.status,
       headers: {

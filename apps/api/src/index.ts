@@ -188,6 +188,7 @@ const app = new Elysia({ serve: { maxRequestBodySize: 16 * 1024 } })
       (path === '/api/dashboard' ||
         path === '/api/logs' ||
         path === '/api/events' ||
+        path === '/api/open-pnl/stream' ||
         path === '/api/events/stream')
     ) {
       if (
@@ -432,6 +433,68 @@ const app = new Elysia({ serve: { maxRequestBodySize: 16 * 1024 } })
       .orderBy(desc(schema.systemEvents.createdAt))
       .limit(100),
   )
+  .get('/api/open-pnl/stream', ({ request }) => {
+    const encoder = new TextEncoder();
+    let timer: ReturnType<typeof setInterval> | undefined;
+    let heartbeat: ReturnType<typeof setInterval> | undefined;
+    let active = true;
+    let busy = false;
+    let previous: number | undefined;
+    const cleanup = () => {
+      active = false;
+      if (timer) clearInterval(timer);
+      if (heartbeat) clearInterval(heartbeat);
+      request.signal.removeEventListener('abort', cleanup);
+    };
+    return new Response(
+      new ReadableStream({
+        start(controller) {
+          request.signal.addEventListener('abort', cleanup, { once: true });
+          const send = (message: string) => {
+            if (!active) return;
+            try {
+              controller.enqueue(encoder.encode(message));
+            } catch {
+              cleanup();
+            }
+          };
+          const refresh = async () => {
+            if (!active || busy) return;
+            busy = true;
+            try {
+              const positions = await broker.getPositions();
+              const openPnl = positions.reduce(
+                (sum, p) => sum + p.unrealizedPnl,
+                0,
+              );
+              if (active && openPnl !== previous) {
+                send(`data: ${JSON.stringify({ openPnl })}\n\n`);
+                previous = openPnl;
+              }
+            } catch {
+              // Keep the last value during a torn snapshot or broker outage.
+            } finally {
+              busy = false;
+            }
+          };
+          send(': connected\n\n');
+          void refresh();
+          timer = setInterval(() => void refresh(), 10);
+          heartbeat = setInterval(() => send(': heartbeat\n\n'), 5000);
+          if (request.signal.aborted) cleanup();
+        },
+        cancel: cleanup,
+      }),
+      {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+          'Access-Control-Allow-Origin': origin,
+        },
+      },
+    );
+  })
   .get('/api/events/stream', () => {
     const encoder = new TextEncoder();
     let unsubscribe = () => {};

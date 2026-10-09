@@ -450,6 +450,89 @@ describe('MT5BrokerAdapter', () => {
     });
   });
 
+  test('checks terminal margin without placing an order', async () => {
+    const adapter = await boot();
+    terminal.respondWith(() => ({
+      ok: true,
+      data: {
+        approved: true,
+        retcode: 0,
+        equity: 167.32,
+        margin: 8.37,
+        freeMargin: 158.95,
+      },
+    }));
+    const result = await adapter.checkMarketOrder({
+      clientOrderId: 'check-only',
+      symbol: 'XAUUSD',
+      side: 'BUY',
+      lots: 0.01,
+      stopLoss: 2625,
+      takeProfit: 2700,
+    });
+    expect(result).toMatchObject({
+      approved: true,
+      margin: 8.37,
+      freeMargin: 158.95,
+    });
+    expect(terminal.lastCommand()).toMatchObject({
+      op: 'check_order',
+      symbol: 'XAUUSD',
+      side: 'BUY',
+      lots: 0.01,
+      sl: 2625,
+      tp: 2700,
+    });
+    expect(terminal.commands().some((command) => command.op === 'place')).toBe(
+      false,
+    );
+  });
+
+  test('preserves the terminal rejection code and reason', async () => {
+    const adapter = await boot();
+    terminal.respondWith(() => ({
+      ok: true,
+      data: {
+        approved: false,
+        reason: 'No money',
+        retcode: 10019,
+        equity: 0,
+        margin: 0,
+        freeMargin: 0,
+      },
+    }));
+    expect(
+      await adapter.checkMarketOrder({
+        clientOrderId: 'no-margin',
+        symbol: 'XAUUSD',
+        side: 'SELL',
+        lots: 0.01,
+      }),
+    ).toMatchObject({ approved: false, reason: 'No money', retcode: 10019 });
+    expect(terminal.commands().some((command) => command.op === 'place')).toBe(
+      false,
+    );
+  });
+
+  test('fails closed when terminal order-check data is missing or invalid', async () => {
+    const adapter = await boot();
+    for (const data of [
+      {},
+      { approved: true, retcode: 0, equity: 100, margin: -1, freeMargin: 101 },
+      { approved: true, retcode: 0, equity: 100, margin: 1, freeMargin: -1 },
+    ]) {
+      terminal.respondWith(() => ({ ok: true, data }));
+      await expect(
+        adapter.checkMarketOrder({
+          clientOrderId: 'invalid',
+          symbol: 'XAUUSD',
+          side: 'BUY',
+          lots: 0.01,
+        }),
+      ).rejects.toThrow('invalid order check');
+    }
+  });
+
   test('maps a symbol snapshot onto SymbolInfo', async () => {
     const adapter = await boot();
     expect(await adapter.getSymbol('XAUUSD')).toEqual({

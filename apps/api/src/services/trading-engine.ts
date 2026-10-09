@@ -190,8 +190,8 @@ export class TradingEngine {
           signalId: signal.signalId,
         };
       }
-      await setStatus('APPROVED');
       if (signal.action.startsWith('CLOSE')) {
+        await setStatus('APPROVED');
         const targets = positions.filter(
           (p) =>
             p.symbol === signal.symbol &&
@@ -209,6 +209,44 @@ export class TradingEngine {
         };
       }
       const side = signal.action as Side;
+      if (!this.broker.checkMarketOrder)
+        throw new Error('Broker order check unavailable; submission blocked');
+      const check = await this.broker.checkMarketOrder({
+        clientOrderId: signal.signalId,
+        symbol: signal.symbol,
+        side,
+        lots: decision.lots!,
+        stopLoss: decision.stopLoss,
+        takeProfit: decision.takeProfit,
+        maxSlippage: symbol.maxSlippage,
+      });
+      await audit('BROKER', 'order_checked', context.requestId, context.ip, {
+        signalId: signal.signalId,
+        source: 'MetaTrader.OrderCheck',
+        ...check,
+      });
+      const marginDecision = check.approved
+        ? this.risk.evaluateMarginUsage(
+            check.margin,
+            check.equity,
+            settings.maximumMarginUsagePercentage,
+          )
+        : {
+            approved: false,
+            reason: `MetaTrader: ${check.reason || 'OrderCheck rejected'} (retcode ${check.retcode})`,
+          };
+      if (!marginDecision.approved) {
+        await setStatus('REJECTED', {
+          reason: marginDecision.reason,
+          source: check.approved ? 'risk' : 'MetaTrader.OrderCheck',
+        });
+        return {
+          status: 'REJECTED' as SignalStatus,
+          reason: marginDecision.reason,
+          signalId: signal.signalId,
+        };
+      }
+      await setStatus('APPROVED');
       const closed = await this.positions.resolve(
         signal.symbol,
         side,
@@ -392,7 +430,8 @@ export class TradingEngine {
       (await this.broker.getPrice(position.symbol))[
         position.side === 'BUY' ? 'bid' : 'ask'
       ];
-    const pnl = result?.brokerProfit ?? (await this.estimatePnl(position, price));
+    const pnl =
+      result?.brokerProfit ?? (await this.estimatePnl(position, price));
     const [row] = await db
       .select()
       .from(schema.positions)

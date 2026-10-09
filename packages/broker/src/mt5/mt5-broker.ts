@@ -258,6 +258,40 @@ export class MT5BrokerAdapter implements BrokerAdapter {
     };
   }
 
+  async checkMarketOrder(order: MarketOrderRequest) {
+    await this.requireLive();
+    const reply = await this.bridge.checkOrder({
+      symbol: order.symbol,
+      side: order.side,
+      lots: order.lots,
+      sl: order.stopLoss,
+      tp: order.takeProfit,
+      maxSlippage: order.maxSlippage,
+      comment: fingerprint(order.clientOrderId),
+      magic: this.magic,
+    });
+    const data = reply.data;
+    if (
+      typeof data?.approved !== 'boolean' ||
+      !Number.isInteger(data.retcode) ||
+      !Number.isFinite(data.equity) ||
+      !Number.isFinite(data.margin) ||
+      !Number.isFinite(data.freeMargin) ||
+      data.equity! < 0 ||
+      data.margin! < 0 ||
+      (data.approved && data.freeMargin! < 0)
+    )
+      throw new Error('MetaTrader returned an invalid order check');
+    return {
+      approved: data.approved,
+      reason: data.reason,
+      retcode: data.retcode!,
+      equity: data.equity!,
+      margin: data.margin!,
+      freeMargin: data.freeMargin!,
+    };
+  }
+
   async placeMarketOrder(order: MarketOrderRequest): Promise<OrderResult> {
     await this.requireLive();
     const cached = this.results.get(order.clientOrderId);

@@ -149,6 +149,36 @@ describe('risk gates', () => {
       }).approved,
     ).toBe(true);
   });
+
+  test('does not confuse contract notional with terminal margin', () => {
+    const decision = risk.evaluate({
+      signal,
+      settings,
+      account: { ...account, equity: 167.32, freeMargin: 167.32 },
+      symbol: { ...symbol, marginRate: 1 },
+      price,
+      positions: [],
+      dailyPnl: 0,
+      dailyTrades: 0,
+    });
+    expect(decision.approved).toBe(true);
+    expect(risk.evaluateMarginUsage(8.37, 167.32, 50).approved).toBe(true);
+    expect(risk.evaluateMarginUsage(100, 167.32, 50).reason).toContain(
+      'Margin usage limit',
+    );
+  });
+
+  test('rejects unusable terminal margin data', () => {
+    for (const [margin, equity] of [
+      [NaN, 100],
+      [-1, 100],
+      [1, 0],
+      [1, Infinity],
+    ])
+      expect(risk.evaluateMarginUsage(margin!, equity!, 50).approved).toBe(
+        false,
+      );
+  });
 });
 
 describe('in-memory broker execution', () => {

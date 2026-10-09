@@ -6,6 +6,7 @@ export function useDashboard() {
   const [error, setError] = useState('');
   useEffect(() => {
     let active = true;
+    let latestOpenPnl: number | undefined;
     const refresh = async () => {
       try {
         const response = await fetch('/api/data/dashboard', {
@@ -14,7 +15,14 @@ export function useDashboard() {
         if (!response.ok) throw new Error(`API ${response.status}`);
         const json = (await response.json()) as DashboardData;
         if (active) {
-          setData(json);
+          setData(
+            latestOpenPnl === undefined
+              ? json
+              : {
+                  ...json,
+                  stats: { ...json.stats, openPnl: latestOpenPnl },
+                },
+          );
           setError('');
         }
       } catch (e) {
@@ -28,10 +36,30 @@ export function useDashboard() {
     events.onmessage = () => {
       void refresh();
     };
+    const pnlEvents = new EventSource('/api/data/open-pnl/stream');
+    pnlEvents.onmessage = (event) => {
+      if (!active) return;
+      try {
+        const { openPnl } = JSON.parse(event.data) as { openPnl: number };
+        if (!Number.isFinite(openPnl)) return;
+        latestOpenPnl = openPnl;
+        setData((current) =>
+          current && current.stats.openPnl !== openPnl
+            ? {
+                ...current,
+                stats: { ...current.stats, openPnl },
+              }
+            : current,
+        );
+      } catch {
+        // EventSource reconnects automatically; ignore malformed frames.
+      }
+    };
     return () => {
       active = false;
       clearInterval(timer);
       events.close();
+      pnlEvents.close();
     };
   }, []);
   return { data, error };

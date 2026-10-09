@@ -671,6 +671,41 @@ ulong FindPositionTicket(const string symbol, const long magic, const long since
    return best;
   }
 
+//--- Checks the request and projected account margin without sending an order.
+string OpCheckOrder(const string json)
+  {
+   const string symbol = Str(json, "symbol");
+   const string side = Str(json, "side");
+   if(side != "BUY" && side != "SELL") return Reject("invalid order side");
+   if(!SymbolSelect(symbol, true)) return Reject("unknown symbol " + symbol);
+   MqlTradeRequest req;
+   MqlTradeCheckResult check;
+   ZeroMemory(req);
+   ZeroMemory(check);
+   req.action = TRADE_ACTION_DEAL;
+   FillCommon(req, symbol, Dbl(json, "maxSlippage"), Str(json, "comment"), (long)Dbl(json, "magic"));
+   req.type = side == "BUY" ? ORDER_TYPE_BUY : ORDER_TYPE_SELL;
+   req.volume = Dbl(json, "lots");
+   req.price = Quote(symbol, req.type == ORDER_TYPE_BUY);
+   req.sl = Dbl(json, "sl");
+   req.tp = Dbl(json, "tp");
+   ResetLastError();
+   const bool valid = OrderCheck(req, check);
+   const int error = GetLastError();
+   const bool approved = valid && (check.retcode == 0 || check.retcode == TRADE_RETCODE_DONE);
+   string reason = check.comment;
+   if(!approved && StringLen(reason) == 0) reason = "OrderCheck failed: error " + Int(error);
+   //--- The command succeeded even if the terminal declined the request.
+   string out = "{\"ok\":true,\"data\":{\"approved\":" + (approved ? "true" : "false");
+   out += ",\"reason\":" + Esc(reason);
+   out += ",\"retcode\":" + Int((long)check.retcode);
+   out += ",\"equity\":" + Num(check.equity, 8);
+   out += ",\"margin\":" + Num(check.margin, 8);
+   out += ",\"freeMargin\":" + Num(check.margin_free, 8);
+   out += "}}";
+   return out;
+  }
+
 string OpPlace(const string json)
   {
    const string symbol = Str(json, "symbol");
@@ -809,6 +844,7 @@ string Dispatch(const string json)
    if(op == "symbols")   return OpSymbols(json);
    if(op == "positions") return OpPositions();
    if(op == "orders")    return OpOrders();
+   if(op == "check_order") return OpCheckOrder(json);
    if(op == "place")     return OpPlace(json);
    if(op == "close")     return OpClose(json);
    if(op == "modify")    return OpModify(json);
