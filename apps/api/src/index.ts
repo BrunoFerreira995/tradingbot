@@ -9,6 +9,8 @@ import { TradingEngine } from './services/trading-engine';
 import { audit, emit, subscribe } from './services/events';
 import { getSettings, updateSettings } from './services/settings';
 import { getRecentSignals } from './services/recent-signals';
+import { getTradeStats } from './services/trade-stats';
+import { getPerformance } from './services/performance';
 import { StrategyRunner, ensureStrategy } from './services/strategy-runner';
 
 // The application trades MetaTrader 5 and nothing else. There is no mock
@@ -146,6 +148,25 @@ async function brokerIdentity(): Promise<string> {
 }
 
 const engine = new TradingEngine(broker, await brokerIdentity());
+
+// Collect capital while the server runs, including when no dashboard is open.
+let collectingCapital = false;
+setInterval(() => {
+  if (collectingCapital || !broker.connected) return;
+  collectingCapital = true;
+  void Promise.all([broker.getAccount(), broker.getPositions()])
+    .then(([account, positions]) =>
+      getPerformance(account, positions, broker.connected),
+    )
+    .catch((error) =>
+      console.warn(
+        `[performance] ${error instanceof Error ? error.message : 'collection failed'}`,
+      ),
+    )
+    .finally(() => {
+      collectingCapital = false;
+    });
+}, 60000);
 
 const secret = process.env.TRADINGVIEW_WEBHOOK_SECRET ?? '';
 const hmacSecret = process.env.TRADINGVIEW_HMAC_SECRET ?? '';
@@ -363,6 +384,7 @@ const app = new Elysia({ serve: { maxRequestBodySize: 16 * 1024 } })
       orders,
       trades,
       strategies,
+      tradeStats,
     ] = await Promise.all([
       // A disconnected terminal is a normal state, not an error: report zeros
       // and let the dashboard show DISCONNECTED instead of failing the request.
@@ -393,11 +415,23 @@ const app = new Elysia({ serve: { maxRequestBodySize: 16 * 1024 } })
         .select()
         .from(schema.strategies)
         .orderBy(desc(schema.strategies.createdAt)),
+      getTradeStats(),
     ]);
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
-    const daily = trades.filter((trade) => trade.closedAt >= today);
-    const pnl = daily.reduce((sum, trade) => sum + Number(trade.pnl), 0);
+    const performance = await getPerformance(
+      account,
+      positions,
+      broker.connected,
+    );
+    const terminalStats = performance.historyAvailable
+      ? {
+          closedTrades: performance.closedTradeCount,
+          winningTrades: performance.wins,
+          losingTrades: performance.losses,
+          winRate: performance.winRate,
+          dailyPnl: performance.netDaily ?? 0,
+          tradesToday: performance.tradesToday,
+        }
+      : tradeStats;
     return {
       account,
       positions,
@@ -405,18 +439,14 @@ const app = new Elysia({ serve: { maxRequestBodySize: 16 * 1024 } })
       settings,
       signals,
       orders,
-      trades,
+      trades: performance.historyAvailable
+        ? performance.closedTrades.slice(0, 50)
+        : trades,
       strategies,
+      performance,
       stats: {
-        dailyPnl: pnl,
+        ...terminalStats,
         openPnl: positions.reduce((sum, p) => sum + p.unrealizedPnl, 0),
-        tradesToday: daily.length,
-        winningTrades: trades.filter((t) => Number(t.pnl) > 0).length,
-        losingTrades: trades.filter((t) => Number(t.pnl) < 0).length,
-        winRate: trades.length
-          ? (trades.filter((t) => Number(t.pnl) > 0).length / trades.length) *
-            100
-          : 0,
       },
       brokerConnected: broker.connected,
       provider,

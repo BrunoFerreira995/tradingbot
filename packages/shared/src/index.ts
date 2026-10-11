@@ -1,4 +1,10 @@
 import { z } from 'zod';
+export type {
+  TerminalDeal,
+  TerminalHistory,
+  CapitalPoint,
+  PerformanceData,
+} from './performance';
 
 export const signalSchema = z
   .object({

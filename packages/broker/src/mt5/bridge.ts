@@ -2,7 +2,7 @@ import { existsSync, readFileSync, readdirSync, renameSync } from 'node:fs';
 import { readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import type { Rate, Timeframe } from '@trade/shared';
+import type { Rate, Timeframe, TerminalHistory } from '@trade/shared';
 
 /**
  * File transport for the MQL5 bridge service.
@@ -46,6 +46,7 @@ export interface BridgeSymbolState {
   lotStep?: number;
   contractSize?: number;
   tickValue?: number;
+  tickValueLoss?: number;
   tickSize?: number;
   maxSpread?: number;
   maxSlippage?: number;
@@ -286,6 +287,10 @@ export class MT5Bridge {
       symbols?: Record<string, BridgeSymbolState>;
     }>('symbols.json');
     return payload?.symbols ?? {};
+  }
+
+  history(): Promise<TerminalHistory | null> {
+    return this.readSnapshot<TerminalHistory>('history.json');
   }
 
   async positions(): Promise<Record<string, number | string>[]> {

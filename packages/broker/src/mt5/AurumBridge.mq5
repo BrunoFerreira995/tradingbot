@@ -336,6 +336,7 @@ string SymbolJson(const string symbol)
    out += ",\"lotStep\":" + Num(SymbolInfoDouble(symbol, SYMBOL_VOLUME_STEP));
    out += ",\"contractSize\":" + Num(contract);
    out += ",\"tickValue\":" + Num(tickValue);
+   out += ",\"tickValueLoss\":" + Num(SymbolInfoDouble(symbol, SYMBOL_TRADE_TICK_VALUE_LOSS), 8);
    out += ",\"tickSize\":" + Num(SymbolInfoDouble(symbol, SYMBOL_TRADE_TICK_SIZE));
    //--- Price distances must retain the symbol precision, especially for FX.
    out += ",\"maxSpread\":" + Num(maxSpread, digits);
@@ -472,6 +473,52 @@ void SnapshotOrders()
    Write("orders.json", out);
   }
 
+// Read-only full deal history. No order is sent by this publisher.
+void SnapshotHistory()
+  {
+   if(!HistorySelect(0, TimeTradeServer())) return;
+   const long offset = (long)MathRound((double)(TimeTradeServer() - TimeGMT()) / 900.0) * 900;
+   const int total = HistoryDealsTotal();
+   const int first = MathMax(0, total - 50000);
+   string out = "{\"accountId\":" + Esc(IntegerToString((long)AccountInfoInteger(ACCOUNT_LOGIN)));
+   out += ",\"server\":" + Esc(AccountInfoString(ACCOUNT_SERVER));
+   out += ",\"currency\":" + Esc(AccountInfoString(ACCOUNT_CURRENCY));
+   out += ",\"updatedAt\":" + Int((long)TimeGMT());
+   out += ",\"serverOffsetSeconds\":" + Int(offset);
+   out += ",\"complete\":" + (first == 0 ? "true" : "false");
+   out += ",\"openPositionIds\":[";
+   for(int i = 0; i < PositionsTotal(); i++)
+     {
+      const ulong ticket = PositionGetTicket(i);
+      if(i > 0) out += ",";
+      out += Esc(IntegerToString((long)PositionGetInteger(POSITION_IDENTIFIER)));
+     }
+   out += "],\"deals\":[";
+   bool wrote = false;
+   for(int i = first; i < total; i++)
+     {
+      const ulong ticket = HistoryDealGetTicket(i);
+      if(ticket == 0) continue;
+      if(wrote) out += ",";
+      wrote = true;
+      out += "{\"id\":" + Esc(IntegerToString((long)ticket));
+      out += ",\"positionId\":" + Esc(IntegerToString(HistoryDealGetInteger(ticket, DEAL_POSITION_ID)));
+      out += ",\"symbol\":" + Esc(HistoryDealGetString(ticket, DEAL_SYMBOL));
+      out += ",\"type\":" + Int(HistoryDealGetInteger(ticket, DEAL_TYPE));
+      out += ",\"entry\":" + Int(HistoryDealGetInteger(ticket, DEAL_ENTRY));
+      out += ",\"at\":" + Int(HistoryDealGetInteger(ticket, DEAL_TIME) - offset);
+      out += ",\"volume\":" + Num(HistoryDealGetDouble(ticket, DEAL_VOLUME), 8);
+      out += ",\"price\":" + Num(HistoryDealGetDouble(ticket, DEAL_PRICE), 8);
+      out += ",\"profit\":" + Num(HistoryDealGetDouble(ticket, DEAL_PROFIT), 8);
+      out += ",\"commission\":" + Num(HistoryDealGetDouble(ticket, DEAL_COMMISSION), 8);
+      out += ",\"swap\":" + Num(HistoryDealGetDouble(ticket, DEAL_SWAP), 8);
+      out += ",\"fee\":" + Num(HistoryDealGetDouble(ticket, DEAL_FEE), 8);
+      out += "}";
+     }
+   out += "]}";
+   Write("history.json", out);
+  }
+
 void SnapshotAll()
   {
    SnapshotHeartbeat();
@@ -479,6 +526,12 @@ void SnapshotAll()
    SnapshotSymbols();
    SnapshotPositions();
    SnapshotOrders();
+   static datetime historyAt = 0;
+   if(TimeGMT() - historyAt >= 15)
+     {
+      historyAt = TimeGMT();
+      SnapshotHistory();
+     }
   }
 
 //+------------------------------------------------------------------+

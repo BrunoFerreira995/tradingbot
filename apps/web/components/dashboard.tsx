@@ -1,6 +1,7 @@
 'use client';
 import { Radio, ShieldAlert, Wifi } from 'lucide-react';
 import { useDashboard } from '../hooks/use-dashboard';
+import { PerformancePanel } from './performance-panel';
 import { date, money, num, type DashboardData } from '../lib/api';
 function Badge({
   active,
@@ -202,33 +203,37 @@ function Overview({ data }: { data: DashboardData }) {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat
           label="Account Balance"
-          value={money(data.account.balance)}
+          value={money(data.account.balance, data.account.currency)}
           hint={data.mode === 'live' ? 'Real-money account' : 'Paper account'}
         />
         <Stat
           label="Account Equity"
-          value={money(data.account.equity)}
+          value={money(data.account.equity, data.account.currency)}
           hint="Including open P&L"
         />
         <Stat
           label="Free Margin"
-          value={money(data.account.freeMargin)}
+          value={money(data.account.freeMargin, data.account.currency)}
           hint={`Margin level ${num(data.account.marginLevel)}%`}
         />
         <Stat
           label="Daily P&L"
-          value={money(data.stats.dailyPnl)}
-          hint="UTC trading day"
+          value={money(data.stats.dailyPnl, data.account.currency)}
+          hint={
+            data.performance?.historyAvailable
+              ? data.performance.timezone
+              : 'UTC · histórico salvo'
+          }
         />
-        <Stat label="Open P&L" value={money(data.stats.openPnl)} />
+        <Stat
+          label="Open P&L"
+          value={money(data.stats.openPnl, data.account.currency)}
+        />
         <Stat label="Open Positions" value={String(data.positions.length)} />
         <Stat label="Trades Today" value={String(data.stats.tradesToday)} />
-        <Stat
-          label="Win Rate"
-          value={`${num(data.stats.winRate)}%`}
-          hint={`${data.stats.winningTrades} wins · ${data.stats.losingTrades} losses`}
-        />
+        <WinRate data={data} />
       </div>
+      <PerformancePanel data={data} />
       <div className="mt-6 grid gap-5 lg:grid-cols-[1.4fr_1fr]">
         <div className="panel p-6">
           <div className="mb-6 flex items-center justify-between">
@@ -282,7 +287,7 @@ function Overview({ data }: { data: DashboardData }) {
               <div
                 className={`mt-1 font-semibold ${(p?.unrealizedPnl ?? 0) >= 0 ? 'green' : 'red'}`}
               >
-                {p ? money(p.unrealizedPnl) : '—'}
+                {p ? money(p.unrealizedPnl, data.account.currency) : '—'}
               </div>
             </div>
             <div>
@@ -392,7 +397,10 @@ function Risk({ data }: { data: DashboardData }) {
             'Reserved positions (1 each)',
             s.reservedPositionSymbols?.join(', ') || 'None',
           ],
-          ['Maximum daily loss', money(s.maximumDailyLoss)],
+          [
+            'Maximum daily loss',
+            money(s.maximumDailyLoss, data.account.currency),
+          ],
           ['Maximum daily trades', s.maximumDailyTrades],
           ['Position policy', s.positionPolicy],
           ['Allowed symbols', s.allowedSymbols.join(', ')],
@@ -635,6 +643,23 @@ function PairRow({
 
 type TradingTab = 'signals' | 'orders' | 'positions';
 
+function WinRate({ data }: { data: DashboardData }) {
+  const { winRate, winningTrades, losingTrades, closedTrades } = data.stats;
+  return (
+    <Stat
+      label="Win Rate"
+      value={winRate == null ? '—' : `${num(winRate)}%`}
+      hint={
+        winRate == null
+          ? data.performance && !data.performance.historyAvailable
+            ? 'Histórico MT5 indisponível · aguardando atualização da ponte'
+            : 'Awaiting closed trades · Aguardando operações encerradas'
+          : `${winningTrades} wins · ${losingTrades} losses · ${closedTrades} closed · ${data.performance?.historyAvailable ? data.performance.historyComplete ? 'MT5' : 'MT5 · histórico parcial' : 'histórico salvo'}`
+      }
+    />
+  );
+}
+
 function TradingPanel({
   data,
   initialTab,
@@ -645,6 +670,7 @@ function TradingPanel({
   const [tab, setTab] = React.useState<TradingTab>(initialTab);
   return (
     <div className="space-y-5">
+      <WinRate data={data} />
       <StrategyPanel />
       <div role="tablist" aria-label="Trading" className="flex gap-2">
         {(['signals', 'orders', 'positions'] as const).map((item) => (
@@ -743,8 +769,14 @@ export function Dashboard({ section }: { section: string }) {
             value={data.brokerConnected ? 'Connected' : 'Disconnected'}
           />
           <Stat label="Account" value={data.account.id} />
-          <Stat label="Balance" value={money(data.account.balance)} />
-          <Stat label="Equity" value={money(data.account.equity)} />
+          <Stat
+            label="Balance"
+            value={money(data.account.balance, data.account.currency)}
+          />
+          <Stat
+            label="Equity"
+            value={money(data.account.equity, data.account.currency)}
+          />
         </div>
       ) : section === 'logs' ? (
         <Logs />
@@ -758,6 +790,8 @@ export function Dashboard({ section }: { section: string }) {
         />
       ) : section === 'trades' ? (
         <div className="space-y-6">
+          <WinRate data={data} />
+          <PerformancePanel data={data} />
           <section>
             <h2 className="mb-3 text-lg font-bold">
               Open trades ({data.positions.length})

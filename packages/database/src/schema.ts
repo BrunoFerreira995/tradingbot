@@ -22,6 +22,25 @@ export const users = pgTable('users', {
   passwordHash: text('password_hash').notNull(),
   createdAt: created(),
 });
+export const accountObservations = pgTable(
+  'account_observations',
+  {
+    id: id(),
+    accountId: varchar('account_id', { length: 160 }).notNull(),
+    currency: varchar('currency', { length: 12 }).notNull(),
+    bucket: timestamp('bucket', { withTimezone: true }).notNull(),
+    observedAt: timestamp('observed_at', { withTimezone: true }).notNull(),
+    balance: money('balance').notNull(),
+    equity: money('equity').notNull(),
+  },
+  (table) => [
+    uniqueIndex('account_observations_bucket').on(
+      table.accountId,
+      table.currency,
+      table.bucket,
+    ),
+  ],
+);
 export const strategies = pgTable('strategies', {
   id: id(),
   name: varchar('name', { length: 100 }).notNull().unique(),

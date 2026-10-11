@@ -31,6 +31,7 @@ export interface StrategyState {
 }
 
 export interface DashboardData {
+  performance?: import('@trade/shared').PerformanceData;
   account: {
     id: string;
     balance: number;
@@ -75,7 +76,8 @@ export interface DashboardData {
     tradesToday: number;
     winningTrades: number;
     losingTrades: number;
-    winRate: number;
+    closedTrades: number;
+    winRate: number | null;
   };
   brokerConnected: boolean;
   provider: string;
@@ -88,13 +90,15 @@ export type LiveTradingData = Pick<
   'account' | 'positions' | 'price' | 'brokerConnected'
 > & { openPnl: number };
 
-export const money = (value: number | undefined) =>
+export const money = (value: number | undefined, currency = 'USD') =>
   new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'USD',
+    currency,
     maximumFractionDigits: 2,
   }).format(value ?? 0);
 export const num = (value: unknown, digits = 2) =>
   Number(value ?? 0).toFixed(digits);
-export const date = (value: unknown) =>
-  value ? new Date(String(value)).toLocaleString('pt-BR') : '—';
+export const date = (value: unknown, timezone = 'America/Sao_Paulo') =>
+  value
+    ? new Date(String(value)).toLocaleString('pt-BR', { timeZone: timezone })
+    : '—';

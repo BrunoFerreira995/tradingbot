@@ -365,7 +365,7 @@ entry `4189.25`, stop loss `4164.10`, and take profit `4239.10`. These are
 historical test results, not the current position state. Closing and persisting
 that trade was not verified in this session.
 
-The current checks passed: `bun typecheck`, `bun lint`, 123 tests from
+The current checks passed: `bun typecheck`, `bun lint`, 135 tests from
 `bun test`, and bridge compilation with zero errors and zero warnings.
 The Open P&L stream was also verified through the authenticated dashboard
 proxy (HTTP 200), with unauthenticated direct API requests refused (HTTP 403).
@@ -403,3 +403,30 @@ No limit or stop-entry orders (the adapter is market-only), no trailing stops,
 and no partial-fill reconciliation beyond the returned position ticket. Run
 against a demo account first: `TRADING_MODE=paper` and `AUTO_TRADING_ENABLED=false`
 register and record signals without sending any.
+
+### Win rate
+
+Overview, Trading and Trades display the realized win rate: profitable closed trades divided by all closed trades, including break-even trades. When the updated bridge history is available, statistics use fully closed MetaTrader positions, including entry and exit costs, across the published history; the table lists the latest 50 rows. Otherwise, statistics use the persisted bot trade history. With no closed trades, the card shows a dash and waits for closed trades rather than reporting a misleading 0%. Open P&L does not count as a win. The updated bridge includes terminal closures (manual, SL and TP) in its read-only history snapshot. This reporting path does not backfill the legacy PostgreSQL `trades` table.
+
+
+### Capital and performance dashboard
+
+Overview and Trades show balance/equity charts, separate cash flows, daily/monthly/cumulative net results, cash-flow-adjusted return, drawdown, margin and stop risk. Currency comes from the terminal account. `REPORT_TIMEZONE` defaults to `America/Sao_Paulo` and determines reporting days/months and displayed timestamps.
+
+After updating:
+
+```bash
+bun run db:migrate
+bun run mt5:install
+# Restart AurumBridge in the MT5 Navigator > Services.
+bun dev
+# Open http://localhost:3002/dashboard or /trades.
+```
+
+The bridge publishes `aurum-history.json` every 15 seconds, with up to 50,000 deals, the account/server identity, current open position identifiers and profit/commission/swap/fee fields. Reporting uses [MetaTrader deal properties](https://www.mql5.com/en/docs/constants/tradingconstants/dealproperties). Positive/negative BALANCE deals are shown as deposits/withdrawals; CREDIT, CORRECTION and BONUS are separate adjustments. A broker may use balance operations for other purposes, so these labels represent the terminal classification. Charges, commission, interest and other non-cash-flow deal results contribute to net result. Net daily results include costs charged on entry and partial realized exits, while win rate counts only fully closed positions. Netting reversals are excluded from win-rate grouping because individual legs require separate allocation.
+
+The API saves one fresh capital observation per minute, scoped by server, account and currency, including when no page is open. Balance history can be reconstructed from deals. Historical equity is available only from collected observations, with gaps when the API/terminal is offline. Charts send at most 600 points; statistics and drawdown use all collected points. Drawdown subtracts intervening external flows before comparing equity with its prior high, and is limited to the observation period and sampling frequency.
+
+Cash-flow-adjusted return uses [Modified Dietz](https://www.gipsstandards.org/standards/gips-standards-for-firms/gips-standards-handbook-for-firms/), an estimate over the observation period, not exact time-weighted performance. Return and drawdown stay unavailable without complete history. Missing history, partial history and stale data are visible in the panel; a lack of history is never shown as a zero profit. The terminal timestamp conversion uses its current server-to-UTC offset; older deals spanning a broker DST change may require historical timezone correction.
+
+Exposure shows margin committed and lots per symbol instead of summing unlike contract notionals. Stop risk estimates the loss from current price to stop using the terminal's loss tick value in account currency. Missing stops or tick values produce unavailable risk; slippage, gaps and future costs are outside this estimate. Full reporting refreshes through dashboard GET every 15 seconds; live account/position/P&L updates retain their existing stream.
