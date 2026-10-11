@@ -252,7 +252,9 @@ export class MT5Bridge {
     try {
       raw = await readFile(this.path(name), 'utf8');
     } catch {
-      return null;
+      // Snapshot replacement briefly removes the destination file. Heartbeat
+      // freshness is still checked from its original timestamp by isAlive().
+      return (this.cache.get(name) as T | undefined) ?? null;
     }
     try {
       const parsed = JSON.parse(raw) as T;
@@ -361,7 +363,26 @@ export class MT5Bridge {
    * payload, renames it into place atomically, and always removes the command
    * afterwards so a crash cannot leave the service with work for nobody.
    */
-  private async run(
+  private commandQueue: Promise<void> = Promise.resolve();
+
+  private run(
+    command: BridgeCommand,
+    timeoutMs?: number,
+  ): Promise<BridgeReply> {
+    // Reserve and publish the sequence only after earlier commands finish.
+    // Otherwise a later async write can overtake an earlier sequence and the
+    // terminal's high-water mark permanently skips that earlier command.
+    const pending = this.commandQueue.then(() =>
+      this.executeCommand(command, timeoutMs),
+    );
+    this.commandQueue = pending.then(
+      () => {},
+      () => {},
+    );
+    return pending;
+  }
+
+  private async executeCommand(
     command: BridgeCommand,
     timeoutMs?: number,
   ): Promise<BridgeReply> {
@@ -463,6 +484,11 @@ export class MT5Bridge {
 
   refresh() {
     return this.run({ op: 'account' }, this.commandTimeoutMs);
+  }
+
+  async refreshState(): Promise<void> {
+    await this.run({ op: 'account' });
+    await this.run({ op: 'positions' });
   }
 
   /**

@@ -194,6 +194,8 @@ export interface OrderResult {
    */
   brokerProfit?: number;
   reason?: string;
+  /** Distinguishes a terminal rejection from an ambiguous transport/confirmation failure. */
+  rejectionSource?: 'broker' | 'transport' | 'confirmation';
   confirmedAt: string;
 }
 export interface RiskDecision {

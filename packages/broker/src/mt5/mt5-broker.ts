@@ -121,7 +121,7 @@ export class MT5BrokerAdapter implements BrokerAdapter {
   async probe(): Promise<boolean> {
     this.started = true;
     const alive = await this.bridge.isAlive();
-    if (alive && this.watched.size > 0) {
+    if (alive && !this.live && this.watched.size > 0) {
       try {
         await this.bridge.watch([...this.watched]);
       } catch {
@@ -208,6 +208,11 @@ export class MT5BrokerAdapter implements BrokerAdapter {
     return this.bridge.getRates(symbol, period, count);
   }
 
+  async refreshState(): Promise<void> {
+    await this.requireLive();
+    await this.bridge.refreshState();
+  }
+
   async getPositions(): Promise<Position[]> {
     await this.requireLive();
     return (await this.bridge.positions()).map((row) => ({
@@ -248,11 +253,13 @@ export class MT5BrokerAdapter implements BrokerAdapter {
     reason: string,
     brokerOrderId: string,
     positionId?: string,
+    rejectionSource: 'broker' | 'transport' | 'confirmation' = 'broker',
   ): OrderResult {
     return {
       brokerOrderId,
       status: 'REJECTED',
       reason,
+      rejectionSource,
       confirmedAt: new Date().toISOString(),
       ...(positionId ? { positionId } : {}),
     };
@@ -316,11 +323,13 @@ export class MT5BrokerAdapter implements BrokerAdapter {
         magic: this.magic,
       });
     } catch (error) {
-      // A bridge failure is an execution failure, not a business rejection:
-      // nothing is cached so a later signal for the same id can still run.
+      // Cache transport failures too: the terminal may already have executed
+      // the request, so replaying it could open a duplicate position.
       const result = this.reject(
         error instanceof Error ? error.message : 'Broker request failed',
         mark,
+        undefined,
+        'transport',
       );
       this.results.set(order.clientOrderId, result);
       return result;
@@ -345,6 +354,8 @@ export class MT5BrokerAdapter implements BrokerAdapter {
             ? (reply.retcodeText ?? 'Broker rejected order')
             : 'Order filled but no position ticket was returned',
           reply.brokerOrderId ?? mark,
+          undefined,
+          filled ? 'confirmation' : 'broker',
         );
     this.results.set(order.clientOrderId, result);
     return result;

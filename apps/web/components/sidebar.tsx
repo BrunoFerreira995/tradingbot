@@ -2,13 +2,11 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Activity,
   ArrowLeftRight,
   BarChart3,
   FileText,
   Gauge,
   LayoutDashboard,
-  List,
   Settings,
   Shield,
   SlidersHorizontal,
@@ -16,9 +14,7 @@ import {
 } from 'lucide-react';
 const links = [
   { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
-  { href: '/signals', label: 'Signals', icon: Activity },
-  { href: '/orders', label: 'Orders', icon: List },
-  { href: '/positions', label: 'Positions', icon: ArrowLeftRight },
+  { href: '/trading', label: 'Trading', icon: ArrowLeftRight },
   { href: '/trades', label: 'Trades', icon: BarChart3 },
   { href: '/strategies', label: 'Strategies', icon: SlidersHorizontal },
   { href: '/risk', label: 'Risk Control', icon: Shield },
@@ -49,7 +45,7 @@ export function Sidebar() {
           <Link
             key={href}
             href={href}
-            className={`flex shrink-0 items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition ${pathname === href ? 'bg-amber-400/10 text-amber-300' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+            className={`flex shrink-0 items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition ${pathname === href || (href === '/trading' && ['/signals', '/orders', '/positions'].includes(pathname)) ? 'bg-amber-400/10 text-amber-300' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
           >
             <Icon size={16} />
             {label}
@@ -58,8 +54,8 @@ export function Sidebar() {
       </nav>
       <div className="mt-10 hidden rounded-xl border border-amber-400/20 bg-amber-400/5 p-4 text-xs text-slate-400 md:block">
         <div className="mb-2 font-bold text-amber-300">SAFETY NOTICE</div>
-        Every order clears the risk engine and the per-symbol trading lock
-        before routing. The active account and mode are shown on the dashboard.
+        Every order clears the risk engine and the account trading lock before
+        routing. The active account and mode are shown on the dashboard.
       </div>
     </aside>
   );

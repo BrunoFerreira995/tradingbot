@@ -8,6 +8,7 @@ import { safeEqual, verifyWebhook } from './services/webhook-security';
 import { TradingEngine } from './services/trading-engine';
 import { audit, emit, subscribe } from './services/events';
 import { getSettings, updateSettings } from './services/settings';
+import { getRecentSignals } from './services/recent-signals';
 import { StrategyRunner, ensureStrategy } from './services/strategy-runner';
 
 // The application trades MetaTrader 5 and nothing else. There is no mock
@@ -78,7 +79,16 @@ let brokerOnline: boolean | null = null;
  * API can establish once and forget: this picks the terminal up after it
  * starts and notices when the heartbeat goes stale.
  */
-async function reconcileBroker(): Promise<boolean> {
+let pendingReconciliation: Promise<boolean> | undefined;
+function reconcileBroker(): Promise<boolean> {
+  if (!pendingReconciliation)
+    pendingReconciliation = performBrokerReconciliation().finally(() => {
+      pendingReconciliation = undefined;
+    });
+  return pendingReconciliation;
+}
+
+async function performBrokerReconciliation(): Promise<boolean> {
   const online = await broker.probe();
   if (online) {
     const beat = await broker.heartbeat();
@@ -368,11 +378,7 @@ const app = new Elysia({ serve: { maxRequestBodySize: 16 * 1024 } })
       broker.getPositions().catch(() => []),
       broker.getPrice(primarySymbol).catch(() => null),
       getSettings(),
-      db
-        .select()
-        .from(schema.tradingSignals)
-        .orderBy(desc(schema.tradingSignals.receivedAt))
-        .limit(50),
+      getRecentSignals(),
       db
         .select()
         .from(schema.orders)
@@ -439,7 +445,7 @@ const app = new Elysia({ serve: { maxRequestBodySize: 16 * 1024 } })
     let heartbeat: ReturnType<typeof setInterval> | undefined;
     let active = true;
     let busy = false;
-    let previous: number | undefined;
+    let previous: string | undefined;
     const cleanup = () => {
       active = false;
       if (timer) clearInterval(timer);
@@ -462,14 +468,31 @@ const app = new Elysia({ serve: { maxRequestBodySize: 16 * 1024 } })
             if (!active || busy) return;
             busy = true;
             try {
-              const positions = await broker.getPositions();
+              const [account, positions, price] = await Promise.all([
+                broker.getAccount(),
+                broker.getPositions(),
+                broker.getPrice(primarySymbol),
+              ]);
               const openPnl = positions.reduce(
                 (sum, p) => sum + p.unrealizedPnl,
                 0,
               );
-              if (active && openPnl !== previous) {
-                send(`data: ${JSON.stringify({ openPnl })}\n\n`);
-                previous = openPnl;
+              const live = {
+                account,
+                positions,
+                price,
+                openPnl,
+                brokerConnected: broker.connected,
+              };
+              // getPrice timestamps each read; ignore that timestamp so an
+              // unchanged market does not emit a new frame every 10 ms.
+              const signature = JSON.stringify({
+                ...live,
+                price: { bid: price.bid, ask: price.ask, spread: price.spread },
+              });
+              if (active && signature !== previous) {
+                send(`data: ${JSON.stringify(live)}\n\n`);
+                previous = signature;
               }
             } catch {
               // Keep the last value during a torn snapshot or broker outage.

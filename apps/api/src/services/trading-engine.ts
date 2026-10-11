@@ -11,6 +11,9 @@ import type {
 import { OrderManager, PositionManager, RiskManager } from '@trade/trading';
 import { audit, emit } from './events';
 import { getSettings } from './settings';
+import { AccountExecutionQueue } from './account-execution-queue';
+
+const accountExecutions = new AccountExecutionQueue();
 
 export class TradingEngine {
   private risk = new RiskManager();
@@ -29,7 +32,16 @@ export class TradingEngine {
     this.orders = new OrderManager(broker);
     this.positions = new PositionManager(broker);
   }
-  async process(
+  process(
+    signal: TradingSignal,
+    context: { requestId: string; ip: string; receivedAt: number },
+  ) {
+    return accountExecutions.run(this.accountId, () =>
+      this.processSignal(signal, context),
+    );
+  }
+
+  private async processSignal(
     signal: TradingSignal,
     context: { requestId: string; ip: string; receivedAt: number },
   ) {
@@ -64,12 +76,17 @@ export class TradingEngine {
     });
     await emit('signal.received', { signalId: signal.signalId });
     const lock = await sql.reserve();
-    const lockKey = `trade-lock:${this.accountId}:${signal.symbol}`;
-    await lock`select pg_advisory_lock(hashtext(${lockKey}))`;
+    const lockKey = `trade-lock:${this.accountId}`;
+    let locked = false;
     const setStatus = async (
       status: SignalStatus,
       details?: Record<string, unknown>,
     ) => {
+      if (details?.reason && !details.source)
+        details = {
+          ...details,
+          source: status === 'REJECTED' ? 'risk' : 'execution',
+        };
       await db
         .update(schema.tradingSignals)
         .set({
@@ -82,7 +99,11 @@ export class TradingEngine {
         .where(eq(schema.tradingSignals.id, record.id));
       if (details)
         await audit(
-          status === 'REJECTED' ? 'RISK' : 'SIGNAL',
+          String(details.source).startsWith('MetaTrader')
+            ? 'BROKER'
+            : status === 'REJECTED'
+              ? 'RISK'
+              : 'SIGNAL',
           status.toLowerCase(),
           context.requestId,
           context.ip,
@@ -95,6 +116,8 @@ export class TradingEngine {
       });
     };
     try {
+      await lock`select pg_advisory_lock(hashtext(${lockKey}))`;
+      locked = true;
       await db
         .update(schema.tradingSignals)
         .set({ status: 'VALIDATING' })
@@ -112,6 +135,7 @@ export class TradingEngine {
         };
       }
       if (!this.broker.connected) throw new Error('Broker disconnected');
+      await this.broker.refreshState?.();
       const strategy = await db.query.strategies.findFirst({
         where: eq(schema.strategies.name, signal.strategy),
       });
@@ -328,7 +352,11 @@ export class TradingEngine {
       await db
         .update(schema.orders)
         .set({
-          status: result.status,
+          status:
+            result.rejectionSource === 'transport' ||
+            result.rejectionSource === 'confirmation'
+              ? 'FAILED'
+              : result.status,
           brokerOrderId: result.brokerOrderId,
           executedPrice: result.executedPrice?.toString(),
           slippage:
@@ -344,6 +372,21 @@ export class TradingEngine {
           updatedAt: new Date(),
         })
         .where(eq(schema.orders.id, order.id));
+      if (result.status === 'REJECTED' && result.rejectionSource === 'broker') {
+        const reason = `MetaTrader: ${result.reason ?? 'Broker rejected order'}`;
+        await setStatus('REJECTED', {
+          reason,
+          source: 'MetaTrader.OrderSend',
+          brokerOrderId: result.brokerOrderId,
+        });
+        await emit('order.rejected', { orderId: order.id, reason });
+        return {
+          status: 'REJECTED' as SignalStatus,
+          signalId: signal.signalId,
+          orderId: order.id,
+          reason,
+        };
+      }
       if (
         result.status !== 'FILLED' ||
         !result.positionId ||
@@ -384,8 +427,11 @@ export class TradingEngine {
         reason,
       };
     } finally {
-      await lock`select pg_advisory_unlock(hashtext(${lockKey}))`;
-      lock.release();
+      try {
+        if (locked) await lock`select pg_advisory_unlock(hashtext(${lockKey}))`;
+      } finally {
+        lock.release();
+      }
     }
   }
   private async close(position: Position, signalId: string) {

@@ -32,6 +32,8 @@ export interface BrokerAdapter {
   getRates(symbol: string, period: Timeframe, count: number): Promise<Rate[]>;
   getPositions(): Promise<Position[]>;
   getOrders(): Promise<Order[]>;
+  /** Refresh read-only terminal snapshots before making a trading decision. */
+  refreshState?(): Promise<void>;
   /** Read-only terminal preflight; implementations without support must not submit. */
   checkMarketOrder?(order: MarketOrderRequest): Promise<MarketOrderCheck>;
   placeMarketOrder(order: MarketOrderRequest): Promise<OrderResult>;

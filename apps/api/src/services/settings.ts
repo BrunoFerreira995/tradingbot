@@ -28,6 +28,14 @@ export async function getSettings(): Promise<RiskSettings & { id: string }> {
     maximumLotSize: Number(row.maximumLotSize),
     minimumLotSize: Number(row.minimumLotSize ?? 0.01),
     maximumOpenPositions: row.maximumOpenPositions,
+    reservedPositionSymbols: [
+      ...new Set(
+        (process.env.RESERVED_POSITION_SYMBOLS ?? '')
+          .split(',')
+          .map((symbol) => symbol.trim().toUpperCase())
+          .filter(Boolean),
+      ),
+    ],
     maximumPositionsPerSymbol: row.maximumPositionsPerSymbol,
     maximumDailyLoss: Number(row.maximumDailyLoss ?? 100),
     maximumDailyTrades: row.maximumDailyTrades ?? 10,

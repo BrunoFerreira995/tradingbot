@@ -65,6 +65,8 @@ const fields: Record<string, Array<[string, string]>> = {
     ['stopLoss', 'SL'],
     ['takeProfit', 'TP'],
     ['status', 'Status'],
+    ['reason', 'Reason'],
+    ['reasonSource', 'Source'],
     ['totalExecutionMs', 'Execution ms'],
   ],
   orders: [
@@ -84,6 +86,7 @@ const fields: Record<string, Array<[string, string]>> = {
     ['createdAt', 'Created'],
   ],
   positions: [
+    ['id', 'MT5 Ticket'],
     ['symbol', 'Symbol'],
     ['side', 'Side'],
     ['lots', 'Lots'],
@@ -308,6 +311,14 @@ function Overview({ data }: { data: DashboardData }) {
               <p className="muted text-sm">
                 {String(latest.strategy)} · {String(latest.signalId)}
               </p>
+              {typeof latest.reason === 'string' && (
+                <p className="mt-3 text-sm text-amber-300">
+                  {latest.reason}
+                  <span className="muted ml-2">
+                    ({String(latest.reasonSource ?? 'risk')})
+                  </span>
+                </p>
+              )}
               <div className="muted mt-6 text-xs">
                 Received {date(latest.receivedAt)}
               </div>
@@ -376,7 +387,11 @@ function Risk({ data }: { data: DashboardData }) {
         <h2 className="mb-5 text-lg font-semibold">Risk limits</h2>
         {[
           ['Maximum lot', s.maximumLotSize],
-          ['Maximum open positions', s.maximumOpenPositions],
+          ['Maximum non-reserved positions', s.maximumOpenPositions],
+          [
+            'Reserved positions (1 each)',
+            s.reservedPositionSymbols?.join(', ') || 'None',
+          ],
           ['Maximum daily loss', money(s.maximumDailyLoss)],
           ['Maximum daily trades', s.maximumDailyTrades],
           ['Position policy', s.positionPolicy],
@@ -618,8 +633,60 @@ function PairRow({
   );
 }
 
+type TradingTab = 'signals' | 'orders' | 'positions';
+
+function TradingPanel({
+  data,
+  initialTab,
+}: {
+  data: DashboardData;
+  initialTab: TradingTab;
+}) {
+  const [tab, setTab] = React.useState<TradingTab>(initialTab);
+  return (
+    <div className="space-y-5">
+      <StrategyPanel />
+      <div role="tablist" aria-label="Trading" className="flex gap-2">
+        {(['signals', 'orders', 'positions'] as const).map((item) => (
+          <button
+            key={item}
+            id={`trading-tab-${item}`}
+            role="tab"
+            aria-selected={tab === item}
+            aria-controls="trading-panel"
+            onClick={() => setTab(item)}
+            className={`rounded-lg px-4 py-2 text-sm ${tab === item ? 'bg-amber-400/10 text-amber-300' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}
+          >
+            {item[0]!.toUpperCase() + item.slice(1)} ({data[item].length})
+          </button>
+        ))}
+      </div>
+      <div
+        id="trading-panel"
+        role="tabpanel"
+        aria-labelledby={`trading-tab-${tab}`}
+      >
+        <Table
+          rows={data[tab] as Array<Record<string, unknown>>}
+          columns={fields[tab] ?? []}
+          empty={
+            tab === 'signals'
+              ? 'No signals yet. Waiting for a qualifying signal.'
+              : tab === 'positions'
+                ? 'No open positions in MetaTrader 5.'
+                : 'No orders yet.'
+          }
+        />
+      </div>
+    </div>
+  );
+}
+
 export function Dashboard({ section }: { section: string }) {
   const { data, error } = useDashboard();
+  const isTrading = ['trading', 'signals', 'orders', 'positions'].includes(
+    section,
+  );
   if (!data)
     return (
       <div className="panel p-8">
@@ -631,7 +698,9 @@ export function Dashboard({ section }: { section: string }) {
   const title =
     section === 'dashboard'
       ? 'Trading overview'
-      : section[0]!.toUpperCase() + section.slice(1);
+      : isTrading
+        ? 'Trading'
+        : section[0]!.toUpperCase() + section.slice(1);
   return (
     <>
       <Header
@@ -639,7 +708,9 @@ export function Dashboard({ section }: { section: string }) {
         subtitle={
           section === 'dashboard'
             ? 'Your paper trading operation at a glance.'
-            : `Monitor ${section} and execution status.`
+            : isTrading
+              ? 'Signals, orders and positions in one workspace.'
+              : `Monitor ${section} and execution status.`
         }
         data={data}
       />
@@ -677,14 +748,40 @@ export function Dashboard({ section }: { section: string }) {
         </div>
       ) : section === 'logs' ? (
         <Logs />
+      ) : isTrading ? (
+        <TradingPanel
+          key={section}
+          data={data}
+          initialTab={
+            section === 'trading' ? 'positions' : (section as TradingTab)
+          }
+        />
+      ) : section === 'trades' ? (
+        <div className="space-y-6">
+          <section>
+            <h2 className="mb-3 text-lg font-bold">
+              Open trades ({data.positions.length})
+            </h2>
+            <Table
+              rows={data.positions.map((position) => ({
+                ...position,
+                status: 'OPEN',
+              }))}
+              columns={[...fields.positions!, ['status', 'Status']]}
+              empty="No open trades in MetaTrader 5."
+            />
+          </section>
+          <section>
+            <h2 className="mb-3 text-lg font-bold">Closed trades</h2>
+            <Table
+              rows={data.trades}
+              columns={fields.trades!}
+              empty="No closed trades yet. Active trades are listed above."
+            />
+          </section>
+        </div>
       ) : (
         <div className="space-y-5">
-          {/* The runner's live state sits above every section it explains: on
-              /signals it is the answer to an empty table, and on /positions and
-              /orders it is the context for why a position opened or did not. */}
-          {(section === 'signals' ||
-            section === 'positions' ||
-            section === 'orders') && <StrategyPanel />}
           <Table
             rows={
               (data[section as keyof DashboardData] as Array<

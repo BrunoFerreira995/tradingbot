@@ -89,7 +89,7 @@ In development, `POST /api/test/signal` accepts `{ "action": "BUY" }`, `{ "actio
 
 ## Architecture and controls
 
-- `apps/api`: webhook security, API, audit, SSE, and orchestration. Each signal is inserted with a unique `signal_id`. PostgreSQL advisory locking serializes work by account and symbol across API instances.
+- `apps/api`: webhook security, API, audit, SSE, and orchestration. Each signal is inserted with a unique `signal_id`. PostgreSQL advisory locking serializes work by account across API instances.
 - `packages/trading`: lot sizing, risk limits, position policy, and order submission. Broker market orders are never retried blindly after timeout.
 - `packages/strategy`: indicator maths (Bollinger, RSI, ATR) and the strategies built on it. Host-side and unit-tested, so there is one implementation of each rather than one in MQL5 and one in TypeScript.
 - `packages/broker`: the MetaTrader 5 bridge adapter (real market data and order routing) plus an isolated cTrader placeholder. The in-memory double used by tests lives behind `@trade/broker/testing`; the application imports real brokers only and has no mock provider to fall back to.
@@ -102,15 +102,21 @@ In development, `POST /api/test/signal` accepts `{ "action": "BUY" }`, `{ "actio
 
 Before opening an order, the API asks the terminal to run `OrderCheck` with the sized lot and protective prices. Margin, projected equity, free margin and rejection codes come from MetaTrader; contract notional is never used as a substitute for margin. The configured margin usage limit still applies to the terminal's projection. Missing or invalid check data blocks submission. After updating the bridge, run `bun run mt5:install` and restart the `AurumBridge` service in MT5. `OrderCheck` validates without sending an order; a successful check does not guarantee that the subsequent execution will succeed.
 
-The API boots even when the terminal is unreachable: it reports the broker as disconnected, keeps retrying every `MT5_RECONNECT_MS`, and starts serving the moment the AurumBridge service publishes a heartbeat. MetaTrader is the source of truth for account, positions and orders, so nothing is rehydrated from PostgreSQL. Run one API instance: the PostgreSQL lock serializes each account and symbol across processes.
+Broker volume and exposure restrictions also come from MetaTrader `OrderCheck` and the execution response, including `TRADE_RETCODE_LIMIT_VOLUME` (10034). The API no longer computes a combined exposure using one symbol's contract size for every position. The legacy `maximumExposure` database field is retained for compatibility but no longer blocks orders. Local lot, position, daily-loss and margin-usage limits remain separate bot policies.
+
+Signal execution is queued per account across symbols. Before evaluating risk, the API refreshes account and positions from MetaTrader under the account lock. Position rejections include the open count and configured limit; the Signals tab and latest signal card display rejection reasons and their source. Broker execution rejections are recorded as REJECTED, while transport or confirmation failures are FAILED. Historical rejections are not automatically replayed.
+
+The API boots even when the terminal is unreachable: it reports the broker as disconnected, keeps retrying every `MT5_RECONNECT_MS`, and starts serving the moment the AurumBridge service publishes a heartbeat. MetaTrader is the source of truth for account, positions and orders, so nothing is rehydrated from PostgreSQL. Run one API instance: the PostgreSQL lock serializes each account across processes.
 
 The admin key is server-only and required for dashboard data and settings mutations. The dashboard proxies these requests and uses HTTP Basic authentication in production. Put the API behind HTTPS and restrict public access to the webhook and health endpoints. Never put broker credentials, the webhook secret, or the admin key in `NEXT_PUBLIC_` variables.
 
 ## Operational notes
 
-Open P&L uses the authenticated `/api/open-pnl/stream` SSE endpoint, proxied through `/api/data/open-pnl/stream`. The API checks the terminal position snapshot every 10 ms and sends changed values without querying PostgreSQL. The bridge currently publishes snapshots approximately every 600 ms, so a 10 ms check interval does not guarantee a new market value every 10 ms.
+Live trading data uses the authenticated `/api/open-pnl/stream` SSE endpoint, proxied through `/api/data/open-pnl/stream`. The API checks terminal account, position and price snapshots every 10 ms and sends changed values without querying PostgreSQL. Account balance, equity, free margin, open positions, current prices and Open P&L update together. The bridge currently publishes snapshots approximately every 600 ms, so a 10 ms check interval does not guarantee a new market value every 10 ms.
 
-The full dashboard still refreshes every 15 seconds and on signal/order events. The Open P&L stream updates only the aggregate Open P&L; account totals and position table rows use the full dashboard refresh. Stream requests keep the admin key on the server and require the configured dashboard login.
+The full dashboard still fetches signals, orders, closed trades, strategies and settings every 15 seconds and on signal/order events. The continuous stream refreshes live account and position data between those fetches. Stream requests keep the admin key on the server and require the configured dashboard login.
+
+The `/trades` page displays both open trades from MT5 and recorded closed trades. Its initial authenticated GET to `/api/data/dashboard` loads the positions and closed-trade history; the live stream then updates open-trade prices and P&L. Open rows include the MT5 ticket and OPEN status. An empty closed-trades table does not hide active positions.
 
 - `/health`, `/ready`, and `/metrics` expose health and counts. `/api/events/stream` streams signal and order events to the dashboard.
 - Audit entries store category, request ID, IP, event, and safe metadata. Raw payloads in `trading_signals` exclude `secret`.
@@ -122,6 +128,7 @@ The full dashboard still refreshes every 15 seconds and on signal/order events. 
 - `unknown op 'check_order'`: the running service is an older build. Run `bun run mt5:install`, then stop and start `AurumBridge` in the terminal.
 - A signal marked `REJECTED` was not executed. Inspect its reason in `/api/logs`; terminal preflight results appear as `BROKER / order_checked` with source `MetaTrader.OrderCheck`. The bot's configured margin usage cap can still reject a terminal-approved check.
 - Terminal running but the API says disconnected: the API waits for `aurum-heartbeat.json`, so the `AurumBridge` service must be started. Check `bun run mt5:doctor` first.
+- Connection checks read the heartbeat without resending the watch list while connected. The watch list is sent on connection or reconnection, bridge commands are queued in sequence, and overlapping reconnection checks share one pending check. A brief missing snapshot uses its last valid value; a heartbeat older than 15 seconds still reports disconnected.
 - Service responds to `ping` but every `rates` call times out: the service answered with a payload the bot could not parse. The client now says so directly (`wrote a reply that is not valid JSON`) instead of reporting a timeout against a healthy-looking terminal.
 
 ## Pepperstone / MT5
@@ -230,7 +237,7 @@ stall the symbol until the clock produced that exact timestamp again. The first
 pass after a switch re-primes instead of acting, exactly as a restart does, and
 signal ids carry the active timeframe so a switch cannot replay a bar.
 
-The dashboard exposes the same control on `/signals`, `/positions` and `/orders`,
+The dashboard groups Signals, Orders and Positions under one Trading navigation entry at `/trading`, with tabs for each list. Existing `/signals`, `/positions` and `/orders` links open the same workspace with the corresponding tab selected. The strategy control appears above the tabs,
 where `GET /api/strategy` returns per-pair state: last bar, RSI, how far the pair
 is from the RSI extreme and from the band, and a countdown to the next bar. This
 exists because the signals table alone cannot distinguish a quiet strategy from
@@ -254,8 +261,12 @@ it and the runner evaluates each one. `MT5_PRIMARY_SYMBOL` is only the symbol th
 dashboard leads with, and is always included in the list.
 
 ```bash
-MT5_SYMBOLS=XAUUSD,EURUSD,GBPUSD,USDJPY,USDCHF,USDCAD,AUDUSD,NZDUSD,USDCNH,USDSEK
+MT5_SYMBOLS=XAUUSD,EURUSD,GBPUSD,USDJPY,USDCHF,USDCAD,AUDUSD,NZDUSD,USDCNH,USDSEK,BTCUSD
 ```
+
+Bitcoin uses the broker symbol `BTCUSD`, confirmed through MetaTrader quotes and bars. Include it in the risk allowlist before restarting the API; it then appears alongside Forex and gold in the Strategy runner.
+
+`RESERVED_POSITION_SYMBOLS=BTCUSD` permits one BTCUSD position outside `maximumOpenPositions`, which applies to non-reserved symbols. A second BTCUSD position is rejected under every position policy. This reservation only changes the position-count gate: lot, stop, daily-loss, daily-trade, margin and MetaTrader checks still apply. Risk Control displays the reserved symbol. Restart the API after changing this environment setting.
 
 The strategy row carries its own allowlist that the risk manager checks per
 signal, so the runner widens it to match on boot; a symbol missing from
@@ -354,7 +365,7 @@ entry `4189.25`, stop loss `4164.10`, and take profit `4239.10`. These are
 historical test results, not the current position state. Closing and persisting
 that trade was not verified in this session.
 
-The current checks passed: `bun typecheck`, `bun lint`, 107 tests from
+The current checks passed: `bun typecheck`, `bun lint`, 123 tests from
 `bun test`, and bridge compilation with zero errors and zero warnings.
 The Open P&L stream was also verified through the authenticated dashboard
 proxy (HTTP 200), with unauthenticated direct API requests refused (HTTP 403).
@@ -372,14 +383,14 @@ profit when supplied; otherwise it estimates with the symbol tick size and tick
 value. The estimate does not account for commission or swap. It no longer uses
 a hardcoded XAUUSD contract size.
 
-**Position ticket visibility is incomplete.** API position IDs are MT5 tickets,
-and orders show broker IDs, but the position table does not render the ticket
-and closed trades have no dedicated broker-ticket column.
+**Closed-trade ticket visibility is incomplete.** Open positions and the open
+trades table display MT5 tickets, and orders show broker IDs. Closed trades
+still have no dedicated broker-ticket column.
 
 **Open P&L source cadence remains approximately 600 ms.** The API checks every
 10 ms, but the file bridge determines when fresh values become available.
-Only aggregate Open P&L uses this fast stream; other dashboard values keep
-their normal refresh cadence.
+Account, price, positions and aggregate Open P&L use this fast stream; signals,
+orders, trades and settings keep their normal refresh cadence.
 
 Stops below the configured or broker minimum are widened to that floor by the
 risk manager, rather than rejected solely for being below it. Stops exceeding

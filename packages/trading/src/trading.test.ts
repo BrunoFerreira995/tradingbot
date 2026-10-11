@@ -94,6 +94,67 @@ const evaluate = (
   });
 
 describe('risk gates', () => {
+  test('reserves one BTCUSD position even when ordinary capacity is exceeded', () => {
+    const ordinary: Position = {
+      id: 'fx',
+      symbol: 'EURUSD',
+      side: 'BUY',
+      lots: 0.01,
+      entryPrice: 1,
+      currentPrice: 1,
+      unrealizedPnl: 0,
+      openedAt: new Date().toISOString(),
+    };
+    const reservedSettings = {
+      ...settings,
+      reservedPositionSymbols: ['BTCUSD'],
+      allowedSymbols: ['XAUUSD', 'BTCUSD'],
+    };
+    expect(
+      evaluate({
+        signal: { ...signal, symbol: 'BTCUSD' },
+        settings: reservedSettings,
+        positions: [ordinary, { ...ordinary, id: 'fx2' }],
+      }).approved,
+    ).toBe(true);
+    const btc = { ...ordinary, id: 'btc', symbol: 'BTCUSD' };
+    for (const positionPolicy of [
+      'ONE_POSITION_PER_SYMBOL',
+      'ALLOW_MULTIPLE_POSITIONS',
+      'REVERSE_POSITION',
+    ] as const)
+      expect(
+        evaluate({
+          signal: { ...signal, symbol: 'BTCUSD', action: 'SELL' },
+          settings: {
+            ...reservedSettings,
+            positionPolicy,
+            maximumPositionsPerSymbol: 5,
+          },
+          positions: [btc],
+        }).reason,
+      ).toContain('Reserved position already exists');
+    expect(
+      evaluate({ settings: reservedSettings, positions: [btc] }).approved,
+    ).toBe(true);
+    expect(
+      evaluate({ settings: reservedSettings, positions: [btc, ordinary] })
+        .reason,
+    ).toContain('Maximum open positions exceeded');
+    expect(
+      evaluate({
+        signal: { ...signal, symbol: 'BTCUSD' },
+        settings: { ...reservedSettings, emergencyStop: true },
+      }).approved,
+    ).toBe(false);
+    expect(
+      evaluate({
+        signal: { ...signal, symbol: 'BTCUSD' },
+        settings: reservedSettings,
+        dailyPnl: -100,
+      }).approved,
+    ).toBe(false);
+  });
   test('approves BUY and SELL with absolute protective prices', () => {
     expect(evaluate().approved).toBe(true);
     expect(evaluate().stopLoss).toBeCloseTo(2625.15);
@@ -116,7 +177,7 @@ describe('risk gates', () => {
     expect(evaluate({ dailyPnl: -100 }).reason).toContain('Daily loss');
     const open: Position = {
       id: 'p1',
-      symbol: 'XAUUSD',
+      symbol: 'GBPUSD',
       side: 'BUY',
       lots: 0.01,
       entryPrice: 2650,
@@ -127,6 +188,61 @@ describe('risk gates', () => {
     expect(evaluate({ positions: [open] }).reason).toContain(
       'Maximum open positions',
     );
+  });
+
+  test('explains existing-symbol policy before the global position limit', () => {
+    const open: Position = {
+      id: 'gold',
+      symbol: 'XAUUSD',
+      side: 'BUY',
+      lots: 0.01,
+      entryPrice: 2650,
+      currentPrice: 2650,
+      unrealizedPnl: 0,
+      openedAt: new Date().toISOString(),
+    };
+    expect(evaluate({ positions: [open] }).reason).toContain(
+      'Position already exists for XAUUSD',
+    );
+  });
+
+  test('new-symbol rejection includes the current count and configured cap', () => {
+    const open: Position = {
+      id: 'fx',
+      symbol: 'EURUSD',
+      side: 'BUY',
+      lots: 0.01,
+      entryPrice: 1.1,
+      currentPrice: 1.1,
+      unrealizedPnl: 0,
+      openedAt: new Date().toISOString(),
+    };
+    expect(evaluate({ positions: [open] }).reason).toContain('1 open, limit 1');
+  });
+
+  test('reversal must still fit the account-wide projected position cap', () => {
+    const positions: Position[] = ['XAUUSD', 'EURUSD'].map((symbol, index) => ({
+      id: String(index),
+      symbol,
+      side: 'SELL',
+      lots: 0.01,
+      entryPrice: 2650,
+      currentPrice: 2650,
+      unrealizedPnl: 0,
+      openedAt: new Date().toISOString(),
+    }));
+    expect(
+      evaluate({
+        positions,
+        settings: { ...settings, positionPolicy: 'REVERSE_POSITION' },
+      }).reason,
+    ).toContain('Maximum open positions');
+    expect(
+      evaluate({
+        positions: positions.slice(0, 1),
+        settings: { ...settings, positionPolicy: 'REVERSE_POSITION' },
+      }).approved,
+    ).toBe(true);
   });
   test('blocks emergency stop and auto trading off', () => {
     expect(
@@ -178,6 +294,43 @@ describe('risk gates', () => {
       expect(risk.evaluateMarginUsage(margin!, equity!, 50).approved).toBe(
         false,
       );
+  });
+
+  test('leaves broker exposure validation to MetaTrader for mixed symbols', () => {
+    const decision = risk.evaluate({
+      signal: { ...signal, symbol: 'USDSEK', action: 'SELL' },
+      settings: {
+        ...settings,
+        allowedSymbols: ['XAUUSD', 'USDSEK'],
+        maximumOpenPositions: 8,
+        maximumExposure: 1,
+      },
+      account,
+      symbol: { ...symbol, symbol: 'USDSEK', contractSize: 100000 },
+      price: {
+        ...price,
+        symbol: 'USDSEK',
+        bid: 10,
+        ask: 10.001,
+        spread: 0.001,
+      },
+      positions: [
+        {
+          id: 'gold-ticket',
+          symbol: 'XAUUSD',
+          side: 'BUY',
+          lots: 0.01,
+          entryPrice: 4189,
+          currentPrice: 4191,
+          unrealizedPnl: 2,
+          openedAt: new Date().toISOString(),
+        },
+      ],
+      dailyPnl: 0,
+      dailyTrades: 0,
+    });
+    expect(decision.approved).toBe(true);
+    expect(decision.lots).toBe(0.01);
   });
 });
 

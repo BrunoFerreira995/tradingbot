@@ -239,6 +239,18 @@ describe('MT5Bridge', () => {
     expect((await bridge.account())?.balance).toBe(10000);
   });
 
+  test('keeps a fresh cached heartbeat during replacement, but expires it', async () => {
+    const bridge = new MT5Bridge({ directory, heartbeatMaxAgeMs: 1000 });
+    await terminal.publish();
+    expect(await bridge.isAlive()).toBe(true);
+    await rm(terminal.path('heartbeat.json'));
+    expect(await bridge.isAlive()).toBe(true);
+    await terminal.publish({ heartbeatAgeSeconds: 3600 });
+    expect(await bridge.isAlive()).toBe(false);
+    await rm(terminal.path('heartbeat.json'));
+    expect(await bridge.isAlive()).toBe(false);
+  });
+
   test('prefers the directory the service proved over one that only exists', () => {
     const proven = mkdtempSync(join(tmpdir(), 'aurum-proven-'));
     const decoy = mkdtempSync(join(tmpdir(), 'aurum-decoy-'));
@@ -360,6 +372,23 @@ describe('MT5Bridge', () => {
     expect(terminal.pending()).toEqual([]);
   });
 
+  test('a rejected command does not stall the next queued command', async () => {
+    const bridge = new MT5Bridge({ directory, pollIntervalMs: 2 });
+    terminal.respondWith((command) =>
+      command.op === 'find_symbols'
+        ? { ok: false, error: 'temporary terminal failure' }
+        : { ok: true, data: { pong: true } },
+    );
+    const results = await Promise.allSettled([
+      bridge.findSymbols('USD'),
+      bridge.ping(),
+    ]);
+    expect(results[0]?.status).toBe('rejected');
+    expect(results[1]?.status).toBe('fulfilled');
+    expect(terminal.lastSequence).toBe(2);
+    expect(terminal.pending()).toEqual([]);
+  });
+
   test('throws the reason when the service rejects a command', async () => {
     const bridge = new MT5Bridge({ directory, pollIntervalMs: 2 });
     terminal.respondWith(() => ({ ok: false, error: 'market closed' }));
@@ -437,6 +466,21 @@ describe('MT5BrokerAdapter', () => {
     });
   });
 
+  test('healthy connection probes do not resend the watch list', async () => {
+    const adapter = await boot();
+    for (let i = 0; i < 3; i++) expect(await adapter.probe()).toBe(true);
+    expect(
+      terminal.commands().filter((command) => command.op === 'symbols'),
+    ).toHaveLength(1);
+    await terminal.publish({ connected: false });
+    expect(await adapter.probe()).toBe(false);
+    await terminal.publish({ connected: true });
+    expect(await adapter.probe()).toBe(true);
+    expect(
+      terminal.commands().filter((command) => command.op === 'symbols'),
+    ).toHaveLength(2);
+  });
+
   test('maps the account snapshot onto AccountInfo', async () => {
     const adapter = await boot();
     expect(await adapter.getAccount()).toEqual({
@@ -448,6 +492,20 @@ describe('MT5BrokerAdapter', () => {
       marginLevel: 0,
       currency: 'USD',
     });
+  });
+
+  test('refreshes current account and positions from the terminal before decisions', async () => {
+    const adapter = await boot();
+    await adapter.refreshState();
+    expect(
+      terminal
+        .commands()
+        .slice(-2)
+        .map((command) => command.op),
+    ).toEqual(['account', 'positions']);
+    expect(terminal.commands().some((command) => command.op === 'place')).toBe(
+      false,
+    );
   });
 
   test('checks terminal margin without placing an order', async () => {
@@ -531,6 +589,35 @@ describe('MT5BrokerAdapter', () => {
         }),
       ).rejects.toThrow('invalid order check');
     }
+  });
+
+  test('preserves MetaTrader broker volume-limit rejection', async () => {
+    const adapter = await boot();
+    terminal.respondWith(() => ({
+      ok: true,
+      data: {
+        approved: false,
+        reason: 'Volume limit reached',
+        retcode: 10034,
+        equity: 10000,
+        margin: 0,
+        freeMargin: 10000,
+      },
+    }));
+    const result = await adapter.checkMarketOrder({
+      clientOrderId: 'broker-volume-limit',
+      symbol: 'USDSEK',
+      side: 'SELL',
+      lots: 0.01,
+    });
+    expect(result).toMatchObject({
+      approved: false,
+      reason: 'Volume limit reached',
+      retcode: 10034,
+    });
+    expect(terminal.commands().some((command) => command.op === 'place')).toBe(
+      false,
+    );
   });
 
   test('maps a symbol snapshot onto SymbolInfo', async () => {
@@ -729,6 +816,7 @@ describe('MT5BrokerAdapter', () => {
     });
     expect(result.status).toBe('REJECTED');
     expect(result.reason).toMatch(/no position ticket/);
+    expect(result.rejectionSource).toBe('confirmation');
   });
 
   test('caches a transport failure so a retried signal cannot double-fill', async () => {
@@ -742,6 +830,7 @@ describe('MT5BrokerAdapter', () => {
     };
     const first = await adapter.placeMarketOrder(order);
     expect(first.status).toBe('REJECTED');
+    expect(first.rejectionSource).toBe('transport');
     const before = terminal.lastSequence;
     await adapter.placeMarketOrder(order);
     expect(terminal.lastSequence).toBe(before);

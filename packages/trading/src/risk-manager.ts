@@ -13,6 +13,7 @@ export interface RiskSettings {
   maximumLotSize: number;
   minimumLotSize: number;
   maximumOpenPositions: number;
+  reservedPositionSymbols?: string[];
   maximumPositionsPerSymbol: number;
   maximumDailyLoss: number;
   maximumDailyTrades: number;
@@ -90,16 +91,32 @@ export class RiskManager {
     )
       return reject('Daily trade limit exceeded');
     const same = positions.filter((p) => p.symbol === signal.symbol);
+    const reserved = new Set(s.reservedPositionSymbols ?? []);
+    const hasReservedSlot = reserved.has(signal.symbol);
+    if (hasReservedSlot && same.length > 0)
+      return reject(
+        `Reserved position already exists for ${signal.symbol} (limit 1)`,
+      );
     const reversing =
       s.positionPolicy === 'REVERSE_POSITION' &&
       same.length > 0 &&
       same.every((p) => p.side !== signal.action);
-    if (!reversing && positions.length >= s.maximumOpenPositions)
-      return reject('Maximum open positions exceeded');
-    if (!reversing && same.length >= s.maximumPositionsPerSymbol)
-      return reject('Maximum positions per symbol exceeded');
     if (s.positionPolicy === 'ONE_POSITION_PER_SYMBOL' && same.length)
-      return reject('Position already exists');
+      return reject(
+        `Position already exists for ${signal.symbol} (ONE_POSITION_PER_SYMBOL)`,
+      );
+    if (!reversing && same.length >= s.maximumPositionsPerSymbol)
+      return reject(
+        `Maximum positions per symbol exceeded for ${signal.symbol} (${same.length}/${s.maximumPositionsPerSymbol})`,
+      );
+    const ordinaryCount = positions.filter(
+      (p) => !reserved.has(p.symbol),
+    ).length;
+    const projectedCount = ordinaryCount - (reversing ? same.length : 0) + 1;
+    if (!hasReservedSlot && projectedCount > s.maximumOpenPositions)
+      return reject(
+        `Maximum open positions exceeded (${ordinaryCount} open, limit ${s.maximumOpenPositions})`,
+      );
     const requested = signal.stopLoss ?? symbol.defaultStopLoss;
     if (s.requireStopLoss && !signal.stopLoss)
       return reject('Stop loss required');
@@ -141,14 +158,9 @@ export class RiskManager {
     if (lots < s.minimumLotSize) return reject('Lot below minimum');
     // Margin is checked after sizing through the terminal's OrderCheck.
     // Contract notional multiplied by marginRate is not broker margin.
-    const exposure =
-      positions.reduce(
-        (sum, p) => sum + p.lots * p.currentPrice * symbol.contractSize,
-        0,
-      ) +
-      lots * price.ask * symbol.contractSize;
-    if (exposure > s.maximumExposure)
-      return reject('Maximum exposure exceeded');
+    // Broker volume/exposure limits are validated by MetaTrader OrderCheck.
+    // Multiplying mixed-symbol positions by this symbol's contract size would
+    // invent an exposure amount and reject valid orders before the terminal.
     const entry = signal.action === 'BUY' ? price.ask : price.bid;
     const takeProfitDistance = signal.takeProfit ?? symbol.defaultTakeProfit;
     return {

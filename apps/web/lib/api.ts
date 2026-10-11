@@ -58,6 +58,7 @@ export interface DashboardData {
     emergencyStop: boolean;
     maximumLotSize: number;
     maximumOpenPositions: number;
+    reservedPositionSymbols?: string[];
     maximumDailyLoss: number;
     maximumDailyTrades: number;
     positionPolicy: string;
@@ -82,6 +83,11 @@ export interface DashboardData {
   symbol: string;
   symbols?: string[];
 }
+export type LiveTradingData = Pick<
+  DashboardData,
+  'account' | 'positions' | 'price' | 'brokerConnected'
+> & { openPnl: number };
+
 export const money = (value: number | undefined) =>
   new Intl.NumberFormat('en-US', {
     style: 'currency',
