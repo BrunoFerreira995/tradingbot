@@ -23,7 +23,7 @@ export const signalSchema = z
       .string()
       .min(1)
       .max(30)
-      .regex(/^[A-Z0-9._-]+$/),
+      .regex(/^[a-zA-Z0-9._-]+$/),
     action: z.enum(['BUY', 'SELL', 'CLOSE', 'CLOSE_LONG', 'CLOSE_SHORT']),
     orderType: z.literal('MARKET').default('MARKET'),
     lots: z.number().positive().finite().optional(),

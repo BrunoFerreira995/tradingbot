@@ -401,9 +401,11 @@ function Risk({ data }: { data: DashboardData }) {
             'Maximum daily loss',
             money(s.maximumDailyLoss, data.account.currency),
           ],
-          ['Maximum daily trades', s.maximumDailyTrades],
           ['Position policy', s.positionPolicy],
-          ['Allowed symbols', s.allowedSymbols.join(', ')],
+          [
+            'Close on opposite signal',
+            s.closeOnOppositeSignal ? 'Enabled' : 'Disabled',
+          ],
           ['Stop loss required', s.requireStopLoss ? 'Yes' : 'No'],
         ].map(([label, value]) => (
           <div
@@ -414,7 +416,261 @@ function Risk({ data }: { data: DashboardData }) {
             <span className="text-right font-semibold">{value}</span>
           </div>
         ))}
+        <DailyTradeLimitControl
+          limit={s.maximumDailyTrades}
+          tradesToday={data.stats.tradesToday}
+        />
+        <AllowedSymbolsControl
+          symbols={s.allowedSymbols}
+          availableSymbols={data.symbols ?? []}
+        />
       </div>
+    </div>
+  );
+}
+function DailyTradeLimitControl({
+  limit,
+  tradesToday,
+}: {
+  limit: number;
+  tradesToday: number;
+}) {
+  const [draft, setDraft] = React.useState(String(limit));
+  const [savedLimit, setSavedLimit] = React.useState(limit);
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState('');
+  const [success, setSuccess] = React.useState(false);
+  const previousLimit = React.useRef(limit);
+  React.useEffect(() => {
+    const previous = previousLimit.current;
+    setDraft((current) =>
+      current === String(previous) ? String(limit) : current,
+    );
+    setSavedLimit(limit);
+    previousLimit.current = limit;
+  }, [limit]);
+  const save = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const maximumDailyTrades = Number(draft);
+    if (
+      !draft.trim() ||
+      !Number.isInteger(maximumDailyTrades) ||
+      maximumDailyTrades < 0 ||
+      maximumDailyTrades > 2147483647
+    ) {
+      setError('Informe um número inteiro entre 0 e 2147483647.');
+      return;
+    }
+    setBusy(true);
+    setError('');
+    setSuccess(false);
+    try {
+      const response = await fetch('/api/control', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ maximumDailyTrades }),
+      });
+      const result = await response.json();
+      if (!response.ok)
+        throw new Error(result.error ?? `Request failed: ${response.status}`);
+      setSavedLimit(result.maximumDailyTrades);
+      setDraft(String(result.maximumDailyTrades));
+      setSuccess(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <form onSubmit={save} className="mt-5">
+      <label htmlFor="daily-trade-limit" className="text-sm font-semibold">
+        Maximum daily trades
+      </label>
+      <p id="daily-trade-limit-help" className="muted my-2 text-xs">
+        Operações hoje: {tradesToday} / {savedLimit}. Para liberar novas
+        operações, salve um limite maior que a quantidade já realizada. Zero
+        bloqueia novas operações.
+      </p>
+      <div className="flex gap-2">
+        <input
+          id="daily-trade-limit"
+          aria-describedby="daily-trade-limit-help"
+          type="number"
+          min={0}
+          max={2147483647}
+          step={1}
+          required
+          value={draft}
+          disabled={busy}
+          onChange={(event) => {
+            setDraft(event.target.value);
+            setSuccess(false);
+          }}
+          className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm"
+        />
+        <button type="submit" disabled={busy} className="btn">
+          {busy ? 'Salvando…' : 'Salvar limite'}
+        </button>
+      </div>
+      {error && (
+        <p role="alert" className="red mt-2 text-xs">
+          {error}
+        </p>
+      )}
+      {success && (
+        <p role="status" className="green mt-2 text-xs">
+          Limite diário salvo.
+        </p>
+      )}
+    </form>
+  );
+}
+function AllowedSymbolsControl({
+  symbols,
+  availableSymbols,
+}: {
+  symbols: string[];
+  availableSymbols: string[];
+}) {
+  const [selected, setSelected] = React.useState(symbols);
+  const [extraSymbols, setExtraSymbols] = React.useState<string[]>([]);
+  const [newSymbol, setNewSymbol] = React.useState('');
+  const [gasolineSymbol, setGasolineSymbol] = React.useState('Gasoline');
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState('');
+  const [success, setSuccess] = React.useState(false);
+  const saved = JSON.stringify(symbols);
+  React.useEffect(() => {
+    setSelected(JSON.parse(saved) as string[]);
+  }, [saved]);
+  const options = [
+    ...new Set(
+      [...availableSymbols, ...symbols, ...extraSymbols, gasolineSymbol].filter(
+        Boolean,
+      ),
+    ),
+  ];
+  const toggle = async (symbol: string) => {
+    const allowedSymbols = selected.includes(symbol)
+      ? selected.filter((item) => item !== symbol)
+      : [...selected, symbol];
+    if (allowedSymbols.length > 50) {
+      setError('Use no máximo 50 símbolos.');
+      return;
+    }
+    setBusy(true);
+    setError('');
+    setSuccess(false);
+    try {
+      const response = await fetch('/api/control', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ allowedSymbols }),
+      });
+      const result = await response.json();
+      if (!response.ok)
+        throw new Error(result.error ?? `Request failed: ${response.status}`);
+      setExtraSymbols((current) => [...new Set([...current, ...selected])]);
+      setSelected(result.allowedSymbols as string[]);
+      setSuccess(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="mt-5">
+      <h3 className="text-sm font-semibold">Allowed symbols</h3>
+      <p className="muted my-2 text-xs">
+        Cada toggle salva imediatamente. Desativar todos bloqueia novos sinais
+        de todos os símbolos.
+      </p>
+      <label className="mb-3 block text-xs">
+        Gasolina · Commodity — código no MT5
+        <input
+          value={gasolineSymbol}
+          placeholder="Código da gasolina na sua corretora"
+          disabled={busy || selected.includes(gasolineSymbol)}
+          onChange={(event) => setGasolineSymbol(event.target.value.trim())}
+          className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm"
+        />
+        <span className="muted mt-1 block">
+          Informe o código exato exibido na Observação do Mercado do MT5. O
+          ticker informado é gasoline, em minúsculas.
+        </span>
+      </label>
+      <div className="space-y-2">
+        {options.map((symbol) => {
+          const enabled = selected.includes(symbol);
+          return (
+            <div
+              key={symbol}
+              className="flex items-center justify-between gap-3 rounded-lg border border-slate-700 p-3"
+            >
+              <div>
+                <span className="text-sm font-semibold">
+                  {symbol === gasolineSymbol ? 'Gasolina · Commodity' : symbol}
+                </span>
+                {symbol === gasolineSymbol && (
+                  <div className="muted text-xs">{symbol}</div>
+                )}
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={enabled}
+                aria-label={`Permitir ${symbol}`}
+                disabled={busy}
+                onClick={() => void toggle(symbol)}
+                className={`relative h-6 w-11 rounded-full transition-colors disabled:opacity-50 ${enabled ? 'bg-emerald-500' : 'bg-slate-700'}`}
+              >
+                <span
+                  className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-all ${enabled ? 'left-6' : 'left-1'}`}
+                />
+              </button>
+            </div>
+          );
+        })}
+      </div>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          const added = newSymbol.trim();
+          if (!added) return;
+          setExtraSymbols((current) => [...new Set([...current, added])]);
+          setNewSymbol('');
+        }}
+        className="mt-3 flex gap-2"
+      >
+        <input
+          aria-label="Novo símbolo MT5"
+          placeholder="Código exato do MT5"
+          value={newSymbol}
+          disabled={busy}
+          onChange={(event) => setNewSymbol(event.target.value)}
+          pattern="[^,;\\s]+"
+          className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm"
+        />
+        <button
+          type="submit"
+          disabled={busy || !newSymbol.trim()}
+          className="btn"
+        >
+          Adicionar
+        </button>
+      </form>
+      {error && (
+        <p role="alert" className="red mt-2 text-xs">
+          {error}
+        </p>
+      )}
+      {success && (
+        <p role="status" className="green mt-2 text-xs">
+          Símbolos salvos.
+        </p>
+      )}
     </div>
   );
 }
@@ -488,7 +744,8 @@ import type { SymbolState } from '../lib/api';
 
 /** `m:ss`, so a 25-minute wait does not read as 1500. */
 function countdown(seconds: number | null): string {
-  if (seconds === null || seconds <= 0) return 'closing';
+  if (seconds === null) return '—';
+  if (seconds <= 0) return 'closing';
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
   return `${m}:${String(s).padStart(2, '0')}`;
@@ -560,6 +817,14 @@ function StrategyPanel() {
         </div>
       </div>
 
+      {state.detail && (
+        <p
+          role="status"
+          className={`mb-4 text-sm ${state.status === 'BLOCKED' ? 'red' : 'muted'}`}
+        >
+          {state.detail}
+        </p>
+      )}
       {state.status === 'DISABLED' ? (
         <div className="muted text-sm">
           The strategy runner is not enabled. Set <code>STRATEGY_RUNNER</code>{' '}
@@ -614,7 +879,7 @@ function PairRow({
     );
   // A negative RSI distance means the extreme is already met and only the band
   // is outstanding, which is the near-miss case worth showing as such.
-  const rsiMet = (entry.rsiToTrigger ?? 0) <= 0;
+  const rsiMet = entry.rsiToTrigger !== undefined && entry.rsiToTrigger <= 0;
   const bandMet = (entry.bandToTrigger ?? 1) <= 0;
   return (
     <tr>
@@ -624,15 +889,24 @@ function PairRow({
           {entry.side ? `${entry.side} ` : ''}
           {entry.status}
         </span>
+        {entry.status === 'BLOCKED' && entry.detail && (
+          <div className="red mt-1 max-w-xs text-xs">{entry.detail}</div>
+        )}
       </td>
-      <td>{num(entry.rsi, 1)}</td>
+      <td>{entry.rsi === undefined ? '—' : num(entry.rsi, 1)}</td>
       <td className={rsiMet ? 'green' : ''}>
-        {rsiMet ? 'met' : `${num(entry.rsiToTrigger, 1)} pts`}
+        {entry.rsiToTrigger === undefined
+          ? '—'
+          : rsiMet
+            ? 'met'
+            : `${num(entry.rsiToTrigger, 1)} pts`}
       </td>
       <td className={bandMet ? 'green' : ''}>
-        {bandMet
-          ? 'touched'
-          : `${((entry.bandToTrigger ?? 0) * 100).toFixed(1)}% of band`}
+        {entry.bandToTrigger === undefined
+          ? '—'
+          : bandMet
+            ? 'touched'
+            : `${((entry.bandToTrigger ?? 0) * 100).toFixed(1)}% of band`}
       </td>
       <td>{entry.close ? num(entry.close, entry.close > 100 ? 2 : 5) : '—'}</td>
       <td className="muted">{countdown(entry.secondsToNextBar)}</td>
@@ -654,7 +928,7 @@ function WinRate({ data }: { data: DashboardData }) {
           ? data.performance && !data.performance.historyAvailable
             ? 'Histórico MT5 indisponível · aguardando atualização da ponte'
             : 'Awaiting closed trades · Aguardando operações encerradas'
-          : `${winningTrades} wins · ${losingTrades} losses · ${closedTrades} closed · ${data.performance?.historyAvailable ? data.performance.historyComplete ? 'MT5' : 'MT5 · histórico parcial' : 'histórico salvo'}`
+          : `${winningTrades} wins · ${losingTrades} losses · ${closedTrades} closed · ${data.performance?.historyAvailable ? (data.performance.historyComplete ? 'MT5' : 'MT5 · histórico parcial') : 'histórico salvo'}`
       }
     />
   );

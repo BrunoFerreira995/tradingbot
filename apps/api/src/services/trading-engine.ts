@@ -8,7 +8,12 @@ import type {
   Side,
   OrderResult,
 } from '@trade/shared';
-import { OrderManager, PositionManager, RiskManager } from '@trade/trading';
+import {
+  OrderManager,
+  PositionManager,
+  RiskManager,
+  resolveOppositeSignal,
+} from '@trade/trading';
 import { audit, emit } from './events';
 import { getSettings } from './settings';
 import { AccountExecutionQueue } from './account-execution-queue';
@@ -177,8 +182,13 @@ export class TradingEngine {
           .where(gte(schema.trades.closedAt, today)),
       ]);
       const riskStart = Date.now();
-      const decision = this.risk.evaluate({
+      const executionSignal = resolveOppositeSignal(
         signal,
+        positions,
+        settings.closeOnOppositeSignal === true,
+      );
+      const decision = this.risk.evaluate({
+        signal: executionSignal,
         settings,
         account,
         symbol,
@@ -214,16 +224,30 @@ export class TradingEngine {
           signalId: signal.signalId,
         };
       }
-      if (signal.action.startsWith('CLOSE')) {
+      if (executionSignal.action.startsWith('CLOSE')) {
         await setStatus('APPROVED');
         const targets = positions.filter(
           (p) =>
             p.symbol === signal.symbol &&
-            (signal.action === 'CLOSE' ||
-              (signal.action === 'CLOSE_LONG'
+            (executionSignal.action === 'CLOSE' ||
+              (executionSignal.action === 'CLOSE_LONG'
                 ? p.side === 'BUY'
                 : p.side === 'SELL')),
         );
+        if (executionSignal !== signal)
+          await audit(
+            'STRATEGY',
+            'opposite_signal_close',
+            context.requestId,
+            context.ip,
+            {
+              signalId: signal.signalId,
+              symbol: signal.symbol,
+              incomingAction: signal.action,
+              closeAction: executionSignal.action,
+              positionIds: targets.map((position) => position.id),
+            },
+          );
         for (const position of targets) await this.close(position, record.id);
         await setStatus('EXECUTED');
         return {
@@ -438,6 +462,13 @@ export class TradingEngine {
     const result = await this.broker.closePosition(position.id);
     if (result.status !== 'FILLED' || result.executedPrice === undefined)
       throw new Error(result.reason ?? 'Close not confirmed');
+    await this.broker.refreshState?.();
+    if (
+      (await this.broker.getPositions()).some((open) => open.id === position.id)
+    )
+      throw new Error(
+        'Close not reflected by MetaTrader; position remains open',
+      );
     await this.persistClose(position, signalId, result.executedPrice, result);
   }
   /**

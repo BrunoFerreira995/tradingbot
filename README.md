@@ -261,16 +261,20 @@ it and the runner evaluates each one. `MT5_PRIMARY_SYMBOL` is only the symbol th
 dashboard leads with, and is always included in the list.
 
 ```bash
-MT5_SYMBOLS=XAUUSD,EURUSD,GBPUSD,USDJPY,USDCHF,USDCAD,AUDUSD,NZDUSD,USDCNH,USDSEK,BTCUSD
+MT5_SYMBOLS=XAUUSD,EURUSD,GBPUSD,USDJPY,USDCHF,USDCAD,AUDUSD,NZDUSD,USDCNH,USDSEK,BTCUSD,Gasoline
 ```
 
 Bitcoin uses the broker symbol `BTCUSD`, confirmed through MetaTrader quotes and bars. Include it in the risk allowlist before restarting the API; it then appears alongside Forex and gold in the Strategy runner.
 
+Gasoline uses the broker ticker `Gasoline`, confirmed through the MT5 bridge symbol search. Symbol case is preserved in `MT5_SYMBOLS`, signals and risk settings. Enable `Gasoline` in Allowed symbols to evaluate it; `gasoline` and `GASOLINE` are different codes. Disabled symbols are skipped without stopping other enabled symbols.
+
 `RESERVED_POSITION_SYMBOLS=BTCUSD` permits one BTCUSD position outside `maximumOpenPositions`, which applies to non-reserved symbols. A second BTCUSD position is rejected under every position policy. This reservation only changes the position-count gate: lot, stop, daily-loss, daily-trade, margin and MetaTrader checks still apply. Risk Control displays the reserved symbol. Restart the API after changing this environment setting.
 
 The strategy row carries its own allowlist that the risk manager checks per
-signal, so the runner widens it to match on boot; a symbol missing from
-`risk_settings.allowedSymbols` is a boot-time refusal, not a silent no-op.
+signal, so the runner widens it to match enabled symbols on boot and when
+Allowed symbols changes. Disabled watched symbols are shown as BLOCKED and
+skipped; the other enabled symbols continue. At least one watched symbol must
+be enabled for the runner to start.
 
 Symbols are independent. Each keeps its own last acted bar, so one symbol's tick
 never advances another's, and a symbol whose bars fail to arrive does not stop the
@@ -365,7 +369,7 @@ entry `4189.25`, stop loss `4164.10`, and take profit `4239.10`. These are
 historical test results, not the current position state. Closing and persisting
 that trade was not verified in this session.
 
-The current checks passed: `bun typecheck`, `bun lint`, 135 tests from
+The current checks passed: `bun typecheck`, `bun lint`, 138 tests from
 `bun test`, and bridge compilation with zero errors and zero warnings.
 The Open P&L stream was also verified through the authenticated dashboard
 proxy (HTTP 200), with unauthenticated direct API requests refused (HTTP 403).
@@ -430,3 +434,7 @@ The API saves one fresh capital observation per minute, scoped by server, accoun
 Cash-flow-adjusted return uses [Modified Dietz](https://www.gipsstandards.org/standards/gips-standards-for-firms/gips-standards-handbook-for-firms/), an estimate over the observation period, not exact time-weighted performance. Return and drawdown stay unavailable without complete history. Missing history, partial history and stale data are visible in the panel; a lack of history is never shown as a zero profit. The terminal timestamp conversion uses its current server-to-UTC offset; older deals spanning a broker DST change may require historical timezone correction.
 
 Exposure shows margin committed and lots per symbol instead of summing unlike contract notionals. Stop risk estimates the loss from current price to stop using the terminal's loss tick value in account currency. Missing stops or tick values produce unavailable risk; slippage, gaps and future costs are outside this estimate. Full reporting refreshes through dashboard GET every 15 seconds; live account/position/P&L updates retain their existing stream.
+
+### Close on opposite signal
+
+`CLOSE_ON_OPPOSITE_SIGNAL=true` turns BUY into CLOSE_SHORT when that symbol has a SELL position, and SELL into CLOSE_LONG when it has a BUY position. Only the opposite positions of the incoming symbol are closed. The signal does not open a replacement position; a later entry signal may open one. This also applies to the reserved BTCUSD slot. Emergency stop, auto-trading, symbol allowlists and strategy enablement still apply; entry-only position/daily limits do not block the close. The API refreshes terminal positions after OrderSend and only records a successful close when the position disappears. Risk Control shows whether this behavior is enabled.

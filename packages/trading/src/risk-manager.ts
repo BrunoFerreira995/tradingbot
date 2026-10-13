@@ -9,6 +9,7 @@ import type {
 import { LotSizeCalculator } from './lot-size-calculator';
 export interface RiskSettings {
   autoTradingEnabled: boolean;
+  closeOnOppositeSignal?: boolean;
   emergencyStop: boolean;
   maximumLotSize: number;
   minimumLotSize: number;

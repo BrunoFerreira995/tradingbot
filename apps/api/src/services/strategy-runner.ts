@@ -38,6 +38,8 @@ export interface StrategyRunnerOptions {
   history?: number;
   pollIntervalMs?: number;
   config?: Partial<typeof defaultMeanReversionConfig>;
+  /** Live risk allowlist; disabled symbols must not stop enabled symbols. */
+  getAllowedSymbols?: () => Promise<string[]>;
   /**
    * Observability sink. Injected rather than imported so the evaluation logic
    * stays independent of the database and can be driven by a test, and so a
@@ -201,6 +203,19 @@ export class StrategyRunner {
     return { ...this.snapshot };
   }
 
+  /** Exposes a startup refusal instead of leaving an unevaluated IDLE state. */
+  blockStartup(detail: string): void {
+    for (const symbol of this.options.symbols) {
+      this.record(symbol, {
+        status: 'BLOCKED',
+        lastBarAt: null,
+        secondsToNextBar: null,
+        detail,
+      });
+    }
+    this.set('BLOCKED', detail);
+  }
+
   /**
    * Switches the timeframe the runner trades on, without a restart.
    *
@@ -295,11 +310,25 @@ export class StrategyRunner {
     }
 
     let best: Outcome = { status: 'IDLE' };
+    const allowedSymbols = this.options.getAllowedSymbols
+      ? new Set(await this.options.getAllowedSymbols())
+      : undefined;
     const consider = (outcome: Outcome) => {
       if (SEVERITY[outcome.status] > SEVERITY[best.status]) best = outcome;
     };
 
     for (const symbol of symbols) {
+      if (allowedSymbols && !allowedSymbols.has(symbol)) {
+        this.lastBarTimes.delete(symbol);
+        this.lastFailures.delete(symbol);
+        this.record(symbol, {
+          status: 'BLOCKED',
+          lastBarAt: null,
+          secondsToNextBar: null,
+          detail: 'Disabled in Allowed symbols',
+        });
+        continue;
+      }
       try {
         consider(await this.evaluateSymbol(symbol, timeframe, history));
         this.lastFailures.delete(symbol);
@@ -324,6 +353,11 @@ export class StrategyRunner {
         consider({ status: 'BLOCKED', detail: message });
       }
     }
+    if (best.status === 'IDLE' && symbols.length > 0)
+      return this.set(
+        'BLOCKED',
+        'No watched symbols enabled in Allowed symbols',
+      );
     return this.set(best.status, best.detail);
   }
 
@@ -401,7 +435,23 @@ export class StrategyRunner {
     timeframe: Timeframe,
     history: number,
   ): Promise<Outcome> {
-    const rates = await this.broker.getRates(symbol, timeframe, history);
+    // Two bars are enough to detect a new closed candle. Keep the full RSI
+    // warm-up for priming and decisions, not for every unchanged-bar poll.
+    const primed = this.lastBarTimes.has(symbol);
+    let rates = await this.broker.getRates(
+      symbol,
+      timeframe,
+      primed ? 2 : history,
+    );
+    if (
+      primed &&
+      rates.length >= 2 &&
+      lastClosedBarTime(rates) !== this.lastBarTimes.get(symbol)
+    ) {
+      rates = await this.broker.getRates(symbol, timeframe, history);
+    }
+    // A live timeframe switch may happen while the bridge request is pending.
+    if (timeframe !== this.timeframe) return { status: 'WAITING_BAR' };
     if (rates.length === 0) {
       const detail = `no ${timeframe} bars returned for ${symbol}`;
       this.record(symbol, {
@@ -465,11 +515,8 @@ export class StrategyRunner {
       });
       return { status: 'WAITING_BAR' };
     }
-    this.lastBarTimes.set(symbol, barTime);
-
-    // The stop is a percentage of this reference. Mid is used rather than the
-    // side-specific price because the side is what the evaluation is deciding.
-    const price = await this.broker.getPrice(symbol);
+    // Entry conditions depend on closed bars, not on the quote. Obtain the
+    // price only for actual setups and then size protective distances from mid.
     const decision = evaluateMeanReversion(
       rates,
       {
@@ -478,10 +525,11 @@ export class StrategyRunner {
         symbol,
         timeframe,
       },
-      (price.bid + price.ask) / 2,
+      1,
     );
 
     if (!decision) {
+      this.lastBarTimes.set(symbol, barTime);
       this.record(symbol, {
         status: 'NO_SETUP',
         lastBarAt: iso(barTime),
@@ -493,10 +541,14 @@ export class StrategyRunner {
       return { status: 'NO_SETUP' };
     }
 
+    const price = await this.broker.getPrice(symbol);
+    if (timeframe !== this.timeframe) return { status: 'WAITING_BAR' };
+    const mid = (price.bid + price.ask) / 2;
     const signal = this.buildSignal(symbol, decision.side, barTime, {
-      stopDistance: decision.stopDistance,
-      takeProfitDistance: decision.takeProfitDistance,
+      stopDistance: mid * decision.stopDistance,
+      takeProfitDistance: mid * decision.takeProfitDistance,
     });
+    this.lastBarTimes.set(symbol, barTime);
     const result = await this.engine.process(signal, {
       requestId: `strategy:${this.options.strategyName}:${barTime}`,
       ip: 'strategy-runner',
@@ -615,18 +667,19 @@ export async function ensureStrategy(
 ): Promise<{ ok: boolean; detail: string }> {
   const settings = await getSettings();
   const permitted = new Set(settings.allowedSymbols);
-  const notAllowed = symbols.filter((symbol) => !permitted.has(symbol));
-  if (notAllowed.length > 0) {
+  const enabledSymbols = symbols.filter((symbol) => permitted.has(symbol));
+  if (enabledSymbols.length === 0) {
     return {
       ok: false,
-      detail: `${notAllowed.join(', ')} not in risk_settings.allowedSymbols (currently ${settings.allowedSymbols.join(', ') || 'empty'}). Add them before enabling the runner.`,
+      detail:
+        'No watched symbols enabled in Allowed symbols. Enable at least one before starting the runner.',
     };
   }
 
   // The strategy row carries its own allowlist that the risk manager checks per
   // signal, so widening the watch list has to widen this too or every new symbol
   // is rejected as "Strategy disabled or symbol not allowed".
-  const wanted = [...new Set([...(settings.allowedSymbols ?? []), ...symbols])];
+  const wanted = [...new Set(enabledSymbols)];
   const existing = await db.query.strategies.findFirst({
     where: eq(schema.strategies.name, strategyName),
   });

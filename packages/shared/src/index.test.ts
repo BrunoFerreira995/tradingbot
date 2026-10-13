@@ -1,5 +1,20 @@
 import { describe, expect, test } from 'bun:test';
-import { TIMEFRAMES, isTimeframe } from './index';
+import { TIMEFRAMES, isTimeframe, signalSchema } from './index';
+
+describe('broker symbol case', () => {
+  test('accepts gasoline and broker suffixes without changing their case', () => {
+    for (const symbol of ['gasoline', 'XAUUSD.a', 'XAUUSDm']) {
+      const signal = signalSchema.parse({
+        strategy: 'meanrev-bb-rsi-v1',
+        signalId: `test:${symbol}`,
+        symbol,
+        action: 'BUY',
+        lots: 0.01,
+      });
+      expect(signal.symbol).toBe(symbol);
+    }
+  });
+});
 
 /**
  * `isTimeframe` guards the runner's configuration. The bug it prevents was
@@ -9,7 +24,8 @@ import { TIMEFRAMES, isTimeframe } from './index';
  */
 describe('isTimeframe', () => {
   test('accepts every timeframe the service can parse', () => {
-    for (const timeframe of TIMEFRAMES) expect(isTimeframe(timeframe)).toBe(true);
+    for (const timeframe of TIMEFRAMES)
+      expect(isTimeframe(timeframe)).toBe(true);
   });
 
   test('rejects values that would fall back to PERIOD_CURRENT', () => {

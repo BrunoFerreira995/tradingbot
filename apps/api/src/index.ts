@@ -31,12 +31,11 @@ const watchedSymbols = [
     (process.env.MT5_SYMBOLS ?? primarySymbol)
       .split(',')
       .map((symbol) => symbol.trim())
-      .filter(Boolean)
-      .map((symbol) => symbol.toUpperCase()),
+      .filter(Boolean),
   ),
 ];
 if (!watchedSymbols.includes(primarySymbol))
-  watchedSymbols.unshift(primarySymbol.toUpperCase());
+  watchedSymbols.unshift(primarySymbol);
 
 const broker = new MT5BrokerAdapter({
   symbols: watchedSymbols,
@@ -599,6 +598,17 @@ const app = new Elysia({ serve: { maxRequestBodySize: 16 * 1024 } })
         return { error: 'Admin key required' };
       }
       const updated = await updateSettings(body);
+      if (body.allowedSymbols !== undefined && runner) {
+        const readiness = await ensureStrategy(runnerStrategy, watchedSymbols);
+        if (readiness.ok) {
+          if (!runnerStarted) {
+            runner.start();
+            runnerStarted = true;
+          }
+        } else if (!runnerStarted) {
+          runner.blockStartup(readiness.detail);
+        }
+      }
       if (body.emergencyStop === true) {
         await emit('risk.emergency_stop', { enabled: true });
         await audit('RISK', 'emergency_stop_enabled');
@@ -613,6 +623,9 @@ const app = new Elysia({ serve: { maxRequestBodySize: 16 * 1024 } })
       body: t.Object({
         autoTradingEnabled: t.Optional(t.Boolean()),
         emergencyStop: t.Optional(t.Boolean()),
+        maximumDailyTrades: t.Optional(
+          t.Integer({ minimum: 0, maximum: 2147483647 }),
+        ),
         positionPolicy: t.Optional(
           t.Union([
             t.Literal('ONE_POSITION_PER_SYMBOL'),
@@ -634,6 +647,7 @@ const app = new Elysia({ serve: { maxRequestBodySize: 16 * 1024 } })
 // the engine is allowed to act on signals.
 const runnerStrategy = process.env.STRATEGY_RUNNER ?? '';
 let runner: StrategyRunner | undefined;
+let runnerStarted = false;
 if (runnerStrategy) {
   const requested = process.env.STRATEGY_TIMEFRAME ?? 'M30';
   if (!isTimeframe(requested))
@@ -645,12 +659,14 @@ if (runnerStrategy) {
     strategyName: runnerStrategy,
     symbols: watchedSymbols,
     timeframe,
+    getAllowedSymbols: async () => (await getSettings()).allowedSymbols,
     ...(process.env.STRATEGY_POLL_MS
       ? { pollIntervalMs: Number(process.env.STRATEGY_POLL_MS) }
       : {}),
   });
   const readiness = await ensureStrategy(runnerStrategy, watchedSymbols);
   if (!readiness.ok) {
+    runner.blockStartup(readiness.detail);
     console.error(
       `[strategy] ${runnerStrategy} not started: ${readiness.detail}`,
     );
@@ -660,6 +676,7 @@ if (runnerStrategy) {
     });
   } else {
     runner.start();
+    runnerStarted = true;
     console.log(
       `[strategy] ${runnerStrategy} watching ${watchedSymbols.join(', ')} ${timeframe} (${readiness.detail})`,
     );

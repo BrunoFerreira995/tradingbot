@@ -24,6 +24,7 @@ export async function getSettings(): Promise<RiskSettings & { id: string }> {
   return {
     id: row.id,
     autoTradingEnabled: row.autoTradingEnabled,
+    closeOnOppositeSignal: bool(process.env.CLOSE_ON_OPPOSITE_SIGNAL),
     emergencyStop: row.emergencyStop,
     maximumLotSize: Number(row.maximumLotSize),
     minimumLotSize: Number(row.minimumLotSize ?? 0.01),
@@ -32,7 +33,7 @@ export async function getSettings(): Promise<RiskSettings & { id: string }> {
       ...new Set(
         (process.env.RESERVED_POSITION_SYMBOLS ?? '')
           .split(',')
-          .map((symbol) => symbol.trim().toUpperCase())
+          .map((symbol) => symbol.trim())
           .filter(Boolean),
       ),
     ],
@@ -60,6 +61,7 @@ export async function updateSettings(
       | 'positionPolicy'
       | 'allowedSymbols'
       | 'blockedSymbols'
+      | 'maximumDailyTrades'
     >
   >,
 ) {

@@ -66,6 +66,8 @@ class FakeBroker implements BrokerAdapter {
   ratesBySymbol: Record<string, Rate[]> = {};
   failWith: Error | undefined;
   failSymbols = new Set<string>();
+  rateRequests: number[] = [];
+  priceRequests = 0;
   async connect() {}
   async disconnect() {
     this.connected = false;
@@ -77,17 +79,20 @@ class FakeBroker implements BrokerAdapter {
     return symbolInfo;
   }
   async getPrice() {
+    this.priceRequests++;
     if (this.failWith) throw this.failWith;
     return price;
   }
   async getRates(
     symbol: string,
     _period: Timeframe,
-    _count: number,
+    count: number,
   ): Promise<Rate[]> {
     if (this.failWith) throw this.failWith;
-    if (this.failSymbols.has(symbol)) throw new Error(`${symbol} not reachable`);
-    return this.ratesBySymbol[symbol] ?? this.rates;
+    if (this.failSymbols.has(symbol))
+      throw new Error(`${symbol} not reachable`);
+    this.rateRequests.push(count);
+    return (this.ratesBySymbol[symbol] ?? this.rates).slice(-count);
   }
   async getPositions(): Promise<Position[]> {
     return [];
@@ -249,6 +254,98 @@ function advanceSymbol(
 }
 
 describe('StrategyRunner', () => {
+  test('runs enabled symbols and re-primes symbols when their toggle is enabled', async () => {
+    const broker = new FakeBroker();
+    broker.rates = buyingRates();
+    broker.failSymbols.add('XAUUSD');
+    const eng = engine();
+    let allowed = ['EURUSD'];
+    const runner = new StrategyRunner(broker, eng as never, {
+      strategyName: 'meanrev-bb-rsi-v1',
+      symbols: ['XAUUSD', 'EURUSD'],
+      timeframe: 'M30',
+      reporter: collector().reporter,
+      getAllowedSymbols: async () => allowed,
+    });
+    expect((await runner.tick()).status).toBe('WAITING_BAR');
+    expect(broker.rateRequests).toEqual([120]);
+    expect(runner.state.symbolStates.XAUUSD?.detail).toBe(
+      'Disabled in Allowed symbols',
+    );
+    advance(broker, 96, 97);
+    expect((await runner.tick()).status).toBe('SIGNAL');
+    expect(eng.signals.map((signal) => signal.symbol)).toEqual(['EURUSD']);
+    allowed = [];
+    expect((await runner.tick()).status).toBe('BLOCKED');
+    allowed = ['EURUSD'];
+    expect((await runner.tick()).status).toBe('WAITING_BAR');
+    expect(eng.signals).toHaveLength(1);
+  });
+
+  test('exposes startup refusals per symbol and can evaluate once unblocked', async () => {
+    const broker = new FakeBroker();
+    broker.rates = buyingRates();
+    const runner = buildMany(broker, engine(), collector(), [
+      'XAUUSD',
+      'GASOLINE',
+    ]);
+    runner.blockStartup('GASOLINE not in risk_settings.allowedSymbols');
+    expect(runner.state.status).toBe('BLOCKED');
+    expect(runner.state.detail).toContain('GASOLINE');
+    for (const state of Object.values(runner.state.symbolStates)) {
+      expect(state.status).toBe('BLOCKED');
+      expect(state.detail).toContain('allowedSymbols');
+      expect(state.secondsToNextBar).toBeNull();
+    }
+    expect((await runner.tick()).status).toBe('WAITING_BAR');
+    expect(runner.state.symbolStates.GASOLINE?.rsi).toBeDefined();
+  });
+
+  test('polls two bars while waiting and loads full history for a new decision', async () => {
+    const broker = new FakeBroker();
+    broker.rates = buyingRates();
+    const eng = engine();
+    const runner = build(broker, eng, collector());
+    await runner.tick();
+    await runner.tick();
+    await runner.tick();
+    expect(broker.rateRequests).toEqual([120, 2, 2]);
+    expect(broker.priceRequests).toBe(0);
+    advance(broker, 96, 97);
+    await runner.tick();
+    expect(broker.rateRequests).toEqual([120, 2, 2, 2, 120]);
+    expect(broker.priceRequests).toBe(1);
+    expect(eng.signals).toHaveLength(1);
+  });
+
+  test('does not fetch quotes when a new closed bar has no setup', async () => {
+    const broker = new FakeBroker();
+    broker.rates = calmRates();
+    const runner = build(broker, engine(), collector());
+    await runner.tick();
+    advance(broker, 100, 100);
+    expect((await runner.tick()).status).toBe('NO_SETUP');
+    expect(broker.priceRequests).toBe(0);
+  });
+
+  test('retries a setup after a transient quote failure without losing the bar', async () => {
+    const broker = new FakeBroker();
+    broker.rates = buyingRates();
+    const eng = engine();
+    const runner = build(broker, eng, collector());
+    await runner.tick();
+    advance(broker, 96, 97);
+    const getPrice = broker.getPrice.bind(broker);
+    broker.getPrice = async () => {
+      throw new Error('quote unavailable');
+    };
+    expect((await runner.tick()).status).toBe('BLOCKED');
+    broker.getPrice = getPrice;
+    expect((await runner.tick()).status).toBe('SIGNAL');
+    await runner.tick();
+    expect(eng.signals).toHaveLength(1);
+  });
+
   test('primes on the first tick without trading, even on a setup', async () => {
     const broker = new FakeBroker();
     broker.rates = buyingRates();

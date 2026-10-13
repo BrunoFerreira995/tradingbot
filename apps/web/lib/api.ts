@@ -56,6 +56,7 @@ export interface DashboardData {
   price: { bid: number; ask: number; spread: number; at: string } | null;
   settings: {
     autoTradingEnabled: boolean;
+    closeOnOppositeSignal?: boolean;
     emergencyStop: boolean;
     maximumLotSize: number;
     maximumOpenPositions: number;
