@@ -11,6 +11,20 @@ import { getSettings, updateSettings } from './services/settings';
 import { getRecentSignals } from './services/recent-signals';
 import { getTradeStats } from './services/trade-stats';
 import { getPerformance } from './services/performance';
+import {
+  startBotSession,
+  recordBotSessionParameters,
+  heartbeatBotSession,
+  endBotSession,
+  getBotSessions,
+} from './services/bot-session';
+import { tradeServer } from './services/trade-telemetry';
+import { botSessionsCsv } from './services/bot-sessions-export';
+import { tradesCsv } from './services/trades-export';
+import {
+  exportTradeMetadata,
+  observeTradeExcursions,
+} from './services/trade-telemetry';
 import { StrategyRunner, ensureStrategy } from './services/strategy-runner';
 
 // The application trades MetaTrader 5 and nothing else. There is no mock
@@ -146,7 +160,72 @@ async function brokerIdentity(): Promise<string> {
   }
 }
 
+const initialSessionAccount = await broker.getAccount().catch(() => null);
+await startBotSession(
+  initialSessionAccount,
+  initialSessionAccount
+    ? await tradeServer(initialSessionAccount.id)
+    : undefined,
+);
+let updatingBotSession = false;
+setInterval(() => {
+  if (updatingBotSession) return;
+  updatingBotSession = true;
+  void broker
+    .getAccount()
+    .catch(() => null)
+    .then(async (account) =>
+      heartbeatBotSession(
+        account,
+        account ? await tradeServer(account.id) : undefined,
+      ),
+    )
+    .catch((error) =>
+      console.warn(
+        '[bot session]',
+        error instanceof Error ? error.message : 'heartbeat failed',
+      ),
+    )
+    .finally(() => {
+      updatingBotSession = false;
+    });
+}, 30000);
+
 const engine = new TradingEngine(broker, await brokerIdentity());
+
+let enforcingMonetaryStops = false;
+async function enforceMonetaryStops() {
+  if (enforcingMonetaryStops) return;
+  enforcingMonetaryStops = true;
+  try {
+    await engine.enforceMonetaryStops();
+  } catch (error) {
+    console.warn('[monetary stop]', error);
+  } finally {
+    enforcingMonetaryStops = false;
+  }
+}
+setInterval(() => void enforceMonetaryStops(), 1000);
+
+// Sample monetary excursions independently of dashboard visits.
+let collectingExcursions = false;
+setInterval(() => {
+  if (collectingExcursions || !broker.connected) return;
+  collectingExcursions = true;
+  void Promise.all([broker.getAccount(), broker.getPositions()])
+    .then(([account, positions]) =>
+      observeTradeExcursions(account.id, positions),
+    )
+    .catch((error) =>
+      console.warn(
+        '[trade telemetry]',
+        error instanceof Error ? error.message : 'collection failed',
+      ),
+    )
+    .finally(() => {
+      collectingExcursions = false;
+    });
+}, 5000);
 
 // Collect capital while the server runs, including when no dashboard is open.
 let collectingCapital = false;
@@ -216,6 +295,9 @@ const app = new Elysia({ serve: { maxRequestBodySize: 16 * 1024 } })
     if (
       request.method === 'GET' &&
       (path === '/api/dashboard' ||
+        path === '/api/trades/export' ||
+        path === '/api/bot-sessions' ||
+        path === '/api/bot-sessions/export' ||
         path === '/api/logs' ||
         path === '/api/events' ||
         path === '/api/open-pnl/stream' ||
@@ -373,6 +455,46 @@ const app = new Elysia({ serve: { maxRequestBodySize: 16 * 1024 } })
       }),
     },
   )
+  .get('/api/bot-sessions', async () => getBotSessions())
+  .get(
+    '/api/bot-sessions/export',
+    async () =>
+      new Response(botSessionsCsv(await getBotSessions()), {
+        headers: {
+          'content-type': 'text/csv; charset=utf-8',
+          'content-disposition': 'attachment; filename="bot-sessions.csv"',
+          'cache-control': 'no-store',
+        },
+      }),
+  )
+  .get('/api/trades/export', async () => {
+    const [account, positions] = await Promise.all([
+      broker.getAccount().catch(() => null),
+      broker.getPositions().catch(() => []),
+    ]);
+    const performance = account
+      ? await getPerformance(account, positions, broker.connected, true)
+      : null;
+    const trades = performance?.historyAvailable
+      ? performance.closedTrades
+      : await db
+          .select()
+          .from(schema.trades)
+          .orderBy(desc(schema.trades.closedAt));
+    const metadata = account
+      ? await exportTradeMetadata(account.id, account.currency)
+      : new Map();
+    return new Response(
+      tradesCsv(positions, trades, account?.currency ?? '', metadata),
+      {
+        headers: {
+          'content-type': 'text/csv; charset=utf-8',
+          'content-disposition': `attachment; filename="all-trades-${new Date().toISOString().slice(0, 10)}.csv"`,
+          'cache-control': 'no-store',
+        },
+      },
+    );
+  })
   .get('/api/dashboard', async () => {
     const [
       account,
@@ -597,7 +719,31 @@ const app = new Elysia({ serve: { maxRequestBodySize: 16 * 1024 } })
         set.status = 403;
         return { error: 'Admin key required' };
       }
+      if (body.stopRiskAmount !== undefined && body.stopRiskAmount !== null) {
+        const account = await broker.getAccount().catch(() => null);
+        if (!account || body.stopRiskCurrency !== account.currency) {
+          set.status = 400;
+          return {
+            error: account
+              ? `A moeda do stop deve ser ${account.currency}.`
+              : 'Conecte o MT5 para configurar o stop monetário.',
+          };
+        }
+      }
+      if (
+        body.marketSessions &&
+        (new Set(body.marketSessions.map((w) => w.name)).size !== 4 ||
+          body.marketSessions.some((w) => w.start === w.end))
+      ) {
+        set.status = 400;
+        return {
+          error:
+            'Informe as quatro sessões com abertura diferente do fechamento.',
+        };
+      }
       const updated = await updateSettings(body);
+      if (body.stopRiskAmount != null) await enforceMonetaryStops();
+      await recordBotSessionParameters('risk_settings', { ...updated });
       if (body.allowedSymbols !== undefined && runner) {
         const readiness = await ensureStrategy(runnerStrategy, watchedSymbols);
         if (readiness.ok) {
@@ -623,6 +769,27 @@ const app = new Elysia({ serve: { maxRequestBodySize: 16 * 1024 } })
       body: t.Object({
         autoTradingEnabled: t.Optional(t.Boolean()),
         emergencyStop: t.Optional(t.Boolean()),
+        marketSessions: t.Optional(
+          t.Array(
+            t.Object({
+              name: t.String({ pattern: '^(SYDNEY|ASIA|LONDON|NEW_YORK)$' }),
+              timezone: t.Literal('Etc/GMT+3'),
+              enabled: t.Optional(t.Boolean()),
+              start: t.String({ pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }),
+              end: t.String({ pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }),
+            }),
+            { minItems: 4, maxItems: 4 },
+          ),
+        ),
+        stopRiskAmount: t.Optional(
+          t.Union([
+            t.Number({ exclusiveMinimum: 0, maximum: 999999999 }),
+            t.Null(),
+          ]),
+        ),
+        stopRiskCurrency: t.Optional(
+          t.Union([t.String({ minLength: 1, maxLength: 12 }), t.Null()]),
+        ),
         maximumDailyTrades: t.Optional(
           t.Integer({ minimum: 0, maximum: 2147483647 }),
         ),
@@ -727,6 +894,10 @@ app.patch(
     }
     const previous = runner.state.timeframe;
     runner.setTimeframe(timeframe);
+    await recordBotSessionParameters('timeframe', {
+      strategy: runnerStrategy,
+      timeframe,
+    });
     await audit('STRATEGY', 'timeframe_changed', undefined, undefined, {
       strategy: runnerStrategy,
       from: previous,
@@ -738,6 +909,39 @@ app.patch(
   { body: t.Object({ timeframe: t.String() }) },
 );
 
-if (process.env.NODE_ENV !== 'test') app.listen(3001);
+let shuttingDown = false;
+async function shutdown(signal: string) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  runner?.stop();
+  const deadline = setTimeout(() => process.exit(1), 5000);
+  try {
+    const account = await broker.getAccount().catch(() => null);
+    await endBotSession(
+      signal,
+      account,
+      account ? await tradeServer(account.id) : undefined,
+    );
+    await app.stop();
+    await sql.end({ timeout: 1 });
+    clearTimeout(deadline);
+    process.exit(0);
+  } catch (error) {
+    console.warn(
+      '[bot session] shutdown record failed',
+      error instanceof Error ? error.message : error,
+    );
+    process.exit(1);
+  }
+}
+if (process.env.NODE_ENV !== 'test') {
+  process.on('SIGTERM', () => {
+    void shutdown('SIGTERM');
+  });
+  process.on('SIGINT', () => {
+    void shutdown('SIGINT');
+  });
+  app.listen(3001);
+}
 console.log('API listening on http://localhost:3001');
 export { app, broker };

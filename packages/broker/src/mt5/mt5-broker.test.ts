@@ -620,6 +620,31 @@ describe('MT5BrokerAdapter', () => {
     );
   });
 
+  test('preserves an open broker session with valid zero-spread quotes', async () => {
+    const adapter = await boot();
+    await terminal.publish({
+      symbols: {
+        XAUUSD: {
+          ...XAUUSD,
+          bid: 2650.1,
+          ask: 2650.1,
+          spread: 0,
+          marketOpen: true,
+          marketStatus: 'OPEN',
+        },
+      },
+    });
+    expect(await adapter.getSymbol('XAUUSD')).toMatchObject({
+      marketOpen: true,
+      marketStatus: 'OPEN',
+    });
+    expect(await adapter.getPrice('XAUUSD')).toMatchObject({
+      bid: 2650.1,
+      ask: 2650.1,
+      spread: 0,
+    });
+  });
+
   test('maps a symbol snapshot onto SymbolInfo', async () => {
     const adapter = await boot();
     expect(await adapter.getSymbol('XAUUSD')).toEqual({

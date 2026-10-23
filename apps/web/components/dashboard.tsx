@@ -1,6 +1,9 @@
 'use client';
+import { MarketSessionsControl } from './market-sessions-control';
 import { Radio, ShieldAlert, Wifi } from 'lucide-react';
 import { useDashboard } from '../hooks/use-dashboard';
+import { MonetaryStopControl } from './monetary-stop-control';
+import { ExportTrades } from './export-trades';
 import { PerformancePanel } from './performance-panel';
 import { date, money, num, type DashboardData } from '../lib/api';
 function Badge({
@@ -416,6 +419,12 @@ function Risk({ data }: { data: DashboardData }) {
             <span className="text-right font-semibold">{value}</span>
           </div>
         ))}
+        <MarketSessionsControl windows={s.marketSessions} />
+        <MonetaryStopControl
+          amount={s.stopRiskAmount}
+          currency={data.account.currency}
+          connected={data.brokerConnected}
+        />
         <DailyTradeLimitControl
           limit={s.maximumDailyTrades}
           tradesToday={data.stats.tradesToday}
@@ -1064,6 +1073,7 @@ export function Dashboard({ section }: { section: string }) {
         />
       ) : section === 'trades' ? (
         <div className="space-y-6">
+          <ExportTrades />
           <WinRate data={data} />
           <PerformancePanel data={data} />
           <section>

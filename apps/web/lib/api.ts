@@ -66,6 +66,15 @@ export interface DashboardData {
     positionPolicy: string;
     allowedSymbols: string[];
     requireStopLoss: boolean;
+    marketSessions?: {
+      name: string;
+      timezone: string;
+      start: string;
+      end: string;
+      enabled?: boolean;
+    }[];
+    stopRiskAmount?: number | null;
+    stopRiskCurrency?: string | null;
   };
   signals: Array<Record<string, unknown>>;
   orders: Array<Record<string, unknown>>;

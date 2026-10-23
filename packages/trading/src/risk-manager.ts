@@ -23,6 +23,8 @@ export interface RiskSettings {
   allowedSymbols: string[];
   blockedSymbols: string[];
   requireStopLoss: boolean;
+  stopRiskAmount?: number | null;
+  stopRiskCurrency?: string | null;
   minimumStopDistance: number;
   maximumStopDistance: number;
   positionPolicy:
@@ -76,7 +78,22 @@ export class RiskManager {
     )
       return reject('Strategy disabled or symbol not allowed');
     if (signal.action.startsWith('CLOSE')) return { approved: true };
-    if (!symbol.marketOpen) return reject('Market closed');
+    if (!symbol.marketOpen) {
+      const reason = {
+        OPEN: 'Market availability inconsistent in MT5 snapshot',
+        SESSION_CLOSED: 'Market closed (outside broker trading session)',
+        SESSION_UNAVAILABLE: 'MT5 trading session schedule unavailable',
+        TRADING_DISABLED:
+          'Trading disabled for symbol, account or bridge service in MT5',
+        QUOTES_UNAVAILABLE: 'MT5 bid/ask quotes unavailable or invalid',
+        QUOTE_STALE: 'MT5 quote is stale',
+      };
+      return reject(
+        symbol.marketStatus
+          ? reason[symbol.marketStatus]
+          : 'MT5 bridge reports market unavailable; update and restart AurumBridge to distinguish trading hours from quote availability',
+      );
+    }
     if (price.spread > symbol.maxSpread)
       return reject('Spread exceeds broker limit');
     if (
@@ -119,7 +136,7 @@ export class RiskManager {
         `Maximum open positions exceeded (${ordinaryCount} open, limit ${s.maximumOpenPositions})`,
       );
     const requested = signal.stopLoss ?? symbol.defaultStopLoss;
-    if (s.requireStopLoss && !signal.stopLoss)
+    if (s.requireStopLoss && !signal.stopLoss && s.stopRiskAmount == null)
       return reject('Stop loss required');
     // A configured floor is only meaningful next to the broker's own. The
     // broker floor is per instrument: expressed as an absolute price amount it
@@ -135,7 +152,7 @@ export class RiskManager {
       return reject(
         `Stop distance ${requested.toFixed(5)} above maximum ${s.maximumStopDistance}`,
       );
-    const distance = Math.max(requested, floor);
+    let distance = Math.max(requested, floor);
     if (distance > s.maximumStopDistance)
       return reject(
         `Stop distance ${distance.toFixed(5)} above maximum ${s.maximumStopDistance} after applying broker minimum ${symbol.stopsLevel}`,
@@ -157,6 +174,37 @@ export class RiskManager {
       return reject(error instanceof Error ? error.message : 'Invalid lot');
     }
     if (lots < s.minimumLotSize) return reject('Lot below minimum');
+    if (s.stopRiskAmount != null) {
+      if (!Number.isFinite(s.stopRiskAmount) || s.stopRiskAmount <= 0)
+        return reject('Invalid monetary stop amount');
+      if (!s.stopRiskCurrency || s.stopRiskCurrency !== account.currency)
+        return reject(
+          `Monetary stop currency must match account currency ${account.currency}`,
+        );
+      const lossTickValue = symbol.tickValueLoss ?? symbol.tickValue;
+      if (
+        !Number.isFinite(lossTickValue) ||
+        lossTickValue <= 0 ||
+        !Number.isFinite(symbol.tickSize) ||
+        symbol.tickSize <= 0
+      )
+        return reject(
+          'Monetary stop requires valid tick size and loss tick value',
+        );
+      // Round inward to an executable tick so the estimated stop exposure stays
+      // within the selected amount. Never widen a monetary stop above its cap.
+      const ticks = Math.floor(
+        s.stopRiskAmount / (lossTickValue * lots) + 1e-10,
+      );
+      distance = ticks * symbol.tickSize;
+      if (!ticks || distance + 1e-12 < floor)
+        return reject(
+          `Monetary stop ${s.stopRiskAmount} ${account.currency} is below the minimum for ${signal.symbol} at ${lots} lots`,
+        );
+      if (distance > s.maximumStopDistance)
+        return reject('Monetary stop distance exceeds configured maximum');
+    }
+
     // Margin is checked after sizing through the terminal's OrderCheck.
     // Contract notional multiplied by marginRate is not broker margin.
     // Broker volume/exposure limits are validated by MetaTrader OrderCheck.

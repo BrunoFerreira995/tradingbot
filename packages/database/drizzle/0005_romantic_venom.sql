@@ -1,0 +1,1 @@
+ALTER TABLE "risk_settings" ADD COLUMN "market_sessions" jsonb;

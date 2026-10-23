@@ -296,10 +296,39 @@ double Range(const string symbol)
    return NormalizeDouble(MathRound((high - low) / point) * point, digits);
   }
 
+// The broker supplies these windows in server-local time. Spread is not a clock.
+bool TradeSessionOpen(const string symbol, string &status)
+  {
+   MqlDateTime clock;
+   if(!TimeToStruct(TimeTradeServer(), clock)) { status = "SESSION_UNAVAILABLE"; return false; }
+   const int seconds = clock.hour * 3600 + clock.min * 60 + clock.sec;
+   bool known = false;
+   for(int day = 0; day < 7; day++)
+     {
+      datetime from, to;
+      for(uint index = 0; index < 32; index++)
+        {
+         if(!SymbolInfoSessionTrade(symbol, (ENUM_DAY_OF_WEEK)day, index, from, to)) break;
+         known = true;
+         const int start = (int)((long)from % 86400);
+         const int end = (int)((long)to % 86400);
+         const bool fullDay = start == end;
+         const bool overnight = !fullDay && end < start;
+         if(day == clock.day_of_week &&
+            (fullDay || (!overnight && seconds >= start && seconds < end) || (overnight && seconds >= start)))
+           { status = "OPEN"; return true; }
+         if(overnight && day == (clock.day_of_week + 6) % 7 && seconds < end)
+           { status = "OPEN"; return true; }
+        }
+     }
+   status = known ? "SESSION_CLOSED" : "SESSION_UNAVAILABLE";
+   return false;
+  }
+
 string SymbolJson(const string symbol)
   {
    if(!Tradable(symbol))
-      return "{\"symbol\":" + Esc(symbol) + ",\"marketOpen\":false}";
+      return "{\"symbol\":" + Esc(symbol) + ",\"marketOpen\":false,\"marketStatus\":\"TRADING_DISABLED\"}";
 
    const int digits = (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS);
    const double point = SymbolInfoDouble(symbol, SYMBOL_POINT);
@@ -350,7 +379,14 @@ string SymbolJson(const string symbol)
    out += ",\"ask\":" + Num(ask, digits);
    out += ",\"digits\":" + Int(digits);
    out += ",\"point\":" + Num(point, 8);
-   out += ",\"marketOpen\":" + (haveTick && spread > 0 ? "true" : "false");
+   string marketStatus;
+   bool marketOpen = TradeSessionOpen(symbol, marketStatus);
+   if(marketOpen && (!haveTick || bid <= 0.0 || ask <= 0.0 || ask < bid))
+     { marketOpen = false; marketStatus = "QUOTES_UNAVAILABLE"; }
+   if(marketOpen && (tick.time <= 0 || TimeTradeServer() - tick.time > 300))
+     { marketOpen = false; marketStatus = "QUOTE_STALE"; }
+   out += ",\"marketOpen\":" + (marketOpen ? "true" : "false");
+   out += ",\"marketStatus\":" + Esc(marketStatus);
    out += "}";
    return out;
   }
@@ -421,11 +457,13 @@ void SnapshotPositions()
       const int digits = (int)SymbolInfoInteger(symbol, SYMBOL_DIGITS);
       out += "{";
       out += "\"id\":" + Esc(IntegerToString((long)ticket));
+      out += ",\"positionIdentifier\":" + Esc(IntegerToString((long)PositionGetInteger(POSITION_IDENTIFIER)));
       out += ",\"symbol\":" + Esc(symbol);
       out += ",\"side\":" + (type == POSITION_TYPE_BUY ? "\"BUY\"" : "\"SELL\"");
       out += ",\"lots\":" + Num(PositionGetDouble(POSITION_VOLUME));
       out += ",\"entryPrice\":" + Num(PositionGetDouble(POSITION_PRICE_OPEN), digits);
       out += ",\"currentPrice\":" + Num(Quote(symbol, type != POSITION_TYPE_BUY), digits);
+      out += ",\"grossPnl\":" + Num(PositionGetDouble(POSITION_PROFIT), 8);
       //--- POSITION_PROFIT is account currency and excludes swap.
       out += ",\"unrealizedPnl\":" + Num(PositionGetDouble(POSITION_PROFIT) + PositionGetDouble(POSITION_SWAP), 2);
       out += ",\"stopLoss\":" + Num(PositionGetDouble(POSITION_SL), digits);
@@ -506,6 +544,10 @@ void SnapshotHistory()
       out += ",\"symbol\":" + Esc(HistoryDealGetString(ticket, DEAL_SYMBOL));
       out += ",\"type\":" + Int(HistoryDealGetInteger(ticket, DEAL_TYPE));
       out += ",\"entry\":" + Int(HistoryDealGetInteger(ticket, DEAL_ENTRY));
+      out += ",\"orderId\":" + Esc(IntegerToString(HistoryDealGetInteger(ticket, DEAL_ORDER)));
+      out += ",\"reason\":" + Int(HistoryDealGetInteger(ticket, DEAL_REASON));
+      out += ",\"stopLoss\":" + Num(HistoryDealGetDouble(ticket, DEAL_SL), 8);
+      out += ",\"takeProfit\":" + Num(HistoryDealGetDouble(ticket, DEAL_TP), 8);
       out += ",\"at\":" + Int(HistoryDealGetInteger(ticket, DEAL_TIME) - offset);
       out += ",\"volume\":" + Num(HistoryDealGetDouble(ticket, DEAL_VOLUME), 8);
       out += ",\"price\":" + Num(HistoryDealGetDouble(ticket, DEAL_PRICE), 8);

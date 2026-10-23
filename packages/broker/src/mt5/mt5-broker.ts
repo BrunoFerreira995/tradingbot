@@ -168,6 +168,10 @@ export class MT5BrokerAdapter implements BrokerAdapter {
       lotStep: toNumber(state.lotStep),
       contractSize: toNumber(state.contractSize),
       tickValue: toNumber(state.tickValue),
+      tickValueLoss:
+        state.tickValueLoss === undefined
+          ? undefined
+          : toNumber(state.tickValueLoss),
       tickSize: toNumber(state.tickSize),
       maxSpread: toNumber(state.maxSpread),
       maxSlippage: toNumber(state.maxSlippage),
@@ -175,6 +179,7 @@ export class MT5BrokerAdapter implements BrokerAdapter {
       defaultTakeProfit: toNumber(state.defaultTakeProfit),
       marginRate: toNumber(state.marginRate),
       marketOpen: state.marketOpen === true,
+      marketStatus: state.marketStatus,
       // The bridge already resolved STOPS_LEVEL points into price units.
       stopsLevel: toNumber(state.stopsLevel),
     };
@@ -217,12 +222,17 @@ export class MT5BrokerAdapter implements BrokerAdapter {
     await this.requireLive();
     return (await this.bridge.positions()).map((row) => ({
       id: String(row.id),
+      positionIdentifier:
+        row.positionIdentifier === undefined
+          ? undefined
+          : String(row.positionIdentifier),
       symbol: String(row.symbol),
       side: (row.side === 'SELL' ? 'SELL' : 'BUY') as Side,
       lots: toNumber(row.lots),
       entryPrice: toNumber(row.entryPrice),
       currentPrice: toNumber(row.currentPrice),
       unrealizedPnl: toNumber(row.unrealizedPnl),
+      grossPnl: row.grossPnl === undefined ? undefined : toNumber(row.grossPnl),
       stopLoss: toNumber(row.stopLoss) || undefined,
       takeProfit: toNumber(row.takeProfit) || undefined,
       openedAt: toIso(row.openedAt),

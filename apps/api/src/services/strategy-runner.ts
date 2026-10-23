@@ -548,6 +548,7 @@ export class StrategyRunner {
       stopDistance: mid * decision.stopDistance,
       takeProfitDistance: mid * decision.takeProfitDistance,
     });
+    signal.signalReason = `${decision.side}: closed candle close=${decision.close} ${decision.side === 'BUY' ? '<= lower' : '>= upper'} Bollinger band=${decision.side === 'BUY' ? decision.lower : decision.upper}; RSI=${decision.rsiValue} ${decision.side === 'BUY' ? '<= oversold' : '>= overbought'} threshold=${decision.side === 'BUY' ? (this.options.config?.rsiOversold ?? defaultMeanReversionConfig.rsiOversold) : (this.options.config?.rsiOverbought ?? defaultMeanReversionConfig.rsiOverbought)}; timeframe=${timeframe}; bar=${iso(barTime)}`;
     this.lastBarTimes.set(symbol, barTime);
     const result = await this.engine.process(signal, {
       requestId: `strategy:${this.options.strategyName}:${barTime}`,

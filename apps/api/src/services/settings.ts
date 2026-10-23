@@ -1,8 +1,15 @@
+import {
+  marketWindows,
+  validateMarketWindows,
+  type MarketWindow,
+} from './market-session';
 import { db, schema } from '@trade/database';
 import { eq } from 'drizzle-orm';
 import type { RiskSettings } from '@trade/trading';
 const bool = (value: string | undefined) => value === 'true';
-export async function getSettings(): Promise<RiskSettings & { id: string }> {
+export async function getSettings(): Promise<
+  RiskSettings & { id: string; marketSessions: MarketWindow[] }
+> {
   let row = await db.query.riskSettings.findFirst();
   if (!row) {
     await db
@@ -23,6 +30,7 @@ export async function getSettings(): Promise<RiskSettings & { id: string }> {
   if (!row) throw new Error('Risk settings unavailable');
   return {
     id: row.id,
+    marketSessions: row.marketSessions ?? marketWindows,
     autoTradingEnabled: row.autoTradingEnabled,
     closeOnOppositeSignal: bool(process.env.CLOSE_ON_OPPOSITE_SIGNAL),
     emergencyStop: row.emergencyStop,
@@ -47,6 +55,9 @@ export async function getSettings(): Promise<RiskSettings & { id: string }> {
     allowedSymbols: row.allowedSymbols,
     blockedSymbols: row.blockedSymbols,
     requireStopLoss: row.requireStopLoss,
+    stopRiskAmount:
+      row.stopRiskAmount === null ? null : Number(row.stopRiskAmount),
+    stopRiskCurrency: row.stopRiskCurrency,
     minimumStopDistance: Number(row.minimumStopDistance ?? 0.01),
     maximumStopDistance: Number(row.maximumStopDistance ?? 1000),
     positionPolicy: row.positionPolicy as RiskSettings['positionPolicy'],
@@ -62,13 +73,26 @@ export async function updateSettings(
       | 'allowedSymbols'
       | 'blockedSymbols'
       | 'maximumDailyTrades'
+      | 'stopRiskAmount'
+      | 'stopRiskCurrency'
     >
-  >,
+  > & { marketSessions?: MarketWindow[] },
 ) {
+  if (patch.marketSessions !== undefined)
+    validateMarketWindows(patch.marketSessions);
   const current = await getSettings();
   await db
     .update(schema.riskSettings)
-    .set({ ...patch, updatedAt: new Date() })
+    .set({
+      ...patch,
+      stopRiskAmount:
+        patch.stopRiskAmount === undefined
+          ? undefined
+          : patch.stopRiskAmount === null
+            ? null
+            : String(patch.stopRiskAmount),
+      updatedAt: new Date(),
+    })
     .where(eq(schema.riskSettings.id, current.id));
   return getSettings();
 }

@@ -60,6 +60,7 @@ export interface BridgeSymbolState {
   digits?: number;
   point?: number;
   marketOpen?: boolean;
+  marketStatus?: import('@trade/shared').SymbolInfo['marketStatus'];
 }
 
 export interface BridgeCommand {

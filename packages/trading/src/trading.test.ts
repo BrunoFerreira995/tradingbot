@@ -76,6 +76,9 @@ const evaluate = (
   overrides: Partial<{
     signal: TradingSignal;
     settings: RiskSettings;
+    account: AccountInfo;
+    symbol: SymbolInfo;
+    price: MarketPrice;
     positions: Position[];
     dailyPnl: number;
     dailyTrades: number;
@@ -423,5 +426,102 @@ describe('in-memory broker execution', () => {
     expect(closed).toHaveLength(1);
     expect(closed[0]?.exitPrice).toBeDefined();
     expect(await broker.getPositions()).toHaveLength(0);
+  });
+});
+
+describe('monetary stop', () => {
+  test('accepts a GBP budget of 0.269 and rounds the stop inward to broker ticks for both sides', () => {
+    for (const action of ['BUY', 'SELL'] as const) {
+      const decision = evaluate({
+        account: { ...account, currency: 'GBP' },
+        signal: { ...signal, action },
+        settings: {
+          ...settings,
+          stopRiskAmount: 0.269,
+          stopRiskCurrency: 'GBP',
+        },
+        symbol: { ...symbol, tickValueLoss: 2 },
+      });
+      expect(decision.approved).toBe(true);
+      const entry = action === 'BUY' ? price.ask : price.bid;
+      const risk =
+        (Math.abs(entry - decision.stopLoss!) / symbol.tickSize) *
+        2 *
+        decision.lots!;
+      expect(risk).toBeLessThanOrEqual(0.269 + 1e-10);
+      expect(decision.stopDistance).toBeCloseTo(0.13, 10);
+      expect(
+        action === 'BUY'
+          ? decision.stopLoss! < entry
+          : decision.stopLoss! > entry,
+      ).toBe(true);
+    }
+  });
+  test('rejects infeasible stops instead of silently raising the monetary exposure', () => {
+    const s = { ...settings, stopRiskAmount: 0.269, stopRiskCurrency: 'USD' };
+    expect(
+      evaluate({ settings: s, symbol: { ...symbol, stopsLevel: 1 } }),
+    ).toMatchObject({ approved: false });
+    expect(
+      evaluate({ settings: { ...s, stopRiskCurrency: 'GBP' } }),
+    ).toMatchObject({ approved: false });
+    expect(evaluate({ settings: { ...s, stopRiskAmount: 0 } })).toMatchObject({
+      approved: false,
+    });
+    expect(
+      evaluate({ settings: s, symbol: { ...symbol, tickValueLoss: 0 } }),
+    ).toMatchObject({ approved: false });
+    expect(
+      evaluate({ settings: { ...settings, stopRiskAmount: null } })
+        .stopDistance,
+    ).toBe(25);
+  });
+});
+
+describe('market availability reasons', () => {
+  test('zero spread is tradable when the terminal reports an open session', () => {
+    expect(
+      evaluate({
+        price: { ...price, bid: price.ask, spread: 0 },
+        symbol: { ...symbol, marketOpen: true, marketStatus: 'OPEN' },
+      }).approved,
+    ).toBe(true);
+  });
+  test('separates actual session closure from disabled trading and bad quotes', () => {
+    expect(
+      evaluate({
+        symbol: {
+          ...symbol,
+          marketOpen: false,
+          marketStatus: 'SESSION_CLOSED',
+        },
+      }).reason,
+    ).toContain('outside broker trading session');
+    expect(
+      evaluate({
+        symbol: {
+          ...symbol,
+          marketOpen: false,
+          marketStatus: 'TRADING_DISABLED',
+        },
+      }).reason,
+    ).toContain('Trading disabled');
+    expect(
+      evaluate({
+        symbol: { ...symbol, marketOpen: false, marketStatus: 'QUOTE_STALE' },
+      }).reason,
+    ).toBe('MT5 quote is stale');
+    expect(
+      evaluate({
+        symbol: {
+          ...symbol,
+          marketOpen: false,
+          marketStatus: 'SESSION_UNAVAILABLE',
+        },
+      }).reason,
+    ).toContain('schedule unavailable');
+    expect(
+      evaluate({ symbol: { ...symbol, marketOpen: false } }).reason,
+    ).toContain('update and restart AurumBridge');
   });
 });

@@ -175,6 +175,18 @@ export const riskSettings = pgTable('risk_settings', {
     .default([])
     .notNull(),
   requireStopLoss: boolean('require_stop_loss').default(true).notNull(),
+  marketSessions: jsonb('market_sessions').$type<
+    {
+      name: string;
+      timezone: string;
+      start: string;
+      end: string;
+      enabled?: boolean;
+      weekdays?: number[];
+    }[]
+  >(),
+  stopRiskAmount: money('stop_risk_amount'),
+  stopRiskCurrency: varchar('stop_risk_currency', { length: 12 }),
   minimumStopDistance: money('minimum_stop_distance'),
   maximumStopDistance: money('maximum_stop_distance'),
   positionPolicy: varchar('position_policy', { length: 40 })

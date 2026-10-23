@@ -388,6 +388,10 @@ describe('StrategyRunner', () => {
     expect(eng.signals).toHaveLength(1);
     const signal = eng.signals[0] as TradingSignal;
     expect(signal.action).toBe('BUY');
+    expect(signal.signalReason).toContain('BUY: closed candle close=');
+    expect(signal.signalReason).toContain('<= lower Bollinger band=');
+    expect(signal.signalReason).toContain('RSI=');
+    expect(signal.signalReason).toContain('timeframe=M30; bar=');
     expect(signal.symbol).toBe('XAUUSD');
     expect(signal.strategy).toBe('meanrev-bb-rsi-v1');
     expect(signal.timeframe).toBe('M30');

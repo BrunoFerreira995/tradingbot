@@ -1,3 +1,4 @@
+import { monetaryStopAction } from './monetary-stop';
 import { db, schema, sql } from '@trade/database';
 import { and, eq, gte, sql as dsql } from 'drizzle-orm';
 import type { BrokerAdapter } from '@trade/broker';
@@ -16,7 +17,15 @@ import {
 } from '@trade/trading';
 import { audit, emit } from './events';
 import { getSettings } from './settings';
+import { marketSession, sessionEntryAllowed } from './market-session';
 import { AccountExecutionQueue } from './account-execution-queue';
+import {
+  initialRiskAmount,
+  recordTradeClose,
+  tradeSessionId,
+  tradeServer,
+  type TradeContext,
+} from './trade-telemetry';
 
 const accountExecutions = new AccountExecutionQueue();
 
@@ -44,6 +53,52 @@ export class TradingEngine {
     return accountExecutions.run(this.accountId, () =>
       this.processSignal(signal, context),
     );
+  }
+
+  enforceMonetaryStops() {
+    return accountExecutions.run(this.accountId, async () => {
+      const settings = await getSettings();
+      const amount = settings.stopRiskAmount;
+      if (amount == null || !this.broker.connected) return;
+      await this.broker.refreshState?.();
+      const account = await this.broker.getAccount();
+      if (settings.stopRiskCurrency !== account.currency)
+        throw new Error('Monetary stop currency does not match account');
+      for (const position of await this.broker.getPositions()) {
+        try {
+          const symbol = await this.broker.getSymbol(position.symbol);
+          const price = await this.broker.getPrice(position.symbol);
+          const action = monetaryStopAction(position, symbol, price, amount);
+          if (action === 'keep') continue;
+          if (action === 'close') {
+            await this.close(position, '', 'MONETARY_STOP');
+            continue;
+          }
+          const result = await this.broker.modifyPosition(
+            position.id,
+            action,
+            position.takeProfit,
+          );
+          if (result.status !== 'FILLED') {
+            await this.close(position, '', 'MONETARY_STOP');
+            continue;
+          }
+          await db
+            .update(schema.positions)
+            .set({ stopLoss: String(action) })
+            .where(eq(schema.positions.brokerPositionId, position.id));
+          await emit('position.stop_updated', {
+            positionId: position.id,
+            stopLoss: action,
+          });
+        } catch (error) {
+          await audit('RISK', 'monetary_stop_failed', undefined, undefined, {
+            positionId: position.id,
+            reason: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+    });
   }
 
   private async processSignal(
@@ -187,6 +242,21 @@ export class TradingEngine {
         positions,
         settings.closeOnOppositeSignal === true,
       );
+      if (
+        !sessionEntryAllowed(
+          executionSignal.action,
+          Date.now(),
+          settings.marketSessions,
+        )
+      ) {
+        const reason = 'Fora dos horários das sessões Forex ativadas';
+        await setStatus('REJECTED', { reason });
+        return {
+          status: 'REJECTED' as SignalStatus,
+          reason,
+          signalId: signal.signalId,
+        };
+      }
       const decision = this.risk.evaluate({
         signal: executionSignal,
         settings,
@@ -248,7 +318,14 @@ export class TradingEngine {
               positionIds: targets.map((position) => position.id),
             },
           );
-        for (const position of targets) await this.close(position, record.id);
+        for (const position of targets)
+          await this.close(
+            position,
+            record.id,
+            executionSignal.action !== signal.action
+              ? 'OPPOSITE_SIGNAL'
+              : (signal.closeReason ?? 'SIGNAL'),
+          );
         await setStatus('EXECUTED');
         return {
           status: 'EXECUTED' as SignalStatus,
@@ -302,7 +379,13 @@ export class TradingEngine {
         positions,
       );
       for (const item of closed)
-        await this.persistClose(item.position, record.id, item.exitPrice);
+        await this.persistClose(
+          item.position,
+          record.id,
+          item.exitPrice,
+          undefined,
+          'POSITION_POLICY',
+        );
       const clientOrderId =
         `${signal.strategy}-${signal.signalId}-${signal.symbol}-${side}`.slice(
           0,
@@ -328,18 +411,28 @@ export class TradingEngine {
         signalId: signal.signalId,
       });
       const latestSettings = await getSettings();
-      if (latestSettings.emergencyStop || !latestSettings.autoTradingEnabled) {
+      if (
+        latestSettings.emergencyStop ||
+        !latestSettings.autoTradingEnabled ||
+        !sessionEntryAllowed(
+          signal.action,
+          Date.now(),
+          latestSettings.marketSessions,
+        )
+      ) {
         await db
           .update(schema.orders)
           .set({ status: 'CANCELLED', updatedAt: new Date() })
           .where(eq(schema.orders.id, order.id));
         await setStatus('REJECTED', {
-          reason: 'Trading disabled before submission',
+          reason:
+            'Trading disabled or outside enabled Forex sessions before submission',
         });
         return {
           status: 'REJECTED' as SignalStatus,
           signalId: signal.signalId,
-          reason: 'Trading disabled before submission',
+          reason:
+            'Trading disabled or outside enabled Forex sessions before submission',
         };
       }
       await db
@@ -357,6 +450,96 @@ export class TradingEngine {
       await audit('ORDER', 'broker_order_sent', context.requestId, context.ip, {
         clientOrderId,
       });
+      const server = await tradeServer(account.id);
+      const entryQuote = await this.broker.getPrice(signal.symbol);
+      const requestedEntryPrice =
+        side === 'BUY' ? entryQuote.ask : entryQuote.bid;
+      if (
+        latestSettings.stopRiskAmount !== settings.stopRiskAmount ||
+        latestSettings.stopRiskCurrency !== settings.stopRiskCurrency
+      ) {
+        await db
+          .update(schema.orders)
+          .set({ status: 'CANCELLED', updatedAt: new Date() })
+          .where(eq(schema.orders.id, order.id));
+        const reason = 'Monetary stop settings changed before submission';
+        await setStatus('REJECTED', { reason });
+        return {
+          status: 'REJECTED' as SignalStatus,
+          signalId: signal.signalId,
+          reason,
+        };
+      }
+      if (settings.stopRiskAmount != null) {
+        decision.stopLoss =
+          requestedEntryPrice +
+          (side === 'BUY' ? -decision.stopDistance! : decision.stopDistance!);
+        const refreshedCheck = await this.broker.checkMarketOrder!({
+          clientOrderId: signal.signalId,
+          symbol: signal.symbol,
+          side,
+          lots: decision.lots!,
+          stopLoss: decision.stopLoss,
+          takeProfit: decision.takeProfit,
+          maxSlippage: symbol.maxSlippage,
+        });
+        const margin = refreshedCheck.approved
+          ? this.risk.evaluateMarginUsage(
+              refreshedCheck.margin,
+              refreshedCheck.equity,
+              latestSettings.maximumMarginUsagePercentage,
+            )
+          : {
+              approved: false,
+              reason:
+                refreshedCheck.reason ?? 'Monetary stop rejected by MetaTrader',
+            };
+        if (!margin.approved) {
+          await db
+            .update(schema.orders)
+            .set({ status: 'CANCELLED', updatedAt: new Date() })
+            .where(eq(schema.orders.id, order.id));
+          await setStatus('REJECTED', { reason: margin.reason });
+          return {
+            status: 'REJECTED' as SignalStatus,
+            signalId: signal.signalId,
+            reason: margin.reason,
+          };
+        }
+        await db
+          .update(schema.orders)
+          .set({ stopLoss: String(decision.stopLoss) })
+          .where(eq(schema.orders.id, order.id));
+      }
+
+      await db
+        .update(schema.orders)
+        .set({ requestedPrice: String(requestedEntryPrice) })
+        .where(eq(schema.orders.id, order.id));
+      const tradeContext: TradeContext = {
+        accountId: account.id,
+        server: server ?? '',
+        sessionId: tradeSessionId,
+        botSessionId: tradeSessionId,
+        marketSessionWindows: settings.marketSessions,
+        strategyId: strategy.id,
+        timeframe: signal.timeframe,
+        signalReason: signal.signalReason,
+        signalConfidence: signal.signalConfidence,
+        spreadAtEntry: entryQuote.ask - entryQuote.bid,
+        initialSl: decision.stopLoss,
+        initialTp: decision.takeProfit,
+        balanceAtEntry: account.balance,
+        equityAtEntry: account.equity,
+        tickSize: symbol.tickSize,
+        tickValue: symbol.tickValue,
+        tickValueLoss: symbol.tickValueLoss,
+        lots: decision.lots,
+      };
+      await db
+        .update(schema.tradingSignals)
+        .set({ rawPayload: { ...rawPayload, tradeContext } })
+        .where(eq(schema.tradingSignals.id, record.id));
       const { result, latencyMs } = await this.orders.submit({
         clientOrderId,
         symbol: signal.symbol,
@@ -387,10 +570,8 @@ export class TradingEngine {
             result.executedPrice === undefined
               ? undefined
               : String(
-                  Math.abs(
-                    result.executedPrice -
-                      (side === 'BUY' ? price.ask : price.bid),
-                  ),
+                  (result.executedPrice - requestedEntryPrice) *
+                    (side === 'BUY' ? 1 : -1),
                 ),
           latencyMs,
           updatedAt: new Date(),
@@ -417,6 +598,37 @@ export class TradingEngine {
         !result.executedPrice
       )
         throw new Error(result.reason ?? 'Broker rejected order');
+      await db
+        .update(schema.tradingSignals)
+        .set({
+          rawPayload: {
+            ...rawPayload,
+            tradeContext: {
+              ...tradeContext,
+              brokerPositionId: result.positionId,
+              entryOrderId: result.brokerOrderId,
+              entryPrice: result.executedPrice,
+              riskAmount: initialRiskAmount({
+                side,
+                entryPrice: result.executedPrice,
+                stopLoss: decision.stopLoss,
+                lots: decision.lots!,
+                tickSize: symbol.tickSize,
+                tickValue: symbol.tickValue,
+                tickValueLoss: symbol.tickValueLoss,
+              }),
+              openedAt: new Date().toISOString(),
+              marketSession: marketSession(Date.now(), settings.marketSessions),
+              executionLatencyMs: latencyMs,
+              slippage:
+                (result.executedPrice - requestedEntryPrice) *
+                (side === 'BUY' ? 1 : -1),
+              maxFavorableExcursion: 0,
+              maxAdverseExcursion: 0,
+            },
+          },
+        })
+        .where(eq(schema.tradingSignals.id, record.id));
       await db.insert(schema.positions).values({
         brokerPositionId: result.positionId,
         symbol: signal.symbol,
@@ -458,7 +670,7 @@ export class TradingEngine {
       }
     }
   }
-  private async close(position: Position, signalId: string) {
+  private async close(position: Position, signalId: string, reason: string) {
     const result = await this.broker.closePosition(position.id);
     if (result.status !== 'FILLED' || result.executedPrice === undefined)
       throw new Error(result.reason ?? 'Close not confirmed');
@@ -469,7 +681,13 @@ export class TradingEngine {
       throw new Error(
         'Close not reflected by MetaTrader; position remains open',
       );
-    await this.persistClose(position, signalId, result.executedPrice, result);
+    await this.persistClose(
+      position,
+      signalId,
+      result.executedPrice,
+      result,
+      reason,
+    );
   }
   /**
    * Realised P&L.
@@ -501,6 +719,7 @@ export class TradingEngine {
     _signalId: string,
     exitPrice?: number,
     result?: OrderResult,
+    closeReason = 'SIGNAL',
   ) {
     const price =
       exitPrice ??
@@ -531,6 +750,15 @@ export class TradingEngine {
         exitPrice: String(price),
         pnl: String(pnl),
       });
+    }
+    try {
+      const account = await this.broker.getAccount();
+      await recordTradeClose(account.id, position.id, closeReason);
+    } catch (error) {
+      console.warn(
+        '[trade telemetry] close reason persistence failed',
+        error instanceof Error ? error.message : error,
+      );
     }
     await emit('position.closed', {
       symbol: position.symbol,

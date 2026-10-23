@@ -1,3 +1,30 @@
+/** Monetary values use account currency; excursions are sampled, positive amounts. */
+export interface TradeMetadata {
+  sessionId?: string;
+  botSessionId?: string;
+  marketSession?: string;
+  excursionObservedFrom?: string;
+  excursionObservedUntil?: string;
+  strategyId?: string;
+  openedAt?: string;
+  closeReason?: string;
+  timeframe?: string;
+  signalReason?: string;
+  signalConfidence?: number;
+  spreadAtEntry?: number;
+  commission?: number;
+  swap?: number;
+  initialSl?: number;
+  initialTp?: number;
+  riskAmount?: number;
+  balanceAtEntry?: number;
+  equityAtEntry?: number;
+  maxFavorableExcursion?: number;
+  maxAdverseExcursion?: number;
+  executionLatencyMs?: number;
+  slippage?: number;
+}
+
 export interface TerminalDeal {
   id: string;
   positionId: string;
@@ -11,6 +38,10 @@ export interface TerminalDeal {
   commission: number;
   swap: number;
   fee: number;
+  orderId?: string;
+  reason?: number;
+  stopLoss?: number;
+  takeProfit?: number;
 }
 export interface TerminalHistory {
   accountId: string;
@@ -62,16 +93,18 @@ export interface PerformanceData {
     stopRisk: number | null;
     missingStops: number;
   }>;
-  closedTrades: Array<{
-    id: string;
-    symbol: string;
-    side: string;
-    lots: number;
-    entryPrice: number;
-    exitPrice: number;
-    pnl: number;
-    closedAt: string;
-  }>;
+  closedTrades: Array<
+    TradeMetadata & {
+      id: string;
+      symbol: string;
+      side: string;
+      lots: number;
+      entryPrice: number;
+      exitPrice: number;
+      pnl: number;
+      closedAt: string;
+    }
+  >;
   closedTradeCount: number;
   tradesToday: number;
   winRate: number | null;

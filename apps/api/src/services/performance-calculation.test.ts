@@ -161,6 +161,8 @@ test('win rate uses fully closed positions including opening commission', () => 
     symbol: 'BTCUSD',
     profit: 0,
     commission: -5,
+    stopLoss: 95,
+    takeProfit: 104,
     volume: 1,
     price: 100,
   });
@@ -175,9 +177,18 @@ test('win rate uses fully closed positions including opening commission', () => 
     volume: 1,
     price: 104,
     at: at + 1,
+    reason: 5,
   });
   const p = calculate(history([entry, exit]));
   expect(p.closedTrades[0]?.pnl).toBe(-2);
+  expect(p.closedTrades[0]).toMatchObject({
+    commission: -6,
+    swap: 0,
+    initialSl: 95,
+    initialTp: 104,
+    closeReason: 'TP',
+    openedAt: new Date(at * 1000).toISOString(),
+  });
   expect(p.winRate).toBe(0);
   expect(p.losses).toBe(1);
   expect(
@@ -254,6 +265,9 @@ test('win rate and daily count cover all closed positions beyond the table limit
   }
   const p = calculate(history(deals));
   expect(p.closedTrades).toHaveLength(50);
+  expect(
+    calculate(history(deals), { includeAllTrades: true }).closedTrades,
+  ).toHaveLength(60);
   expect(p.closedTradeCount).toBe(60);
   expect(p.tradesToday).toBe(60);
   expect(p.winRate).toBe(50);

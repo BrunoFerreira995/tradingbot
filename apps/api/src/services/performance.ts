@@ -14,6 +14,7 @@ export async function getPerformance(
   account: AccountInfo,
   positions: Position[],
   connected: boolean,
+  includeAllTrades = false,
 ) {
   const [beat, candidate, symbols] = await Promise.all([
     bridge.heartbeat(),
@@ -77,5 +78,6 @@ export async function getPerformance(
     observations,
     updatedAt,
     timezone,
+    includeAllTrades,
   });
 }

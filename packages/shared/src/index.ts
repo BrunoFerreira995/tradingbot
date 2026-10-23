@@ -1,5 +1,6 @@
 import { z } from 'zod';
 export type {
+  TradeMetadata,
   TerminalDeal,
   TerminalHistory,
   CapitalPoint,
@@ -42,6 +43,9 @@ export const signalSchema = z
     // here; anything the bot actually pulls bars for is narrowed by
     // `isTimeframe` before it reaches the service.
     timeframe: z.string().max(20).optional(),
+    signalReason: z.string().max(2000).optional(),
+    closeReason: z.enum(['TIMEOUT', 'SIGNAL', 'MANUAL']).optional(),
+    signalConfidence: z.number().min(0).max(1).finite().optional(),
   })
   .strict()
   .superRefine((v, ctx) => {
@@ -90,6 +94,8 @@ export interface SymbolInfo {
   lotStep: number;
   contractSize: number;
   tickValue: number;
+  /** Loss-side tick value in account currency, when supplied by the terminal. */
+  tickValueLoss?: number;
   tickSize: number;
   maxSpread: number;
   maxSlippage: number;
@@ -97,6 +103,13 @@ export interface SymbolInfo {
   defaultTakeProfit: number;
   marginRate: number;
   marketOpen: boolean;
+  marketStatus?:
+    | 'OPEN'
+    | 'SESSION_CLOSED'
+    | 'SESSION_UNAVAILABLE'
+    | 'TRADING_DISABLED'
+    | 'QUOTES_UNAVAILABLE'
+    | 'QUOTE_STALE';
   /**
    * Minimum SL/TP distance the broker accepts, already resolved to price units
    * by the bridge (`SYMBOL_TRADE_STOPS_LEVEL * SYMBOL_POINT`).
@@ -118,12 +131,15 @@ export interface MarketPrice {
 }
 export interface Position {
   id: string;
+  positionIdentifier?: string;
   symbol: string;
   side: Side;
   lots: number;
   entryPrice: number;
   currentPrice: number;
   unrealizedPnl: number;
+  /** Terminal gross mark-to-market profit in account currency, excluding swap. */
+  grossPnl?: number;
   stopLoss?: number;
   takeProfit?: number;
   openedAt: string;

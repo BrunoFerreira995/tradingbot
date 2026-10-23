@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 const allowed = new Set([
   'dashboard',
+  'trades/export',
+  'bot-sessions',
+  'bot-sessions/export',
   'logs',
   'events',
   'events/stream',
@@ -28,6 +31,20 @@ export async function GET(
       signal: _request.signal,
     },
   );
+  if (
+    (path === 'trades/export' || path === 'bot-sessions/export') &&
+    response.ok
+  )
+    return new Response(response.body, {
+      status: response.status,
+      headers: {
+        'content-type': 'text/csv; charset=utf-8',
+        'content-disposition':
+          response.headers.get('content-disposition') ??
+          'attachment; filename=all-trades.csv',
+        'cache-control': 'no-store',
+      },
+    });
   if (path === 'events/stream' || path === 'open-pnl/stream')
     return new Response(response.body, {
       status: response.status,

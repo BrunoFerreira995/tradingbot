@@ -63,6 +63,7 @@ export function calculatePerformance(input: {
   updatedAt: string | null;
   timezone: string;
   now?: number;
+  includeAllTrades?: boolean;
 }): PerformanceData {
   const {
     account,
@@ -159,6 +160,12 @@ export function calculatePerformance(input: {
         exits.reduce((sum, d) => sum + d.price * d.volume, 0) / exitLots,
       pnl: list.reduce((sum, d) => sum + net(d), 0),
       closedAt: new Date(exits.at(-1)!.at * 1000).toISOString(),
+      openedAt: new Date(entries[0]!.at * 1000).toISOString(),
+      commission: list.reduce((sum, d) => sum + d.commission, 0),
+      swap: list.reduce((sum, d) => sum + d.swap, 0),
+      initialSl: entries[0]!.stopLoss,
+      initialTp: entries[0]!.takeProfit,
+      closeReason: dealCloseReason(exits.at(-1)!.reason),
     });
   }
   closedTrades.sort((a, b) => Date.parse(b.closedAt) - Date.parse(a.closedAt));
@@ -237,7 +244,9 @@ export function calculatePerformance(input: {
     tradesToday: closedTrades.filter(
       (t) => key(Date.parse(t.closedAt), timezone) === today,
     ).length,
-    closedTrades: closedTrades.slice(0, 50),
+    closedTrades: input.includeAllTrades
+      ? closedTrades
+      : closedTrades.slice(0, 50),
     winRate:
       available && closedTrades.length
         ? (wins / closedTrades.length) * 100
@@ -245,4 +254,26 @@ export function calculatePerformance(input: {
     wins,
     losses,
   };
+}
+
+export function dealCloseReason(
+  reason: number | undefined,
+): string | undefined {
+  return reason === undefined
+    ? undefined
+    : ((
+        {
+          0: 'CLIENT',
+          1: 'MOBILE',
+          2: 'WEB',
+          3: 'EXPERT',
+          4: 'SL',
+          5: 'TP',
+          6: 'STOP_OUT',
+          7: 'ROLLOVER',
+          8: 'VMARGIN',
+          9: 'SPLIT',
+          10: 'CORPORATE_ACTION',
+        } as Record<number, string>
+      )[reason] ?? `MT5_REASON_${reason}`);
 }
