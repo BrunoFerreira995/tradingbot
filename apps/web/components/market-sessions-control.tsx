@@ -6,10 +6,23 @@ type Window = {
   start: string;
   end: string;
   enabled?: boolean;
+  weekdays?: number[];
 };
 const defaults: Window[] = [
-  { name: 'SYDNEY', timezone: 'Etc/GMT+3', start: '18:00', end: '03:00' },
-  { name: 'ASIA', timezone: 'Etc/GMT+3', start: '21:00', end: '06:00' },
+  {
+    name: 'SYDNEY',
+    timezone: 'Etc/GMT+3',
+    start: '18:00',
+    end: '03:00',
+    weekdays: [0, 1, 2, 3, 4, 5],
+  },
+  {
+    name: 'ASIA',
+    timezone: 'Etc/GMT+3',
+    start: '21:00',
+    end: '06:00',
+    weekdays: [0, 1, 2, 3, 4, 5],
+  },
   { name: 'LONDON', timezone: 'Etc/GMT+3', start: '04:00', end: '13:00' },
   { name: 'NEW_YORK', timezone: 'Etc/GMT+3', start: '09:00', end: '18:00' },
 ];

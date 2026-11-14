@@ -4,11 +4,33 @@ import type { BrokerAdapter } from '@trade/broker';
 import type { Rate, Timeframe, TradingSignal } from '@trade/shared';
 import {
   at,
+  atr,
   bollingerBands,
   defaultMeanReversionConfig,
   evaluateMeanReversion,
   lastClosedBarTime,
   rsi,
+  evaluateSmaMicroTrend,
+  defaultSmaMicroTrendConfig,
+  atrTrailingStop,
+  macroTrendAt,
+  resolveMacroTimeframe,
+  type SmaMicroTrendConfig,
+  defaultDowTheoryConfig,
+  evaluateDowTheory,
+  type DowTheoryConfig,
+  evaluateMarketForces,
+  type MarketForcesReading,
+  evaluateForceShockStrategy,
+  type ForceShockConfig,
+  type ForceShockStrategyReading,
+  evaluateDiversifiedTrend,
+  diversifiedTrendSchema,
+  defaultDiversifiedTrendConfig,
+  sizeDiversifiedTrend,
+  TREND_FOREX_SYMBOLS,
+  type DiversifiedTrendConfig,
+  type DiversifiedTrendReading,
 } from '@trade/strategy';
 import { audit, emit } from './events';
 import { getSettings } from './settings';
@@ -38,6 +60,12 @@ export interface StrategyRunnerOptions {
   history?: number;
   pollIntervalMs?: number;
   config?: Partial<typeof defaultMeanReversionConfig>;
+  smaConfig?: SmaMicroTrendConfig;
+  smaConfigs?: Record<string, SmaMicroTrendConfig>;
+  dowConfig?: DowTheoryConfig;
+  shockConfig?: Partial<ForceShockConfig>;
+  trendConfig?: DiversifiedTrendConfig;
+  getMaximumLotSize?: () => Promise<number>;
   /** Live risk allowlist; disabled symbols must not stop enabled symbols. */
   getAllowedSymbols?: () => Promise<string[]>;
   /**
@@ -59,6 +87,11 @@ export interface StrategyEvaluationReport {
   rsi?: number;
   upper?: number;
   lower?: number;
+  fastSMA?: number;
+  slowSMA?: number;
+  atr?: number;
+  trend?: string;
+  stopLoss?: number;
   reason?: string;
 }
 
@@ -76,6 +109,9 @@ export type RunnerStatus =
 
 /** What one watched symbol is doing right now, for the dashboard. */
 export interface SymbolState {
+  diversifiedTrend?: DiversifiedTrendReading;
+  forceShock?: ForceShockStrategyReading;
+  marketForces?: MarketForcesReading;
   status: RunnerStatus;
   /** Timestamp of the last closed bar that was evaluated, ISO 8601. */
   lastBarAt: string | null;
@@ -85,6 +121,13 @@ export interface SymbolState {
   rsi?: number;
   upper?: number;
   lower?: number;
+  fastSMA?: number;
+  slowSMA?: number;
+  atr?: number;
+  trend?: string;
+  macroTrend?: string;
+  macroTimeframe?: Timeframe;
+  stopLoss?: number;
   /**
    * How far the bar is from a setup, in each condition's own units: RSI points
    * to the extreme, and percent of band width to the band. Both are always
@@ -98,6 +141,7 @@ export interface SymbolState {
 }
 
 export interface RunnerSnapshot {
+  trendConfig?: DiversifiedTrendConfig;
   status: RunnerStatus;
   symbols: string[];
   timeframe: Timeframe;
@@ -130,6 +174,11 @@ const DEFAULTS = {
   history: 120,
   pollIntervalMs: 5000,
 };
+
+// Entry guards target costs and stops that are large relative to a closed M1
+// candle. They skip a setup; they never increase the user's monetary risk cap.
+const SMA_MAX_SPREAD_ATR = 1.5;
+const SMA_MIN_STOP_ATR = 0.5;
 
 /** Writes to the audit trail and the event stream the dashboard listens to. */
 export const eventStreamReporter: StrategyReporter = {
@@ -181,11 +230,18 @@ export class StrategyRunner {
    * silently failing".
    */
   private readonly symbolStates = new Map<string, SymbolState>();
+  private readonly marketForces = new Map<string, MarketForcesReading>();
+  private readonly forceShocks = new Map<string, ForceShockStrategyReading>();
+  private readonly trendReadings = new Map<string, DiversifiedTrendReading>();
   constructor(
     private broker: BrokerAdapter,
     private engine: TradingEngine,
     private options: StrategyRunnerOptions,
   ) {
+    if (options.strategyName === 'diversified_trend') {
+      if (options.timeframe !== 'D1') throw new Error('Diversified trend requires D1');
+      diversifiedTrendSchema.parse(options.trendConfig ?? defaultDiversifiedTrendConfig);
+    }
     this.timeframe = options.timeframe;
     this.snapshot = {
       status: 'IDLE',
@@ -199,8 +255,26 @@ export class StrategyRunner {
 
   private readonly reporter: StrategyReporter;
 
+  setSmaConfig(config: SmaMicroTrendConfig): void {
+    this.options.smaConfig = config;
+  }
+
+  setScopedSmaConfig(symbol: string, timeframe: Timeframe, config: SmaMicroTrendConfig): void {
+    this.options.smaConfigs ??= {};
+    this.options.smaConfigs[`${symbol}:${timeframe}`] = config;
+  }
+
+  scopedSmaConfig(symbol: string, timeframe = this.timeframe): SmaMicroTrendConfig {
+    return this.options.smaConfigs?.[`${symbol}:${timeframe}`] ?? this.smaConfig;
+  }
+
+  get smaConfig(): SmaMicroTrendConfig {
+    return this.options.smaConfig ?? defaultSmaMicroTrendConfig;
+  }
+
   get state(): RunnerSnapshot {
-    return { ...this.snapshot };
+    return { ...this.snapshot, ...(this.options.strategyName === 'diversified_trend'
+      ? { trendConfig: this.options.trendConfig ?? defaultDiversifiedTrendConfig } : {}) };
   }
 
   /** Exposes a startup refusal instead of leaving an unevaluated IDLE state. */
@@ -226,6 +300,8 @@ export class StrategyRunner {
    * WAITING_BAR until the clock happened to produce that exact timestamp again.
    */
   setTimeframe(timeframe: Timeframe): void {
+    if (this.options.strategyName === 'diversified_trend' && timeframe !== 'D1')
+      throw new Error('Diversified trend requires D1');
     if (timeframe === this.timeframe) return;
     this.timeframe = timeframe;
     this.lastBarTimes.clear();
@@ -291,7 +367,8 @@ export class StrategyRunner {
   private async evaluate(): Promise<RunnerSnapshot> {
     const { strategyName, symbols } = this.options;
     const timeframe = this.timeframe;
-    const history = this.options.history ?? DEFAULTS.history;
+    const history = this.options.strategyName === 'diversified_trend'
+      ? Math.max(305, this.options.history ?? 0) : this.options.history ?? DEFAULTS.history;
 
     // A sleeping terminal is routine, not an evaluation failure: report it as a
     // blocked state without touching the broker or writing an audit row every
@@ -362,7 +439,14 @@ export class StrategyRunner {
   }
 
   private record(symbol: string, state: SymbolState): void {
-    this.symbolStates.set(symbol, state);
+    this.symbolStates.set(symbol, {
+      ...state,
+      ...(state.lastBarAt ? { marketForces: this.marketForces.get(symbol) } : {}),
+      ...(state.lastBarAt && this.options.strategyName === 'market_forces_shock'
+        ? { forceShock: this.forceShocks.get(symbol) } : {}),
+      ...(state.lastBarAt && this.options.strategyName === 'diversified_trend'
+        ? { diversifiedTrend: this.trendReadings.get(symbol) } : {}),
+    });
   }
 
   /**
@@ -476,6 +560,13 @@ export class StrategyRunner {
     }
 
     const secondsToNextBar = this.secondsToNextBar(barTime, timeframe);
+    if (!primed || barTime !== this.lastBarTimes.get(symbol)) {
+      this.marketForces.set(symbol, evaluateMarketForces(rates));
+      if (this.options.strategyName === 'diversified_trend')
+        this.trendReadings.set(symbol, evaluateDiversifiedTrend(rates, this.options.trendConfig));
+      if (this.options.strategyName === 'market_forces_shock')
+        this.forceShocks.set(symbol, evaluateForceShockStrategy(rates, this.options.shockConfig));
+    }
 
     // A restart must not replay the bar that was already acted on. The engine
     // dedupes by signal id, so seeding from the current bar is enough, and it
@@ -488,11 +579,23 @@ export class StrategyRunner {
         lastBarAt: iso(barTime),
         secondsToNextBar,
         detail: 'primed, waiting for the next bar to close',
-        ...this.levels(rates),
+        ...(this.options.strategyName === 'sma_micro_trend'
+          ? this.smaLevels(rates, symbol)
+          : this.options.strategyName === 'dow_theory'
+            ? this.dowLevels(rates)
+            : this.options.strategyName === 'diversified_trend'
+              ? { close: rates.at(-2)?.c, trend: this.trendReadings.get(symbol)?.side ?? 'NEUTRAL' }
+            : ['market_forces', 'market_forces_shock'].includes(this.options.strategyName)
+              ? { close: rates.at(-2)?.c, trend: this.marketForces.get(symbol)?.direction }
+            : this.levels(rates)),
       });
       return { status: 'WAITING_BAR', detail: `primed at bar ${iso(barTime)}` };
     }
     if (barTime === lastBarTime) {
+      if (['sma_micro_trend', 'dow_theory', 'market_forces', 'market_forces_shock', 'diversified_trend'].includes(this.options.strategyName)) {
+        this.record(symbol, { ...this.symbolStates.get(symbol), status: 'WAITING_BAR', lastBarAt: iso(barTime), secondsToNextBar } as SymbolState);
+        return { status: 'WAITING_BAR' };
+      }
       // Keep the previous RSI/band reading so the dashboard still shows how far
       // this pair is from a setup while the bar is forming, but refresh the
       // countdown so it ticks down live.
@@ -515,6 +618,14 @@ export class StrategyRunner {
       });
       return { status: 'WAITING_BAR' };
     }
+    if (this.options.strategyName === 'sma_micro_trend')
+      return this.evaluateSmaSymbol(symbol, timeframe, rates, barTime, secondsToNextBar);
+    if (this.options.strategyName === 'dow_theory')
+      return this.evaluateDowSymbol(symbol, timeframe, rates, barTime, secondsToNextBar);
+    if (['market_forces', 'market_forces_shock'].includes(this.options.strategyName))
+      return this.evaluateForcesSymbol(symbol, timeframe, rates, barTime, secondsToNextBar);
+    if (this.options.strategyName === 'diversified_trend')
+      return this.evaluateTrendSymbol(symbol, timeframe, barTime, secondsToNextBar);
     // Entry conditions depend on closed bars, not on the quote. Obtain the
     // price only for actual setups and then size protective distances from mid.
     const decision = evaluateMeanReversion(
@@ -576,6 +687,333 @@ export class StrategyRunner {
       status: 'SIGNAL',
       detail: `${decision.side} ${result.status.toLowerCase()}`,
     };
+  }
+
+  private async evaluateForcesSymbol(
+    symbol: string, timeframe: Timeframe, rates: ReadonlyArray<Rate>,
+    barTime: number, secondsToNextBar: number,
+  ): Promise<Outcome> {
+    const reading = evaluateMarketForces(rates);
+    const finish = (status: RunnerStatus, detail: string, side?: string): Outcome => {
+      this.lastBarTimes.set(symbol, barTime);
+      this.record(symbol, { status, detail, side, lastBarAt: iso(barTime), secondsToNextBar,
+        close: rates.at(-2)?.c, trend: reading.direction });
+      return { status, detail };
+    };
+    const shock = this.options.strategyName === 'market_forces_shock'
+      ? this.forceShocks.get(symbol) : undefined;
+    if (this.options.strategyName === 'market_forces_shock' && (!shock || shock.blocked)) {
+      const reason = shock?.reason ?? 'Choque: leitura indisponível; aguardar.';
+      const outcome = finish('NO_SETUP', reason);
+      await this.reporter.evaluated({ strategy: this.options.strategyName, symbol, timeframe,
+        outcome: 'shock_blocked', barTime: iso(barTime), reason });
+      return outcome;
+    }
+    if (reading.action === 'WAIT')
+      return finish('NO_SETUP', `Market forces: ${reading.reasons.join(' ')}`);
+    const positions = await this.broker.getPositions();
+    if (timeframe !== this.timeframe) return { status: 'WAITING_BAR' };
+    if (positions.some((p) => p.symbol === symbol))
+      return finish('NO_SETUP', 'Market forces: position already open for symbol');
+    const volatility = atr(rates.slice(0, -1), 14).at(-1);
+    if (volatility == null || !Number.isFinite(volatility) || volatility <= 0)
+      return finish('BLOCKED', 'Market forces: invalid ATR');
+    const quote = await this.broker.getPrice(symbol);
+    if (timeframe !== this.timeframe) return { status: 'WAITING_BAR' };
+    const spread = Math.max(quote.spread, quote.ask - quote.bid);
+    if (![quote.bid, quote.ask, spread].every(Number.isFinite) || quote.bid <= 0 || quote.ask < quote.bid || spread < 0 || spread > volatility * 0.2)
+      return finish('BLOCKED', 'Market forces: invalid quote or spread above 20% ATR');
+    const signal = this.buildSignal(symbol, reading.action, barTime, {
+      stopDistance: volatility * 2,
+      takeProfitDistance: volatility * 4,
+    });
+    signal.signalReason = `Market forces ${reading.action}; friction=${reading.frictionScore}/100; ${reading.reasons.join(' ')}; timeframe=${timeframe}; bar=${iso(barTime)}`;
+    if (shock) signal.signalReason += `; shock=${shock.shock.index}; ${shock.reason}`;
+    // Consume before submission: an uncertain broker outcome must not replay an entry.
+    this.lastBarTimes.set(symbol, barTime);
+    const result = await this.engine.process(signal, {
+      requestId: `strategy:${signal.signalId}`, ip: 'strategy-runner', receivedAt: Date.now(),
+    });
+    const outcome = finish(result.status === 'EXECUTED' ? 'SIGNAL' : 'BLOCKED',
+      `${reading.action} ${result.status.toLowerCase()}${result.status === 'REJECTED' ? `: ${result.reason}` : ''}`, reading.action);
+    await this.reporter.evaluated({ strategy: this.options.strategyName, symbol, timeframe,
+      outcome: result.status.toLowerCase(), barTime: iso(barTime), side: reading.action,
+      reason: result.status === 'REJECTED' ? result.reason : signal.signalReason });
+    return outcome;
+  }
+
+  private async evaluateTrendSymbol(symbol: string, timeframe: Timeframe, barTime: number, secondsToNextBar: number): Promise<Outcome> {
+    const config = this.options.trendConfig ?? defaultDiversifiedTrendConfig;
+    const reading = this.trendReadings.get(symbol)!;
+    const finish = (status: RunnerStatus, detail: string, side?: string): Outcome => {
+      this.lastBarTimes.set(symbol, barTime);
+      this.record(symbol, { status, detail, side, lastBarAt: iso(barTime), secondsToNextBar,
+        close: reading.close ?? undefined, atr: reading.atr ?? undefined, trend: reading.side ?? 'NEUTRAL' });
+      return { status, detail };
+    };
+    if (!(TREND_FOREX_SYMBOLS as readonly string[]).includes(symbol))
+      return finish('BLOCKED', 'Diversified trend: unsupported Forex symbol');
+    if (!reading.ready) return finish('NO_SETUP', 'Daily momentum/volatility history not ready');
+    const allPositions = await this.broker.getPositions();
+    const positions = allPositions.filter((p) => p.symbol === symbol);
+    if (timeframe !== this.timeframe) return { status: 'WAITING_BAR' };
+    if (positions.length && positions.every((p) => p.side === reading.side))
+      return finish('NO_SETUP', 'Holding aligned daily trend position');
+    if (positions.length) {
+      const close: TradingSignal = { strategy: this.options.strategyName,
+        signalId: `${this.options.strategyName}:${symbol}:${timeframe}:${barTime}:close`,
+        symbol, action: 'CLOSE', orderType: 'MARKET', timeframe, closeReason: 'SIGNAL',
+        signalReason: `Daily trend changed or neutral; score=${reading.score}` };
+      this.lastBarTimes.set(symbol, barTime);
+      const result = await this.engine.process(close, { requestId: `strategy:${close.signalId}`, ip: 'strategy-runner', receivedAt: Date.now() });
+      if (result.status !== 'EXECUTED' || (await this.broker.getPositions()).some((p) => p.symbol === symbol))
+        return finish('BLOCKED', 'Daily trend exit not confirmed');
+      if (!reading.side) return finish('SIGNAL', 'Daily neutral trend: position closed', 'CLOSE');
+    }
+    if (!reading.side) return finish('NO_SETUP', 'Daily momentum in neutral zone');
+    const [account, info, quote, maximumLot] = await Promise.all([
+      this.broker.getAccount(), this.broker.getSymbol(symbol), this.broker.getPrice(symbol),
+      this.options.getMaximumLotSize?.() ?? getSettings().then((s) => s.maximumLotSize),
+    ]);
+    if (timeframe !== this.timeframe) return { status: 'WAITING_BAR' };
+    const spread = Math.max(quote.spread, quote.ask - quote.bid);
+    if (![quote.bid, quote.ask, spread].every(Number.isFinite) || quote.bid <= 0 || quote.ask < quote.bid || spread < 0 || spread > reading.atr! * 0.05)
+      return finish('BLOCKED', 'Daily trend: invalid quote or spread above 5% ATR');
+    let usedNotional = 0;
+    for (const position of allPositions.filter((p) => p.symbol !== symbol)) {
+      const specification = await this.broker.getSymbol(position.symbol);
+      const value = specification.tickValueLoss ?? specification.tickValue;
+      const exposure = position.currentPrice / specification.tickSize * value * position.lots;
+      if (!Number.isFinite(exposure) || exposure < 0 || specification.tickSize <= 0 || value <= 0)
+        return finish('BLOCKED', 'Daily trend: cannot verify current gross allocation');
+      usedNotional += exposure;
+    }
+    const notionalPerLot = reading.close! / info.tickSize * (info.tickValueLoss ?? info.tickValue);
+    const availableLots = Math.max(0, account.equity * config.maximumGrossLeverage - usedNotional) / notionalPerLot;
+    const lots = sizeDiversifiedTrend(account.equity, reading.close!, reading.annualVolatility!,
+      this.options.symbols.length, info, Math.min(maximumLot, availableLots), config);
+    if (lots === null) return finish('BLOCKED', 'Daily trend: volatility allocation below broker minimum or invalid specification');
+    const signal: TradingSignal = { strategy: this.options.strategyName,
+      signalId: `${this.options.strategyName}:${symbol}:${timeframe}:${barTime}:${reading.side}`,
+      symbol, action: reading.side, orderType: 'MARKET', timeframe, lots,
+      stopLoss: reading.atr! * config.stopAtr, takeProfit: reading.atr! * config.stopAtr * config.rewardRisk,
+      maximumEntrySpread: reading.atr! * 0.05, minimumEntryStopDistance: reading.atr! * config.stopAtr,
+      signalReason: `Daily time-series momentum; lookback=${config.lookback}; score=${reading.score}; annualVol=${reading.annualVolatility}; legs=${this.options.symbols.length}; config=${JSON.stringify(config)}` };
+    this.lastBarTimes.set(symbol, barTime);
+    const result = await this.engine.process(signal, { requestId: `strategy:${signal.signalId}`, ip: 'strategy-runner', receivedAt: Date.now() });
+    const detail = `${reading.side} ${result.status.toLowerCase()}${result.status === 'REJECTED' ? `: ${result.reason}` : ''}`;
+    await this.reporter.evaluated({ strategy: this.options.strategyName, symbol, timeframe, outcome: result.status.toLowerCase(),
+      barTime: iso(barTime), side: reading.side, reason: result.status === 'REJECTED' ? result.reason : signal.signalReason });
+    return finish(result.status === 'EXECUTED' ? 'SIGNAL' : 'BLOCKED', detail, reading.side);
+  }
+
+  private smaLevels(rates: ReadonlyArray<Rate>, symbol: string): Partial<SymbolState> {
+    const value = evaluateSmaMicroTrend(rates, this.scopedSmaConfig(symbol));
+    return { close: value.close ?? undefined, fastSMA: value.fastSMA ?? undefined,
+      slowSMA: value.slowSMA ?? undefined, atr: value.atr ?? undefined, trend: value.trend };
+  }
+
+  private dowLevels(rates: ReadonlyArray<Rate>): Partial<SymbolState> {
+    const reading = evaluateDowTheory(rates, this.options.dowConfig ?? defaultDowTheoryConfig);
+    return {
+      close: reading.close ?? undefined,
+      trend: reading.trend,
+    };
+  }
+
+  private async evaluateDowSymbol(
+    symbol: string,
+    timeframe: Timeframe,
+    rates: ReadonlyArray<Rate>,
+    barTime: number,
+    secondsToNextBar: number,
+  ): Promise<Outcome> {
+    const reading = evaluateDowTheory(rates, this.options.dowConfig ?? defaultDowTheoryConfig);
+    const levels = this.dowLevels(rates);
+    if (reading.trend === 'NOT_READY') {
+      this.lastBarTimes.set(symbol, barTime);
+      this.record(symbol, {
+        status: 'NO_SETUP',
+        lastBarAt: iso(barTime),
+        secondsToNextBar,
+        detail: 'not enough confirmed Dow swing points',
+        ...levels,
+      });
+      return { status: 'NO_SETUP' };
+    }
+    if (!reading.signal || reading.stopPrice === null || reading.close === null) {
+      this.lastBarTimes.set(symbol, barTime);
+      this.record(symbol, {
+        status: 'NO_SETUP',
+        lastBarAt: iso(barTime),
+        secondsToNextBar,
+        detail: `Dow ${reading.trend}: waiting for a confirmed swing breakout`,
+        ...levels,
+      });
+      return { status: 'NO_SETUP' };
+    }
+
+    const positions = (await this.broker.getPositions()).filter((position) => position.symbol === symbol);
+    if (positions.length > 0) {
+      this.lastBarTimes.set(symbol, barTime);
+      const detail = 'Dow breakout ignored while a position is already open for this symbol';
+      this.record(symbol, { status: 'NO_SETUP', lastBarAt: iso(barTime), secondsToNextBar, detail, ...levels });
+      return { status: 'NO_SETUP', detail };
+    }
+
+    const quote = await this.broker.getPrice(symbol);
+    if (timeframe !== this.timeframe) return { status: 'WAITING_BAR' };
+    const entryPrice = reading.signal === 'BUY' ? quote.ask : quote.bid;
+    const stopDistance = reading.signal === 'BUY'
+      ? entryPrice - reading.stopPrice
+      : reading.stopPrice - entryPrice;
+    const spread = Math.max(0, quote.spread, quote.ask - quote.bid);
+    if (!Number.isFinite(stopDistance) || stopDistance <= spread) {
+      this.lastBarTimes.set(symbol, barTime);
+      const detail = 'Dow swing stop is not beyond the entry price and spread';
+      this.record(symbol, { status: 'BLOCKED', lastBarAt: iso(barTime), secondsToNextBar, detail, ...levels });
+      return { status: 'BLOCKED', detail };
+    }
+
+    const signal = this.buildSignal(symbol, reading.signal, barTime, {
+      stopDistance,
+      takeProfitDistance: stopDistance * (this.options.dowConfig ?? defaultDowTheoryConfig).rewardRiskRatio,
+    });
+    signal.signalReason = `Dow ${reading.trend} breakout on closed ${timeframe} bar ${iso(barTime)}; close=${reading.close}; pivotHigh=${reading.pivotHigh}; pivotLow=${reading.pivotLow}`;
+    const result = await this.engine.process(signal, {
+      requestId: `strategy:${signal.signalId}`,
+      ip: 'strategy-runner',
+      receivedAt: Date.now(),
+    });
+    this.lastBarTimes.set(symbol, barTime);
+    this.record(symbol, {
+      status: result.status === 'EXECUTED' ? 'SIGNAL' : 'BLOCKED',
+      lastBarAt: iso(barTime),
+      secondsToNextBar,
+      side: reading.signal,
+      trend: reading.trend,
+      detail: `${reading.signal} ${result.status.toLowerCase()}`,
+      ...levels,
+    });
+    await this.reporter.evaluated({
+      strategy: this.options.strategyName,
+      symbol,
+      timeframe,
+      outcome: result.status.toLowerCase(),
+      barTime: iso(barTime),
+      side: reading.signal,
+      close: reading.close,
+      reason: result.status === 'REJECTED' ? result.reason : signal.signalReason,
+    });
+    return {
+      status: result.status === 'EXECUTED' ? 'SIGNAL' : 'BLOCKED',
+      detail: `${reading.signal} ${result.status.toLowerCase()}`,
+    };
+  }
+
+  private async evaluateSmaSymbol(symbol: string, timeframe: Timeframe, rates: ReadonlyArray<Rate>, barTime: number, secondsToNextBar: number): Promise<Outcome> {
+    const config = this.scopedSmaConfig(symbol, timeframe);
+    const reading = evaluateSmaMicroTrend(rates, config);
+    const levels = this.smaLevels(rates, symbol);
+    if (reading.trend === 'NOT_READY' || !config.enabled) {
+      this.lastBarTimes.set(symbol, barTime);
+      this.record(symbol, { status: 'NO_SETUP', lastBarAt: iso(barTime), secondsToNextBar, detail: 'indicators not ready or strategy disabled', ...levels });
+      return { status: 'NO_SETUP' };
+    }
+    const positions = (await this.broker.getPositions()).filter((p) => p.symbol === symbol);
+    if (config.risk.useATRTrailingStop && reading.atr && reading.close !== null) {
+      const info = await this.broker.getSymbol(symbol);
+      if (!Number.isFinite(info.tickSize) || info.tickSize <= 0 || !Number.isFinite(info.stopsLevel) || info.stopsLevel < 0)
+        throw new Error('Invalid broker tick size or stop level');
+      for (const position of positions) {
+        if (position.stopLoss === undefined || !Number.isFinite(position.stopLoss)) continue;
+        const candidate = atrTrailingStop(position.side, position.stopLoss, reading.close, reading.atr, config.risk.atrTrailingMultiplier);
+        const ticks = position.side === 'BUY' ? Math.floor(candidate / info.tickSize) : Math.ceil(candidate / info.tickSize);
+        const stop = Number((ticks * info.tickSize).toFixed(10));
+        const price = await this.broker.getPrice(symbol);
+        const market = position.side === 'BUY' ? price.bid : price.ask;
+        if (stop > 0 && (position.side === 'BUY' ? stop > position.stopLoss && stop < market - info.stopsLevel : stop < position.stopLoss && stop > market + info.stopsLevel)) {
+          const result = await this.broker.modifyPosition(position.id, stop, position.takeProfit);
+          if (result.status !== 'FILLED') throw new Error(result.reason ?? 'Trailing stop rejected');
+        }
+      }
+    }
+    let action: TradingSignal['action'] | null = reading.signal;
+    if (!action && config.operations.closeOnNeutralTrend && reading.neutral && positions.length)
+      action = 'CLOSE';
+    if (reading.signal && positions.some((p) => p.side !== reading.signal) && !config.operations.reverseOnOppositeSignal)
+      action = null;
+    if (reading.signal && positions.some((p) => p.side === reading.signal))
+      action = null;
+    if (!action) {
+      this.lastBarTimes.set(symbol, barTime);
+      this.record(symbol, { status: 'NO_SETUP', lastBarAt: iso(barTime), secondsToNextBar, detail: reading.neutral ? 'neutral zone' : 'no crossover', ...levels });
+      return { status: 'NO_SETUP' };
+    }
+    if (action !== 'CLOSE' && (!reading.atr || !Number.isFinite(reading.atr * config.risk.atrStopMultiplier))) {
+      this.lastBarTimes.set(symbol, barTime);
+      return { status: 'BLOCKED', detail: 'ATR stop invalid' };
+    }
+    if (reading.signal && config.filters.requireMacroTrendAlignment) {
+      const macroTimeframe = resolveMacroTimeframe(timeframe, config.filters.macroTimeframe);
+      if (!macroTimeframe) {
+        const detail = 'Macro timeframe must be higher than entry timeframe';
+        this.record(symbol, { status: 'BLOCKED', lastBarAt: iso(barTime), secondsToNextBar, detail, ...levels });
+        return { status: 'BLOCKED', detail };
+      }
+      const macroRates = await this.broker.getRates(symbol, macroTimeframe, Math.max(DEFAULTS.history, config.indicators.slowSMA + 2));
+      const macroTrend = macroTrendAt(macroRates, rates.at(-1)!.t, config);
+      if (macroTrend === 'NOT_READY') {
+        const detail = `${macroTimeframe} trend not ready`;
+        this.record(symbol, { status: 'BLOCKED', lastBarAt: iso(barTime), secondsToNextBar, detail, macroTrend, macroTimeframe, ...levels });
+        return { status: 'BLOCKED', detail };
+      }
+      if ((reading.signal === 'BUY' && macroTrend !== 'UP') || (reading.signal === 'SELL' && macroTrend !== 'DOWN')) {
+        const detail = `${timeframe} ${reading.signal} not aligned with closed ${macroTimeframe} ${macroTrend}`;
+        this.lastBarTimes.set(symbol, barTime);
+        this.record(symbol, { status: 'NO_SETUP', lastBarAt: iso(barTime), secondsToNextBar, detail, macroTrend, macroTimeframe, ...levels });
+        return { status: 'NO_SETUP', detail };
+      }
+    }
+    if (action !== 'CLOSE') {
+      const quote = await this.broker.getPrice(symbol);
+      const spread = Math.max(0, quote.spread, quote.ask - quote.bid);
+      if (spread > reading.atr! * SMA_MAX_SPREAD_ATR) {
+        this.lastBarTimes.set(symbol, barTime);
+        const detail = `Spread ${spread.toFixed(6)} exceeds ${SMA_MAX_SPREAD_ATR} ATR`;
+        this.record(symbol, { status: 'BLOCKED', lastBarAt: iso(barTime), secondsToNextBar, detail, ...levels });
+        return { status: 'BLOCKED', detail };
+      }
+    }
+    this.lastBarTimes.set(symbol, barTime);
+    if (reading.signal && action === reading.signal && positions.some((p) => p.side !== reading.signal)) {
+      const closeSignal: TradingSignal = {
+        strategy: this.options.strategyName,
+        signalId: `${this.options.strategyName}:${symbol}:${timeframe}:${barTime}:close_opposite`,
+        symbol, action: reading.signal === 'BUY' ? 'CLOSE_SHORT' : 'CLOSE_LONG',
+        orderType: 'MARKET', timeframe, closeReason: 'SIGNAL',
+      };
+      const closeResult = await this.engine.process(closeSignal, { requestId: `strategy:${closeSignal.signalId}`, ip: 'strategy-runner', receivedAt: Date.now() });
+      if (closeResult.status !== 'EXECUTED' || (await this.broker.getPositions()).some((p) => p.symbol === symbol && p.side !== reading.signal)) {
+        this.record(symbol, { status: 'BLOCKED', lastBarAt: iso(barTime), secondsToNextBar, detail: 'Opposite position close not confirmed', ...levels });
+        return { status: 'BLOCKED', detail: 'Opposite position close not confirmed' };
+      }
+    }
+    const signal: TradingSignal = {
+      strategy: this.options.strategyName,
+      signalId: `${this.options.strategyName}:${symbol}:${timeframe}:${barTime}:${action}`,
+      symbol, action, orderType: 'MARKET', timeframe,
+      ...(action !== 'CLOSE' ? {
+        lots: config.risk.lots,
+        stopLoss: config.risk.useATRStop ? reading.atr! * config.risk.atrStopMultiplier : undefined,
+        maximumEntrySpread: reading.atr! * SMA_MAX_SPREAD_ATR,
+        minimumEntryStopDistance: reading.atr! * SMA_MIN_STOP_ATR,
+      } : {}),
+      signalReason: `${action} on closed ${timeframe} bar ${iso(barTime)}; fast=${reading.fastSMA}; slow=${reading.slowSMA}; ATR=${reading.atr}`,
+    };
+    const result = await this.engine.process(signal, { requestId: `strategy:${signal.signalId}`, ip: 'strategy-runner', receivedAt: Date.now() });
+    this.record(symbol, { status: result.status === 'EXECUTED' ? 'SIGNAL' : 'BLOCKED', lastBarAt: iso(barTime), secondsToNextBar, side: action, detail: `${action} ${result.status.toLowerCase()}`, ...levels });
+    return { status: result.status === 'EXECUTED' ? 'SIGNAL' : 'BLOCKED', detail: `${action} ${result.status.toLowerCase()}` };
   }
 
   private buildSignal(
@@ -709,7 +1147,17 @@ export async function ensureStrategy(
     .values({
       name: strategyName,
       description:
-        'Bollinger Bands + RSI mean reversion. Port of MeanReversion_BB_RSI_MT5 to the bot; no profitability claim.',
+        strategyName === 'sma_micro_trend'
+          ? 'SMA crossover trend strategy with Wilder ATR risk controls; no profitability claim.'
+          : strategyName === 'dow_theory'
+            ? 'Dow Theory swing-structure breakout with swing-based stop and fixed reward/risk target; no profitability claim.'
+          : strategyName === 'diversified_trend'
+            ? 'Daily time-series momentum on major Forex pairs with inverse-volatility entry sizing and capped per-leg budgets.'
+          : strategyName === 'market_forces_shock'
+            ? 'Market forces with causal opposing-price shock guard and three-bar cooldown; 2 ATR stop and 4 ATR target.'
+          : strategyName === 'market_forces'
+            ? 'Aligned direction, swing structure and candle pressure with low friction; 2 ATR stop and 4 ATR target.'
+          : 'Bollinger Bands + RSI mean reversion. Port of MeanReversion_BB_RSI_MT5 to the bot; no profitability claim.',
       enabled: true,
       allowedSymbols: wanted,
     })

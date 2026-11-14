@@ -98,7 +98,7 @@ In development, `POST /api/test/signal` accepts `{ "action": "BUY" }`, `{ "actio
 
 `AUTO_TRADING_ENABLED=false` registers but rejects signals. `EMERGENCY_STOP=true` blocks new orders. It does not close positions. `EMERGENCY_CLOSE_POSITIONS` is reserved for a separate confirmed workflow and has no automatic action. Risk settings are stored in PostgreSQL after first initialization and are editable from the dashboard; the defaults seed only once. The default maximum lot is 0.01 and the default policy is one position per symbol. The provider is MetaTrader 5 and nothing else: contract specifications, account, positions and orders all come from the terminal.
 
-`TRADING_MODE` is independent of that policy and guards the account itself. `paper` refuses to boot against a real-money terminal; `live` refuses to boot against a demo and additionally requires `MT5_LIVE_ACK` to equal the connected login, so neither mode can be reached by flipping one flag.
+`TRADING_MODE=auto` detects demo/contest or real from the terminal heartbeat and reports the detected mode in `/health` and the dashboard. Switching accounts does not require changing this setting. A real account still requires `MT5_LIVE_ACK` to equal its login; the broker rechecks this before every terminal operation, including order submission. `paper` and `live` remain available as strict policies for deployments that must refuse the other account type. The existing auto-trading, emergency-stop and risk settings still govern whether any order may be sent.
 
 Before opening an order, the API asks the terminal to run `OrderCheck` with the sized lot and protective prices. Margin, projected equity, free margin and rejection codes come from MetaTrader; contract notional is never used as a substitute for margin. The configured margin usage limit still applies to the terminal's projection. Missing or invalid check data blocks submission. After updating the bridge, run `bun run mt5:install` and restart the `AurumBridge` service in MT5. `OrderCheck` validates without sending an order; a successful check does not guarantee that the subsequent execution will succeed.
 
@@ -199,8 +199,8 @@ decided to trade. For a strategy that decides for itself, `STRATEGY_RUNNER` runs
 it inside the API:
 
 ```bash
-STRATEGY_RUNNER=meanrev-bb-rsi-v1   # off when unset
-STRATEGY_TIMEFRAME=M30
+STRATEGY_RUNNER=meanrev-bb-rsi-v1   # or sma_micro_trend / dow_theory; off when unset
+STRATEGY_TIMEFRAME=H1
 STRATEGY_POLL_MS=5000
 ```
 
@@ -219,6 +219,20 @@ on MN1. Lower timeframes evaluate more often on less history.
 when the last closed candle touches the lower Bollinger band with oversold RSI,
 sell on the mirrored setup. Three things make it safe to run unattended:
 
+The configured BB/RSI setup uses H1, Bollinger length 20 with multiplier 2,
+RSI(14) thresholds 20/80, a 0.2% stop, and a 0.4% take-profit (2R). The
+timeframe is selected by `STRATEGY_TIMEFRAME`; if unset, the API defaults to
+M30.
+
+Compare this fixed BB/RSI setup across M30, H1, and H4 with
+`bun run research:meanrev-timeframes`. H4 is aggregated from complete hourly
+candles in the available H1 snapshot, so its sample is limited.
+
+Search the existing BB/RSI parameter grid specifically on H1 with
+`bun run research:meanrev-h1`. It ranks candidates by training results and
+reports holdout results separately; selecting from many candidates makes the
+holdout exploratory, not an independent validation.
+
 - **Bars come from the terminal.** The runner reads OHLC through the service
   (`op: rates`) because the terminal owns the bars, and computes indicators
   host-side so there is one implementation of each under test. `StdDev` is the
@@ -230,6 +244,22 @@ sell on the mirrored setup. Three things make it safe to run unattended:
 - **The risk engine still has the last word.** The runner emits an ordinary
   `TradingSignal`, so lot sizing, spread checks, daily loss caps and the audit
   trail apply unchanged. `GET /api/strategy` reports what the runner is doing.
+
+#### Research-only backtests
+
+Run `bun run research:strategies` to search parameters for SMA Micro Trend, Dow
+Theory and Bollinger/RSI using the checked-in historical snapshots. The command
+does not connect to the broker or change trading settings; it writes a dated
+JSON report under `reports/`. Each implemented strategy uses a chronological
+60/40 train/holdout split, observed median spreads, adverse tick slippage and
+an additional 1.5x-spread holdout scenario. Parameter searches rank on training
+results; holdout results are reported for inspection and must not be repeatedly
+used to select a winner.
+
+`gold-scalping-v1` is reported as an integration example only: the repository
+does not contain a production signal algorithm or verified contract-value
+history for a separate gold-strategy optimization. These short snapshot
+backtests are research estimates, not evidence of future profitability.
 
 #### Choosing a timeframe at runtime
 
@@ -309,7 +339,7 @@ nothing is ever evaluated against synthetic data.
 
 `bun run mt5:doctor` checks the whole chain without sending an order: it
 resolves the bridge directory, reads the descriptor and heartbeat, verifies the
-connected login against `MT5_LIVE_ACK`, confirms every symbol in `MT5_SYMBOLS` is
+connected login against `MT5_LIVE_ACK` for real accounts, confirms every symbol in `MT5_SYMBOLS` is
 in the service watch list, and round-trips a single ping through the command
 queue. Every failure prints the fix, and a symbol the account does not carry comes
 back as a concrete suggestion rather than a guess:
@@ -452,7 +482,7 @@ Exposure shows margin committed and lots per symbol instead of summing unlike co
 
 ### Monetary stop control
 
-In **Risk → Risk limits**, the monetary stop control accepts account-currency values such as `0,269` or `0.269`. Saving applies to new entries; existing positions keep their stops. The engine uses the normalized order lots and loss-side tick value to turn the amount into an SL distance, rounded inward to broker ticks. It rejects entries when the configured/broker stop floor makes that amount infeasible, or when the saved currency does not match the connected account. This is estimated price-to-stop risk, excluding execution slippage, gaps and costs. Clearing the monetary setting restores strategy stop distances. The optional database fields default to null; adding the control does not activate a monetary stop automatically.
+In **Risk → Risk limits**, the monetary stop control accepts account-currency values such as `0,269` or `0.269`. Limits are saved separately by currency, so switching between demo USD and real GBP preserves each limit. If another currency has a limit but the connected currency has not been configured, new entries are blocked until its limit is set or “Use strategy stop” is selected explicitly for that currency. Saving applies to new entries; existing positions keep their stops. The engine uses the normalized order lots and loss-side tick value to turn the amount into an SL distance, rounded inward to broker ticks. MetaTrader OrderCheck validates the broker minimum using live prices; cached broker floors and the configured minimum stop distance do not block monetary stops locally. When the live spread plus one tick is wider than the monetary stop distance, the entry is rejected instead of widening the SL above the configured amount. This avoids MT5 `Invalid stops` rejections and prevents the monetary-stop monitor from immediately closing a position whose spread loss already exceeds the cap. It also rejects entries when the amount cannot fund one executable tick or the final distance exceeds the configured maximum stop distance. This is estimated price-to-stop risk, excluding execution slippage, gaps and costs. Clearing the monetary setting for a currency restores strategy stop distances for that currency. The optional database fields default to null; adding the control does not activate a monetary stop automatically.
 
 
 The bridge determines market availability from the broker's MT5 trading-session schedule in server time, trading permissions and valid, recent quotes. A zero spread does not mean the market is closed. Overnight windows and 24-hour sessions are supported. Quotes older than five minutes are labeled stale. Rejection messages distinguish session closure, unavailable session data, disabled trading, missing quotes and stale quotes. Restart the updated AurumBridge service to publish `marketStatus`; older snapshots report an unavailable market without claiming the trading session is closed.

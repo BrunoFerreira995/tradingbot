@@ -13,7 +13,7 @@ import type {
   Timeframe,
 } from '@trade/shared';
 import type { BrokerAdapter } from '../broker-adapter';
-import type { BridgeOptions, BridgeReply, BridgeSymbolState } from './bridge';
+import type { BridgeHeartbeat, BridgeOptions, BridgeReply, BridgeSymbolState } from './bridge';
 import { MT5Bridge } from './bridge';
 
 /** MT5 truncates order comments to 31 characters, so the full id cannot fit. */
@@ -27,6 +27,8 @@ export interface MT5BrokerOptions extends BridgeOptions {
   symbols?: string[];
   /** How long a heartbeat may lag before the adapter reports a disconnect. */
   startupTimeoutMs?: number;
+  /** Re-check the connected account before every terminal operation. */
+  validateHeartbeat?: (heartbeat: BridgeHeartbeat) => void;
 }
 
 const DEFAULT_MAGIC = 20260101;
@@ -62,6 +64,7 @@ export class MT5BrokerAdapter implements BrokerAdapter {
   private watched = new Set<string>();
   private started = false;
   private live = false;
+  private readonly validateHeartbeat?: (heartbeat: BridgeHeartbeat) => void;
   /** clientOrderId -> the result the terminal already produced for it. */
   private readonly results = new Map<string, OrderResult>();
 
@@ -70,6 +73,7 @@ export class MT5BrokerAdapter implements BrokerAdapter {
     this.magic = options.magic ?? DEFAULT_MAGIC;
     this.startupTimeoutMs =
       options.startupTimeoutMs ?? DEFAULT_STARTUP_TIMEOUT_MS;
+    this.validateHeartbeat = options.validateHeartbeat;
     for (const symbol of options.symbols ?? []) this.watched.add(symbol);
   }
 
@@ -137,6 +141,12 @@ export class MT5BrokerAdapter implements BrokerAdapter {
 
   private async requireLive() {
     if (!this.connected) throw new Error('Broker disconnected');
+    if (this.validateHeartbeat) {
+      const beat = await this.bridge.heartbeat();
+      if (!beat || !(await this.bridge.isAlive()))
+        throw new Error('MetaTrader heartbeat unavailable');
+      this.validateHeartbeat(beat);
+    }
   }
 
   private async ensureWatched(symbol: string) {

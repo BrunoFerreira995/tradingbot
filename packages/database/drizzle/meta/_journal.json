@@ -43,6 +43,27 @@
       "when": 1792755951872,
       "tag": "0005_romantic_venom",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793811228413,
+      "tag": "0006_jazzy_medusa",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793812335134,
+      "tag": "0007_short_hellcat",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793829724384,
+      "tag": "0008_overrated_nitro",
+      "breakpoints": true
     }
   ]
 }

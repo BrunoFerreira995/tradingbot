@@ -1,0 +1,251 @@
+{
+  "snapshot_at": "2026-11-04T22:29:44Z",
+  "complete": true,
+  "deals": 273,
+  "positions_reconstructed": 136,
+  "skipped": {},
+  "positions_with_bot_context": 69,
+  "first_opened_at": "2026-09-30T20:50:18Z",
+  "last_closed_at": "2026-11-04T22:26:08Z",
+  "overall": {
+    "n": 136,
+    "pnl": -56.48,
+    "wins": 39,
+    "win_rate": 28.7,
+    "profit_factor": 0.55
+  },
+  "gross_profit": 68.74,
+  "gross_loss": -125.22,
+  "average_win": 1.76,
+  "average_loss": -1.3,
+  "median_pnl": -0.14,
+  "break_even_count": 1,
+  "max_trade_equity_drawdown": 57.37,
+  "by_symbol": {
+    "XAUUSD": {
+      "n": 9,
+      "pnl": -20.22,
+      "wins": 1,
+      "win_rate": 11.1,
+      "profit_factor": 0.41
+    },
+    "USDCHF": {
+      "n": 14,
+      "pnl": -15.1,
+      "wins": 6,
+      "win_rate": 42.9,
+      "profit_factor": 0.31
+    },
+    "GBPUSD": {
+      "n": 15,
+      "pnl": -12.09,
+      "wins": 4,
+      "win_rate": 26.7,
+      "profit_factor": 0.25
+    },
+    "USDJPY": {
+      "n": 16,
+      "pnl": -8.98,
+      "wins": 4,
+      "win_rate": 25.0,
+      "profit_factor": 0.23
+    },
+    "USDSEK": {
+      "n": 7,
+      "pnl": -6.6,
+      "wins": 1,
+      "win_rate": 14.3,
+      "profit_factor": 0.03
+    },
+    "BTCUSD": {
+      "n": 7,
+      "pnl": -5.66,
+      "wins": 1,
+      "win_rate": 14.3,
+      "profit_factor": 0.68
+    },
+    "USDCNH": {
+      "n": 7,
+      "pnl": -4.43,
+      "wins": 0,
+      "win_rate": 0.0,
+      "profit_factor": 0.0
+    },
+    "Gasoline": {
+      "n": 11,
+      "pnl": -0.78,
+      "wins": 4,
+      "win_rate": 36.4,
+      "profit_factor": 0.28
+    },
+    "NZDUSD": {
+      "n": 14,
+      "pnl": 1.56,
+      "wins": 3,
+      "win_rate": 21.4,
+      "profit_factor": 1.87
+    },
+    "AUDUSD": {
+      "n": 12,
+      "pnl": 1.62,
+      "wins": 3,
+      "win_rate": 25.0,
+      "profit_factor": 1.92
+    },
+    "EURUSD": {
+      "n": 15,
+      "pnl": 1.69,
+      "wins": 7,
+      "win_rate": 46.7,
+      "profit_factor": 1.43
+    },
+    "USDCAD": {
+      "n": 9,
+      "pnl": 12.51,
+      "wins": 5,
+      "win_rate": 55.6,
+      "profit_factor": 4.1
+    }
+  },
+  "by_reason": {
+    "CLIENT": {
+      "n": 10,
+      "pnl": -27.74,
+      "wins": 2,
+      "win_rate": 20.0,
+      "profit_factor": 0.34
+    },
+    "EXPERT": {
+      "n": 50,
+      "pnl": 7.07,
+      "wins": 26,
+      "win_rate": 52.0,
+      "profit_factor": 1.43
+    },
+    "MONETARY_STOP": {
+      "n": 11,
+      "pnl": -4.31,
+      "wins": 0,
+      "win_rate": 0.0,
+      "profit_factor": 0.0
+    },
+    "SIGNAL": {
+      "n": 26,
+      "pnl": 2.54,
+      "wins": 9,
+      "win_rate": 34.6,
+      "profit_factor": 2.41
+    },
+    "SL": {
+      "n": 37,
+      "pnl": -60.47,
+      "wins": 0,
+      "win_rate": 0.0,
+      "profit_factor": 0.0
+    },
+    "TP": {
+      "n": 2,
+      "pnl": 26.43,
+      "wins": 2,
+      "win_rate": 100.0,
+      "profit_factor": null
+    }
+  },
+  "by_day": {
+    "2026-09-30": {
+      "n": 3,
+      "pnl": -32.68,
+      "wins": 0,
+      "win_rate": 0.0,
+      "profit_factor": 0.0
+    },
+    "2026-10-09": {
+      "n": 1,
+      "pnl": -2.3,
+      "wins": 0,
+      "win_rate": 0.0,
+      "profit_factor": 0.0
+    },
+    "2026-10-11": {
+      "n": 1,
+      "pnl": 12.06,
+      "wins": 1,
+      "win_rate": 100.0,
+      "profit_factor": null
+    },
+    "2026-10-12": {
+      "n": 22,
+      "pnl": 2.22,
+      "wins": 10,
+      "win_rate": 45.5,
+      "profit_factor": 1.08
+    },
+    "2026-10-13": {
+      "n": 33,
+      "pnl": -1.29,
+      "wins": 17,
+      "win_rate": 51.5,
+      "profit_factor": 0.82
+    },
+    "2026-10-14": {
+      "n": 1,
+      "pnl": -0.29,
+      "wins": 0,
+      "win_rate": 0.0,
+      "profit_factor": 0.0
+    },
+    "2026-10-16": {
+      "n": 1,
+      "pnl": -11.86,
+      "wins": 0,
+      "win_rate": 0.0,
+      "profit_factor": 0.0
+    },
+    "2026-10-20": {
+      "n": 1,
+      "pnl": -13.39,
+      "wins": 0,
+      "win_rate": 0.0,
+      "profit_factor": 0.0
+    },
+    "2026-10-22": {
+      "n": 1,
+      "pnl": -9.84,
+      "wins": 0,
+      "win_rate": 0.0,
+      "profit_factor": 0.0
+    },
+    "2026-10-23": {
+      "n": 1,
+      "pnl": 14.37,
+      "wins": 1,
+      "win_rate": 100.0,
+      "profit_factor": null
+    },
+    "2026-11-04": {
+      "n": 71,
+      "pnl": -13.48,
+      "wins": 10,
+      "win_rate": 14.1,
+      "profit_factor": 0.26
+    }
+  },
+  "by_side": {
+    "BUY": {
+      "n": 70,
+      "pnl": -31.05,
+      "wins": 18,
+      "win_rate": 25.7,
+      "profit_factor": 0.55
+    },
+    "SELL": {
+      "n": 66,
+      "pnl": -25.43,
+      "wins": 21,
+      "win_rate": 31.8,
+      "profit_factor": 0.55
+    }
+  },
+  "deposit": 200.0,
+  "sum_trade_deals": -56.48
+}

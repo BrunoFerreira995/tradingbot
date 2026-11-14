@@ -7,7 +7,7 @@ import type {
   SymbolInfo,
   TradingSignal,
 } from '@trade/shared';
-import { RiskManager, type RiskSettings } from './risk-manager';
+import { RiskManager, monetaryStopForCurrency, type RiskSettings } from './risk-manager';
 import { OrderManager } from './order-manager';
 import { PositionManager } from './position-manager';
 
@@ -97,6 +97,19 @@ const evaluate = (
   });
 
 describe('risk gates', () => {
+  test('rejects entry spread above the strategy limit', () => {
+    expect(evaluate({ signal: { ...signal, maximumEntrySpread: 0.2 } }).reason)
+      .toContain('exceeds strategy limit');
+    expect(evaluate({ signal: { ...signal, maximumEntrySpread: 0.3 } }).approved)
+      .toBe(true);
+  });
+  test('rejects a monetary stop below the strategy volatility floor without widening it', () => {
+    const monetary = { ...settings, stopRiskAmount: 1, stopRiskCurrency: 'USD' };
+    expect(evaluate({ signal: { ...signal, minimumEntryStopDistance: 2 }, settings: monetary }).reason)
+      .toContain('below strategy minimum');
+    expect(evaluate({ signal: { ...signal, minimumEntryStopDistance: 0.5 }, settings: monetary }).approved)
+      .toBe(true);
+  });
   test('reserves one BTCUSD position even when ordinary capacity is exceeded', () => {
     const ordinary: Position = {
       id: 'fx',
@@ -164,6 +177,18 @@ describe('risk gates', () => {
     const sell = evaluate({ signal: { ...signal, action: 'SELL' } });
     expect(sell.approved).toBe(true);
     expect(sell.stopLoss).toBeCloseTo(2674.85);
+  });
+  test('derives take profit at 1:3 risk/reward when the signal omits it', () => {
+    for (const action of ['BUY', 'SELL'] as const) {
+      const decision = evaluate({
+        signal: { ...signal, action, takeProfit: undefined },
+      });
+      const entry = action === 'BUY' ? price.ask : price.bid;
+      const stopDistance = Math.abs(entry - decision.stopLoss!);
+      const takeProfitDistance = Math.abs(decision.takeProfit! - entry);
+      expect(decision.approved).toBe(true);
+      expect(takeProfitDistance).toBeCloseTo(stopDistance * 3, 10);
+    }
   });
   test('blocks lot over cap and disallowed symbol', () => {
     expect(evaluate({ signal: { ...signal, lots: 0.02 } }).reason).toContain(
@@ -430,11 +455,20 @@ describe('in-memory broker execution', () => {
 });
 
 describe('monetary stop', () => {
+  test('keeps limits separate by account currency and blocks an unconfigured account', () => {
+    const settings = { stopRiskAmount: 0.269, stopRiskCurrency: 'GBP', stopRiskByCurrency: { GBP: 0.269, USD: 3 } };
+    expect(monetaryStopForCurrency(settings, 'GBP')).toBe(0.269);
+    expect(monetaryStopForCurrency(settings, 'USD')).toBe(3);
+    expect(monetaryStopForCurrency(settings, 'EUR')).toBeUndefined();
+    expect(monetaryStopForCurrency({ ...settings, stopRiskByCurrency: { ...settings.stopRiskByCurrency, EUR: null } }, 'EUR')).toBeNull();
+  });
   test('accepts a GBP budget of 0.269 and rounds the stop inward to broker ticks for both sides', () => {
+    const tightPrice = { ...price, ask: price.bid + 0.001, spread: 0.001 };
     for (const action of ['BUY', 'SELL'] as const) {
       const decision = evaluate({
         account: { ...account, currency: 'GBP' },
         signal: { ...signal, action },
+        price: tightPrice,
         settings: {
           ...settings,
           stopRiskAmount: 0.269,
@@ -443,7 +477,7 @@ describe('monetary stop', () => {
         symbol: { ...symbol, tickValueLoss: 2 },
       });
       expect(decision.approved).toBe(true);
-      const entry = action === 'BUY' ? price.ask : price.bid;
+      const entry = action === 'BUY' ? tightPrice.ask : tightPrice.bid;
       const risk =
         (Math.abs(entry - decision.stopLoss!) / symbol.tickSize) *
         2 *
@@ -457,10 +491,66 @@ describe('monetary stop', () => {
       ).toBe(true);
     }
   });
-  test('rejects infeasible stops instead of silently raising the monetary exposure', () => {
+  test('derives 1:3 take profit from the final monetary stop distance', () => {
+    const tightPrice = { ...price, ask: price.bid + 0.001, spread: 0.001 };
+    for (const action of ['BUY', 'SELL'] as const) {
+      const decision = evaluate({
+        account: { ...account, currency: 'GBP' },
+        signal: { ...signal, action, takeProfit: undefined },
+        price: tightPrice,
+        settings: {
+          ...settings,
+          stopRiskAmount: 0.269,
+          stopRiskCurrency: 'GBP',
+        },
+        symbol: { ...symbol, tickValueLoss: 2 },
+      });
+      const entry = action === 'BUY' ? tightPrice.ask : tightPrice.bid;
+      expect(decision.approved).toBe(true);
+      expect(Math.abs(decision.takeProfit! - entry)).toBeCloseTo(
+        decision.stopDistance! * 3,
+        10,
+      );
+    }
+  });
+  test('defers monetary stop floors to MetaTrader without increasing exposure', () => {
+    const tightPrice = { ...price, ask: price.bid + 0.001, spread: 0.001 };
+    for (const action of ['BUY', 'SELL'] as const) {
+      const decision = evaluate({
+        signal: { ...signal, action, stopLoss: 2000 },
+        settings: {
+          ...settings,
+          minimumStopDistance: 2000,
+          stopRiskAmount: 0.269,
+          stopRiskCurrency: 'GBP',
+        },
+        account: { ...account, currency: 'GBP' },
+        price: tightPrice,
+        symbol: { ...symbol, stopsLevel: 2000 },
+      });
+      expect(decision.approved).toBe(true);
+      expect(decision.stopDistance).toBeCloseTo(0.26, 10);
+    }
+  });
+  test('rejects a monetary stop that cannot cover the live spread', () => {
+    const decision = evaluate({
+      account: { ...account, currency: 'GBP' },
+      signal: { ...signal, action: 'SELL', takeProfit: undefined },
+      price: { ...price, ask: price.bid + 0.3, spread: 0.3 },
+      settings: {
+        ...settings,
+        stopRiskAmount: 0.269,
+        stopRiskCurrency: 'GBP',
+      },
+      symbol: { ...symbol, tickValueLoss: 2 },
+    });
+    expect(decision.approved).toBe(false);
+    expect(decision.reason).toContain('cannot cover the live spread');
+  });
+  test('rejects invalid monetary stops without increasing exposure', () => {
     const s = { ...settings, stopRiskAmount: 0.269, stopRiskCurrency: 'USD' };
     expect(
-      evaluate({ settings: s, symbol: { ...symbol, stopsLevel: 1 } }),
+      evaluate({ settings: { ...s, stopRiskAmount: 0.001 } }),
     ).toMatchObject({ approved: false });
     expect(
       evaluate({ settings: { ...s, stopRiskCurrency: 'GBP' } }),

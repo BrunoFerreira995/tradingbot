@@ -1,0 +1,38 @@
+{
+  "coverage": 69,
+  "all_aligned": {
+    "n": 30,
+    "pnl": -5.37,
+    "wins": 1,
+    "win_rate": 3.3,
+    "profit_factor": 0.06
+  },
+  "all_opposed": {
+    "n": 39,
+    "pnl": -3.96,
+    "wins": 9,
+    "win_rate": 23.1,
+    "profit_factor": 0.53
+  },
+  "cost_filter_passed": {
+    "n": 46,
+    "pnl": -1.56,
+    "wins": 10,
+    "win_rate": 21.7,
+    "profit_factor": 0.76
+  },
+  "cost_and_macro_aligned": {
+    "n": 19,
+    "pnl": -2.48,
+    "wins": 1,
+    "win_rate": 5.3,
+    "profit_factor": 0.13
+  },
+  "cost_passed_but_macro_opposed": {
+    "n": 27,
+    "pnl": 0.92,
+    "wins": 9,
+    "win_rate": 33.3,
+    "profit_factor": 1.26
+  }
+}

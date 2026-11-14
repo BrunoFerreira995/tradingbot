@@ -13,6 +13,7 @@ import {
   OrderManager,
   PositionManager,
   RiskManager,
+  monetaryStopForCurrency,
   resolveOppositeSignal,
 } from '@trade/trading';
 import { audit, emit } from './events';
@@ -58,12 +59,11 @@ export class TradingEngine {
   enforceMonetaryStops() {
     return accountExecutions.run(this.accountId, async () => {
       const settings = await getSettings();
-      const amount = settings.stopRiskAmount;
-      if (amount == null || !this.broker.connected) return;
+      if (!this.broker.connected) return;
       await this.broker.refreshState?.();
       const account = await this.broker.getAccount();
-      if (settings.stopRiskCurrency !== account.currency)
-        throw new Error('Monetary stop currency does not match account');
+      const amount = monetaryStopForCurrency(settings, account.currency);
+      if (amount == null) return;
       for (const position of await this.broker.getPositions()) {
         try {
           const symbol = await this.broker.getSymbol(position.symbol);
@@ -435,29 +435,25 @@ export class TradingEngine {
             'Trading disabled or outside enabled Forex sessions before submission',
         };
       }
-      await db
-        .update(schema.orders)
-        .set({ status: 'SUBMITTING' })
-        .where(eq(schema.orders.id, order.id));
-      await db
-        .update(schema.tradingSignals)
-        .set({ status: 'EXECUTING' })
-        .where(eq(schema.tradingSignals.id, record.id));
-      await db
-        .update(schema.tradingSignals)
-        .set({ brokerRequestSentAt: new Date() })
-        .where(eq(schema.tradingSignals.id, record.id));
-      await audit('ORDER', 'broker_order_sent', context.requestId, context.ip, {
-        clientOrderId,
-      });
       const server = await tradeServer(account.id);
       const entryQuote = await this.broker.getPrice(signal.symbol);
       const requestedEntryPrice =
         side === 'BUY' ? entryQuote.ask : entryQuote.bid;
+      const entrySpread = Math.max(0, entryQuote.spread, entryQuote.ask - entryQuote.bid);
       if (
-        latestSettings.stopRiskAmount !== settings.stopRiskAmount ||
-        latestSettings.stopRiskCurrency !== settings.stopRiskCurrency
+        signal.maximumEntrySpread !== undefined &&
+        entrySpread > signal.maximumEntrySpread + 1e-12
       ) {
+        await db
+          .update(schema.orders)
+          .set({ status: 'CANCELLED', updatedAt: new Date() })
+          .where(eq(schema.orders.id, order.id));
+        const reason = `Entry spread ${entrySpread.toFixed(6)} exceeds strategy limit ${signal.maximumEntrySpread.toFixed(6)}`;
+        await setStatus('REJECTED', { reason });
+        return { status: 'REJECTED' as SignalStatus, signalId: signal.signalId, reason };
+      }
+      if (monetaryStopForCurrency(latestSettings, account.currency) !==
+          monetaryStopForCurrency(settings, account.currency)) {
         await db
           .update(schema.orders)
           .set({ status: 'CANCELLED', updatedAt: new Date() })
@@ -470,7 +466,7 @@ export class TradingEngine {
           reason,
         };
       }
-      if (settings.stopRiskAmount != null) {
+      if (monetaryStopForCurrency(settings, account.currency) != null) {
         decision.stopLoss =
           requestedEntryPrice +
           (side === 'BUY' ? -decision.stopDistance! : decision.stopDistance!);
@@ -540,6 +536,17 @@ export class TradingEngine {
         .update(schema.tradingSignals)
         .set({ rawPayload: { ...rawPayload, tradeContext } })
         .where(eq(schema.tradingSignals.id, record.id));
+      await db
+        .update(schema.orders)
+        .set({ status: 'SUBMITTING' })
+        .where(eq(schema.orders.id, order.id));
+      await db
+        .update(schema.tradingSignals)
+        .set({ status: 'EXECUTING', brokerRequestSentAt: new Date() })
+        .where(eq(schema.tradingSignals.id, record.id));
+      await audit('ORDER', 'broker_order_sent', context.requestId, context.ip, {
+        clientOrderId,
+      });
       const { result, latencyMs } = await this.orders.submit({
         clientOrderId,
         symbol: signal.symbol,

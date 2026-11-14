@@ -45,6 +45,8 @@ export const strategies = pgTable('strategies', {
   id: id(),
   name: varchar('name', { length: 100 }).notNull().unique(),
   description: text('description'),
+  /** Per-symbol/timeframe strategy settings, keyed as SYMBOL:TIMEFRAME. */
+  config: jsonb('config').$type<Record<string, unknown>>().default({}).notNull(),
   enabled: boolean('enabled').default(true).notNull(),
   allowedSymbols: jsonb('allowed_symbols')
     .$type<string[]>()
@@ -156,6 +158,9 @@ export const riskSettings = pgTable('risk_settings', {
   accountId: uuid('account_id').references(() => brokerAccounts.id),
   autoTradingEnabled: boolean('auto_trading_enabled').default(false).notNull(),
   emergencyStop: boolean('emergency_stop').default(false).notNull(),
+  invertIncomingSignals: boolean('invert_incoming_signals')
+    .default(false)
+    .notNull(),
   maximumLotSize: money('maximum_lot_size').default('0.01').notNull(),
   minimumLotSize: money('minimum_lot_size'),
   maximumOpenPositions: integer('maximum_open_positions').default(1).notNull(),
@@ -187,6 +192,10 @@ export const riskSettings = pgTable('risk_settings', {
   >(),
   stopRiskAmount: money('stop_risk_amount'),
   stopRiskCurrency: varchar('stop_risk_currency', { length: 12 }),
+  stopRiskByCurrency: jsonb('stop_risk_by_currency')
+    .$type<Record<string, number | null>>()
+    .default({})
+    .notNull(),
   minimumStopDistance: money('minimum_stop_distance'),
   maximumStopDistance: money('maximum_stop_distance'),
   positionPolicy: varchar('position_policy', { length: 40 })

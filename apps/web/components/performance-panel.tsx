@@ -22,6 +22,36 @@ function Metric({
     </div>
   );
 }
+function formatAxisTime(value: number, timezone: string, span: number) {
+  const dateValue = new Date(value);
+  if (span <= 86400000)
+    return dateValue.toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: timezone,
+    });
+  if (span <= 14 * 86400000)
+    return dateValue.toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: timezone,
+    });
+  if (span <= 365 * 86400000)
+    return dateValue.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: '2-digit',
+      timeZone: timezone,
+    });
+  return dateValue.toLocaleDateString('pt-BR', {
+    month: 'short',
+    year: 'numeric',
+    timeZone: timezone,
+  });
+}
+
 function CapitalChart({ performance }: { performance: PerformanceData }) {
   const [period, setPeriod] = useState<'day' | 'week' | 'all'>('all');
   const [mode, setMode] = useState<'observed' | 'balance'>('observed');
@@ -40,134 +70,271 @@ function CapitalChart({ performance }: { performance: PerformanceData }) {
   const values = points.flatMap((p) =>
     mode === 'observed' ? [p.balance, p.equity] : [p.balance],
   );
-  const min = Math.min(...values),
-    max = Math.max(...values);
-  const start = Date.parse(points[0]?.at ?? ''),
-    end = Date.parse(points.at(-1)?.at ?? '');
-  const x = (at: string) =>
-    50 + ((Date.parse(at) - start) / Math.max(1, end - start)) * 900;
+  const rawMin = values.length ? Math.min(...values) : 0;
+  const rawMax = values.length ? Math.max(...values) : 1;
+  const spread = rawMax - rawMin;
+  const padding =
+    spread > 0 ? spread * 0.08 : Math.max(1, Math.abs(rawMax) * 0.01);
+  const min = rawMin - padding;
+  const max = rawMax + padding;
+  const start = Date.parse(points[0]?.at ?? '');
+  const end = Date.parse(points.at(-1)?.at ?? '');
+  const span = Math.max(1, end - start);
+  const width = 1000;
+  const height = 340;
+  const left = 82;
+  const right = 24;
+  const top = 20;
+  const bottom = 46;
+  const plotWidth = width - left - right;
+  const plotHeight = height - top - bottom;
+  const x = (at: string | number) => {
+    const value = typeof at === 'number' ? at : Date.parse(at);
+    return start === end
+      ? left + plotWidth / 2
+      : left + ((value - start) / span) * plotWidth;
+  };
   const y = (value: number) =>
-    215 - ((value - min) / Math.max(1, max - min)) * 180;
-  const path = (field: 'balance' | 'equity') =>
-    points.map((p) => `${x(p.at)},${y(p[field])}`).join(' ');
+    top + (1 - (value - min) / Math.max(1, max - min)) * plotHeight;
+  const linePath = (field: 'balance' | 'equity') =>
+    points
+      .map(
+        (point, index) =>
+          `${index === 0 ? 'M' : 'L'} ${x(point.at)} ${y(point[field])}`,
+      )
+      .join(' ');
+  const areaPath = (field: 'balance' | 'equity') => {
+    const first = points[0];
+    const last = points.at(-1);
+    if (!first || !last) return '';
+    return [
+      `M ${x(first.at)} ${top + plotHeight}`,
+      ...points.map((point) => `L ${x(point.at)} ${y(point[field])}`),
+      `L ${x(last.at)} ${top + plotHeight}`,
+      'Z',
+    ].join(' ');
+  };
   const active = points[selected ?? points.length - 1];
+  const yTicks = [0, 1, 2, 3, 4].map(
+    (index) => min + ((max - min) * index) / 4,
+  );
+  const xTicks =
+    start === end
+      ? [start]
+      : [0, 1, 2, 3, 4].map((index) => start + (span * index) / 4);
+  const selectNearest = (clientX: number, rect: DOMRect) => {
+    const ratio = Math.max(
+      0,
+      Math.min(
+        1,
+        (((clientX - rect.left) / rect.width) * width - left) / plotWidth,
+      ),
+    );
+    const target = start + ratio * span;
+    let nearest = 0;
+    for (let index = 1; index < points.length; index++)
+      if (
+        Math.abs(Date.parse(points[index]!.at) - target) <
+        Math.abs(Date.parse(points[nearest]!.at) - target)
+      )
+        nearest = index;
+    setSelected(nearest);
+  };
   return (
     <section className="panel p-5">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <h2 className="text-lg font-bold">Saldo e equity</h2>
-        <div className="flex flex-wrap gap-2">
-          {(['observed', 'balance'] as const).map((item) => (
-            <button
-              key={item}
-              onClick={() => {
-                setMode(item);
-                setSelected(null);
-              }}
-              className={`pill ${mode === item ? 'amber' : 'muted'}`}
-            >
-              {item === 'observed'
-                ? 'Saldo + equity observados'
-                : 'Saldo pelo histórico MT5'}
-            </button>
-          ))}
-          {(['day', 'week', 'all'] as const).map((item) => (
-            <button
-              key={item}
-              onClick={() => {
-                setPeriod(item);
-                setSelected(null);
-              }}
-              className={`pill ${period === item ? 'amber' : 'muted'}`}
-            >
-              {item === 'day' ? '24h' : item === 'week' ? '7 dias' : 'Tudo'}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex overflow-hidden rounded-lg border border-slate-700 bg-slate-950 p-0.5">
+            {(['observed', 'balance'] as const).map((item) => (
+              <button
+                key={item}
+                type="button"
+                aria-pressed={mode === item}
+                onClick={() => {
+                  setMode(item);
+                  setSelected(null);
+                }}
+                className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${mode === item ? 'bg-amber-400 text-slate-950' : 'text-slate-300 hover:bg-slate-800'}`}
+              >
+                {item === 'observed'
+                  ? 'Saldo + equity observados'
+                  : 'Saldo pelo histórico MT5'}
+              </button>
+            ))}
+          </div>
+          <div className="inline-flex overflow-hidden rounded-lg border border-slate-700 bg-slate-950 p-0.5">
+            {(['day', 'week', 'all'] as const).map((item) => (
+              <button
+                key={item}
+                type="button"
+                aria-pressed={period === item}
+                onClick={() => {
+                  setPeriod(item);
+                  setSelected(null);
+                }}
+                className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${period === item ? 'bg-amber-400 text-slate-950' : 'text-slate-300 hover:bg-slate-800'}`}
+              >
+                {item === 'day' ? '24h' : item === 'week' ? '7 dias' : 'Tudo'}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
       {points.length ? (
         <>
-          <p className="mb-3 text-sm">
-            <span className="text-amber-300">
-              Saldo {money(active?.balance, performance.currency)}
+          <div className="mb-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+            <span className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-amber-400" />
+              <span className="muted">Saldo</span>
+              <strong>{money(active?.balance, performance.currency)}</strong>
             </span>
             {mode === 'observed' && (
-              <span className="ml-4 text-emerald-400">
-                Equity {money(active?.equity, performance.currency)}
+              <span className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                <span className="muted">Equity</span>
+                <strong className="text-emerald-400">
+                  {money(active?.equity, performance.currency)}
+                </strong>
               </span>
             )}
-            <span className="muted ml-4">
+            <span className="muted ml-auto text-xs">
               {date(active?.at, performance.timezone)}
             </span>
-          </p>
+          </div>
           <svg
-            viewBox="0 0 1000 260"
-            className="w-full"
+            viewBox={`0 0 ${width} ${height}`}
+            className="h-auto w-full touch-none"
             role="img"
             aria-label={`Curva de capital em ${performance.currency}`}
-            onMouseLeave={() => setSelected(null)}
-            onMouseMove={(event) => {
-              const rect = event.currentTarget.getBoundingClientRect();
-              const ratio = Math.max(
-                0,
-                Math.min(
-                  1,
-                  (((event.clientX - rect.left) / rect.width) * 1000 - 50) /
-                    900,
-                ),
-              );
-              const target = start + ratio * (end - start);
-              let nearest = 0;
-              for (let i = 1; i < points.length; i++)
-                if (
-                  Math.abs(Date.parse(points[i]!.at) - target) <
-                  Math.abs(Date.parse(points[nearest]!.at) - target)
-                )
-                  nearest = i;
-              setSelected(nearest);
-            }}
+            onPointerLeave={() => setSelected(null)}
+            onPointerMove={(event) =>
+              selectNearest(
+                event.clientX,
+                event.currentTarget.getBoundingClientRect(),
+              )
+            }
           >
-            {[min, (min + max) / 2, max].map((value, i) => (
-              <g key={i}>
+            <defs>
+              <linearGradient
+                id="capital-balance-area"
+                x1="0"
+                y1="0"
+                x2="0"
+                y2="1"
+              >
+                <stop offset="0%" stopColor="#fbbf24" stopOpacity="0.24" />
+                <stop offset="100%" stopColor="#fbbf24" stopOpacity="0" />
+              </linearGradient>
+              <linearGradient
+                id="capital-equity-area"
+                x1="0"
+                y1="0"
+                x2="0"
+                y2="1"
+              >
+                <stop offset="0%" stopColor="#34d399" stopOpacity="0.18" />
+                <stop offset="100%" stopColor="#34d399" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            {yTicks.map((value, index) => (
+              <g key={`y-${index}`}>
                 <line
-                  x1="50"
-                  x2="950"
+                  x1={left}
+                  x2={width - right}
                   y1={y(value)}
                   y2={y(value)}
-                  stroke="#253247"
+                  stroke="#1e2b3e"
                 />
-                <text x="50" y={y(value) - 6} fill="#94a3b8" fontSize="11">
+                <text
+                  x={left - 10}
+                  y={y(value) + 4}
+                  textAnchor="end"
+                  fill="#8b9bb2"
+                  fontSize="11"
+                >
                   {money(value, performance.currency)}
                 </text>
               </g>
             ))}
-            <polyline
-              points={path('balance')}
+            {xTicks.map((value, index) => (
+              <g key={`x-${index}`}>
+                <line
+                  x1={x(value)}
+                  x2={x(value)}
+                  y1={top + plotHeight}
+                  y2={top + plotHeight + 5}
+                  stroke="#334155"
+                />
+                <text
+                  x={x(value)}
+                  y={height - 18}
+                  textAnchor={
+                    index === 0
+                      ? 'start'
+                      : index === xTicks.length - 1
+                        ? 'end'
+                        : 'middle'
+                  }
+                  fill="#8b9bb2"
+                  fontSize="11"
+                >
+                  {formatAxisTime(value, performance.timezone, span)}
+                </text>
+              </g>
+            ))}
+            <path d={areaPath('balance')} fill="url(#capital-balance-area)" />
+            {mode === 'observed' && (
+              <path d={areaPath('equity')} fill="url(#capital-equity-area)" />
+            )}
+            <path
+              d={linePath('balance')}
               fill="none"
               stroke="#fbbf24"
-              strokeWidth="2"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             />
             {mode === 'observed' && (
-              <polyline
-                points={path('equity')}
+              <path
+                d={linePath('equity')}
                 fill="none"
                 stroke="#34d399"
-                strokeWidth="2"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               />
             )}
             {active && (
-              <circle
-                cx={x(active.at)}
-                cy={y(mode === 'observed' ? active.equity : active.balance)}
-                r="4"
-                fill="#fff"
-              />
+              <>
+                <line
+                  x1={x(active.at)}
+                  x2={x(active.at)}
+                  y1={top}
+                  y2={top + plotHeight}
+                  stroke="#64748b"
+                  strokeDasharray="4 4"
+                />
+                <circle
+                  cx={x(active.at)}
+                  cy={y(active.balance)}
+                  r="5"
+                  fill="#fbbf24"
+                  stroke="#0f172a"
+                  strokeWidth="2"
+                />
+                {mode === 'observed' && (
+                  <circle
+                    cx={x(active.at)}
+                    cy={y(active.equity)}
+                    r="5"
+                    fill="#34d399"
+                    stroke="#0f172a"
+                    strokeWidth="2"
+                  />
+                )}
+              </>
             )}
-            <text x="50" y="250" fill="#94a3b8" fontSize="11">
-              {date(points[0]?.at, performance.timezone)}
-            </text>
-            <text x="950" y="250" textAnchor="end" fill="#94a3b8" fontSize="11">
-              {date(points.at(-1)?.at, performance.timezone)}
-            </text>
           </svg>
           <p className="muted text-xs">
             {mode === 'observed'

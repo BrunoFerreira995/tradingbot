@@ -1,10 +1,13 @@
 import { Elysia, t } from 'elysia';
 import { db, schema, sql } from '@trade/database';
-import { desc, sql as dsql } from 'drizzle-orm';
+import { desc, eq, sql as dsql } from 'drizzle-orm';
+import { atr, backtestSmaMicroTrend, defaultSmaMicroTrendConfig, evaluateSmaMicroTrend, macroTrendAt, resolveMacroTimeframe, sma, smaMicroTrendSchema } from '@trade/strategy';
+import { diversifiedTrendSchema, TREND_FOREX_SYMBOLS } from '@trade/strategy';
 import { MT5BrokerAdapter } from '@trade/broker';
 import type { Timeframe } from '@trade/shared';
 import { TIMEFRAMES, isTimeframe, signalSchema } from '@trade/shared';
 import { safeEqual, verifyWebhook } from './services/webhook-security';
+import { invertEntrySignal } from './services/signal-inversion';
 import { TradingEngine } from './services/trading-engine';
 import { audit, emit, subscribe } from './services/events';
 import { getSettings, updateSettings } from './services/settings';
@@ -26,14 +29,18 @@ import {
   observeTradeExcursions,
 } from './services/trade-telemetry';
 import { StrategyRunner, ensureStrategy } from './services/strategy-runner';
+import { resolveAccountMode, type TradingMode, type TradingModePolicy } from './services/account-mode';
+import { monetaryStopForCurrency } from '@trade/trading';
 
 // The application trades MetaTrader 5 and nothing else. There is no mock
 // provider to fall back to: an unreachable terminal is reported as
 // disconnected and retried, never faked with synthetic data.
 const provider = 'mt5';
-const mode = process.env.TRADING_MODE ?? 'paper';
-if (mode !== 'paper' && mode !== 'live')
-  throw new Error(`Unknown TRADING_MODE: ${mode}`);
+const modePolicy = process.env.TRADING_MODE ?? 'auto';
+if (modePolicy !== 'paper' && modePolicy !== 'live' && modePolicy !== 'auto')
+  throw new Error(`Unknown TRADING_MODE: ${modePolicy}`);
+let detectedMode: TradingMode | null = null;
+const mode = () => detectedMode ?? 'unknown';
 
 // The dashboard leads with one symbol; the strategy watches and trades the whole
 // list. Both default to XAUUSD, so setting only MT5_SYMBOLS still leaves the
@@ -53,33 +60,14 @@ if (!watchedSymbols.includes(primarySymbol))
 
 const broker = new MT5BrokerAdapter({
   symbols: watchedSymbols,
+  validateHeartbeat: (beat) => {
+    detectedMode = resolveAccountMode(beat, modePolicy as TradingModePolicy, process.env.MT5_LIVE_ACK);
+  },
   ...(process.env.MT5_BRIDGE_DIR
     ? { directory: process.env.MT5_BRIDGE_DIR }
     : {}),
   ...(process.env.MT5_MAGIC ? { magic: Number(process.env.MT5_MAGIC) } : {}),
 });
-
-// ACCOUNT_TRADE_MODE: 0 = demo, 1 = contest, 2 = real.
-const ACCOUNT_TRADE_MODE_DEMO = 0;
-
-async function assertAccountIsSafe(beat: { tradeMode: number; login: number }) {
-  const isReal = beat.tradeMode > ACCOUNT_TRADE_MODE_DEMO;
-  if (mode === 'paper' && isReal)
-    throw new Error(
-      `TRADING_MODE=paper but the terminal is logged into a real-money account ` +
-        `(login ${beat.login}). Set TRADING_MODE=live only when you mean it.`,
-    );
-  if (mode === 'live' && !isReal)
-    throw new Error(
-      `TRADING_MODE=live but the terminal is on a demo/contest account ` +
-        `(login ${beat.login}); there is nothing to trade live.`,
-    );
-  if (mode === 'live' && process.env.MT5_LIVE_ACK !== String(beat.login))
-    throw new Error(
-      `Refusing to trade live: set MT5_LIVE_ACK=${beat.login} to confirm that ` +
-        `account ${beat.login} is the one you intend to trade.`,
-    );
-}
 
 const RECONNECT_MS = Number(process.env.MT5_RECONNECT_MS ?? 15000);
 // null until the first probe, so the boot state is always announced once even
@@ -107,14 +95,23 @@ async function performBrokerReconciliation(): Promise<boolean> {
   const online = await broker.probe();
   if (online) {
     const beat = await broker.heartbeat();
+    if (!beat) {
+      await broker.disconnect();
+      detectedMode = null;
+      return false;
+    }
     if (beat) {
       try {
-        await assertAccountIsSafe(beat);
+        const previousMode = detectedMode;
+        detectedMode = resolveAccountMode(beat, modePolicy as TradingModePolicy, process.env.MT5_LIVE_ACK);
+        if (detectedMode !== previousMode)
+          await audit('BROKER', 'account_mode_detected', undefined, undefined, { login: beat.login, mode: detectedMode });
       } catch (error) {
         // A connected-but-unsafe terminal is worse than a disconnected one, so
         // drop the session rather than letting orders route to it.
         console.error(`[broker] ${(error as Error).message}`);
         await broker.disconnect();
+        detectedMode = null;
         if (brokerOnline) {
           brokerOnline = false;
           await emit('broker.disconnected', { reason: 'account-safety' });
@@ -127,6 +124,7 @@ async function performBrokerReconciliation(): Promise<boolean> {
       }
     }
   }
+  if (!online) detectedMode = null;
   if (online !== brokerOnline) {
     brokerOnline = online;
     if (online) {
@@ -329,7 +327,7 @@ const app = new Elysia({ serve: { maxRequestBodySize: 16 * 1024 } })
       broker: broker.connected ? 'connected' : 'disconnected',
       tradingEngine: 'ready',
       provider,
-      mode,
+      mode: mode(),
       symbol: primarySymbol,
       symbols: watchedSymbols,
     };
@@ -403,7 +401,17 @@ const app = new Elysia({ serve: { maxRequestBodySize: 16 * 1024 } })
         })),
       };
     }
-    const result = await engine.process(parsed.data, {
+    const settings = await getSettings();
+    const signal = settings.invertIncomingSignals
+      ? invertEntrySignal(parsed.data)
+      : parsed.data;
+    if (signal.action !== parsed.data.action)
+      await audit('SIGNAL', 'signal_inverted', requestId, ip, {
+        signalId: signal.signalId,
+        from: parsed.data.action,
+        to: signal.action,
+      });
+    const result = await engine.process(signal, {
       requestId,
       ip,
       receivedAt: receivedTimes.get(request) ?? Date.now(),
@@ -437,7 +445,11 @@ const app = new Elysia({ serve: { maxRequestBodySize: 16 * 1024 } })
         set.status = 400;
         return { error: parsed.error.issues };
       }
-      return engine.process(parsed.data, {
+      const settings = await getSettings();
+      const signal = settings.invertIncomingSignals
+        ? invertEntrySignal(parsed.data)
+        : parsed.data;
+      return engine.process(signal, {
         requestId: crypto.randomUUID(),
         ip: clientIp(request.headers),
         receivedAt: Date.now(),
@@ -557,7 +569,12 @@ const app = new Elysia({ serve: { maxRequestBodySize: 16 * 1024 } })
       account,
       positions,
       price,
-      settings,
+      settings: {
+        ...settings,
+        stopRiskAmount: monetaryStopForCurrency(settings, account.currency) ?? null,
+        stopRiskCurrency: account.currency,
+        stopRiskNeedsConfig: monetaryStopForCurrency(settings, account.currency) === undefined,
+      },
       signals,
       orders,
       trades: performance.historyAvailable
@@ -571,7 +588,7 @@ const app = new Elysia({ serve: { maxRequestBodySize: 16 * 1024 } })
       },
       brokerConnected: broker.connected,
       provider,
-      mode,
+      mode: mode(),
       symbol: primarySymbol,
       symbols: watchedSymbols,
     };
@@ -719,9 +736,11 @@ const app = new Elysia({ serve: { maxRequestBodySize: 16 * 1024 } })
         set.status = 403;
         return { error: 'Admin key required' };
       }
-      if (body.stopRiskAmount !== undefined && body.stopRiskAmount !== null) {
+      let monetaryAccount: Awaited<ReturnType<typeof broker.getAccount>> | null = null;
+      if (body.stopRiskAmount !== undefined) {
         const account = await broker.getAccount().catch(() => null);
-        if (!account || body.stopRiskCurrency !== account.currency) {
+        monetaryAccount = account;
+        if (!account || (body.stopRiskAmount !== null && body.stopRiskCurrency !== account.currency)) {
           set.status = 400;
           return {
             error: account
@@ -741,7 +760,9 @@ const app = new Elysia({ serve: { maxRequestBodySize: 16 * 1024 } })
             'Informe as quatro sessões com abertura diferente do fechamento.',
         };
       }
-      const updated = await updateSettings(body);
+      const updated = await updateSettings({ ...body,
+        ...(body.stopRiskAmount === null && monetaryAccount ? { stopRiskCurrency: monetaryAccount.currency } : {}),
+      });
       if (body.stopRiskAmount != null) await enforceMonetaryStops();
       await recordBotSessionParameters('risk_settings', { ...updated });
       if (body.allowedSymbols !== undefined && runner) {
@@ -763,18 +784,31 @@ const app = new Elysia({ serve: { maxRequestBodySize: 16 * 1024 } })
         await audit('RISK', 'auto_trading_disabled');
       if (body.autoTradingEnabled !== undefined)
         await emit('risk.auto_trading', { enabled: body.autoTradingEnabled });
-      return updated;
+      if (body.invertIncomingSignals !== undefined)
+        await emit('risk.signal_inversion', {
+          enabled: body.invertIncomingSignals,
+        });
+      return monetaryAccount ? {
+        ...updated,
+        stopRiskAmount: monetaryStopForCurrency(updated, monetaryAccount.currency) ?? null,
+        stopRiskCurrency: monetaryAccount.currency,
+        stopRiskNeedsConfig: monetaryStopForCurrency(updated, monetaryAccount.currency) === undefined,
+      } : updated;
     },
     {
       body: t.Object({
         autoTradingEnabled: t.Optional(t.Boolean()),
         emergencyStop: t.Optional(t.Boolean()),
+        invertIncomingSignals: t.Optional(t.Boolean()),
         marketSessions: t.Optional(
           t.Array(
             t.Object({
               name: t.String({ pattern: '^(SYDNEY|ASIA|LONDON|NEW_YORK)$' }),
               timezone: t.Literal('Etc/GMT+3'),
               enabled: t.Optional(t.Boolean()),
+              weekdays: t.Optional(
+                t.Array(t.Integer({ minimum: 0, maximum: 6 })),
+              ),
               start: t.String({ pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }),
               end: t.String({ pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$' }),
             }),
@@ -816,7 +850,7 @@ const runnerStrategy = process.env.STRATEGY_RUNNER ?? '';
 let runner: StrategyRunner | undefined;
 let runnerStarted = false;
 if (runnerStrategy) {
-  const requested = process.env.STRATEGY_TIMEFRAME ?? 'M30';
+  const requested = process.env.STRATEGY_TIMEFRAME ?? (runnerStrategy === 'diversified_trend' ? 'D1' : 'M30');
   if (!isTimeframe(requested))
     throw new Error(
       `Unknown STRATEGY_TIMEFRAME "${requested}". Expected one of: ${TIMEFRAMES.join(', ')}.`,
@@ -824,13 +858,28 @@ if (runnerStrategy) {
   const timeframe: Timeframe = requested;
   runner = new StrategyRunner(broker, engine, {
     strategyName: runnerStrategy,
-    symbols: watchedSymbols,
+    symbols: runnerStrategy === 'diversified_trend'
+      ? watchedSymbols.filter((s) => (TREND_FOREX_SYMBOLS as readonly string[]).includes(s)) : watchedSymbols,
     timeframe,
+    ...(runnerStrategy === 'diversified_trend' ? {
+      trendConfig: diversifiedTrendSchema.parse(process.env.TREND_CONFIG_JSON ? JSON.parse(process.env.TREND_CONFIG_JSON) : {}),
+    } : {}),
     getAllowedSymbols: async () => (await getSettings()).allowedSymbols,
     ...(process.env.STRATEGY_POLL_MS
       ? { pollIntervalMs: Number(process.env.STRATEGY_POLL_MS) }
       : {}),
   });
+  if (runnerStrategy === 'sma_micro_trend') {
+    const saved = await db.query.strategies.findFirst({ where: eq(schema.strategies.name, runnerStrategy) });
+    for (const [key, value] of Object.entries(saved?.config ?? {})) {
+      const split = key.lastIndexOf(':');
+      const symbol = key.slice(0, split);
+      const frame = key.slice(split + 1);
+      const parsed = smaMicroTrendSchema.safeParse(value);
+      if (split > 0 && isTimeframe(frame) && parsed.success)
+        runner.setScopedSmaConfig(symbol, frame, parsed.data);
+    }
+  }
   const readiness = await ensureStrategy(runnerStrategy, watchedSymbols);
   if (!readiness.ok) {
     runner.blockStartup(readiness.detail);
@@ -852,6 +901,9 @@ if (runnerStrategy) {
 
 app.get('/api/strategy', () => ({
   strategy: runnerStrategy || null,
+  ...(runnerStrategy === 'sma_micro_trend' && runner ? {
+    configs: Object.fromEntries(watchedSymbols.map((symbol) => [symbol, runner!.scopedSmaConfig(symbol)])),
+  } : {}),
   timeframes: TIMEFRAMES,
   ...(runner
     ? runner.state
@@ -878,8 +930,8 @@ app.patch(
       set.status = 403;
       return { error: 'Admin key required' };
     }
-    const timeframe = body.timeframe;
-    if (!isTimeframe(timeframe)) {
+    const timeframe = body.timeframe ?? runner?.state.timeframe;
+    if (!timeframe || !isTimeframe(timeframe)) {
       set.status = 400;
       return {
         error: `Unknown timeframe "${timeframe}". Expected one of: ${TIMEFRAMES.join(', ')}.`,
@@ -891,6 +943,28 @@ app.patch(
         error:
           'Strategy runner is not enabled. Set STRATEGY_RUNNER to turn it on.',
       };
+    }
+    if (runnerStrategy === 'diversified_trend' && timeframe !== 'D1') {
+      set.status = 400;
+      return { error: 'Diversified trend requires D1' };
+    }
+    if (body.config !== undefined) {
+      if (runnerStrategy !== 'sma_micro_trend' || !body.symbol || !watchedSymbols.includes(body.symbol)) {
+        set.status = 400;
+        return { error: 'Invalid SMA strategy or symbol' };
+      }
+      const parsed = smaMicroTrendSchema.safeParse(body.config);
+      if (!parsed.success) {
+        set.status = 400;
+        return { error: parsed.error.issues.map((issue) => issue.message).join('; ') };
+      }
+      const row = await db.query.strategies.findFirst({ where: eq(schema.strategies.name, runnerStrategy) });
+      if (!row) { set.status = 409; return { error: 'Strategy is not registered' }; }
+      const key = `${body.symbol}:${timeframe}`;
+      await db.update(schema.strategies).set({ config: { ...(row.config ?? {}), [key]: parsed.data }, updatedAt: new Date() }).where(eq(schema.strategies.id, row.id));
+      runner.setScopedSmaConfig(body.symbol, timeframe, parsed.data);
+      await audit('STRATEGY', 'config_changed', undefined, undefined, { strategy: runnerStrategy, symbol: body.symbol, timeframe });
+      return { ...runner.state, configs: Object.fromEntries(watchedSymbols.map((symbol) => [symbol, runner!.scopedSmaConfig(symbol)])) };
     }
     const previous = runner.state.timeframe;
     runner.setTimeframe(timeframe);
@@ -906,8 +980,63 @@ app.patch(
     await emit('strategy.timeframe', { from: previous, to: timeframe });
     return runner.state;
   },
-  { body: t.Object({ timeframe: t.String() }) },
+  { body: t.Object({ timeframe: t.Optional(t.String()), symbol: t.Optional(t.String()), config: t.Optional(t.Any()) }) },
 );
+
+app.post('/api/strategy/backtest', async ({ body, request, set }) => {
+  if (!adminKey || !safeEqual(request.headers.get('x-admin-key') ?? '', adminKey)) {
+    set.status = 403; return { error: 'Admin key required' };
+  }
+  if (runnerStrategy !== 'sma_micro_trend' || !watchedSymbols.includes(body.symbol) || !isTimeframe(body.timeframe)) {
+    set.status = 400; return { error: 'Invalid strategy, symbol or timeframe' };
+  }
+  const parsed = smaMicroTrendSchema.safeParse(body.config ?? runner?.scopedSmaConfig(body.symbol, body.timeframe) ?? defaultSmaMicroTrendConfig);
+  if (!parsed.success) { set.status = 400; return { error: parsed.error.issues }; }
+  try {
+    const macroTimeframe = parsed.data.filters.requireMacroTrendAlignment
+      ? resolveMacroTimeframe(body.timeframe, parsed.data.filters.macroTimeframe)
+      : null;
+    if (parsed.data.filters.requireMacroTrendAlignment && !macroTimeframe)
+      throw new Error('Macro timeframe must be higher than entry timeframe');
+    const [bars, macroBars] = await Promise.all([
+      broker.getRates(body.symbol, body.timeframe, body.count ?? 1000),
+      macroTimeframe ? broker.getRates(body.symbol, macroTimeframe, 400) : Promise.resolve(undefined),
+    ]);
+    return backtestSmaMicroTrend(bars, parsed.data, body.options, macroBars);
+  } catch (error) { set.status = 400; return { error: (error as Error).message }; }
+}, { body: t.Object({ symbol: t.String(), timeframe: t.String(), count: t.Optional(t.Number({ minimum: 30, maximum: 10000 })), config: t.Optional(t.Any()), options: t.Object({ initialCapital: t.Number(), spread: t.Number(), slippage: t.Number(), commissionPerUnit: t.Number(), units: t.Number() }) }) });
+
+app.post('/api/strategy/chart', async ({ body, request, set }) => {
+  if (!adminKey || !safeEqual(request.headers.get('x-admin-key') ?? '', adminKey)) {
+    set.status = 403; return { error: 'Admin key required' };
+  }
+  if (runnerStrategy !== 'sma_micro_trend' || !watchedSymbols.includes(body.symbol) || !isTimeframe(body.timeframe)) {
+    set.status = 400; return { error: 'Invalid strategy, symbol or timeframe' };
+  }
+  const config = runner?.scopedSmaConfig(body.symbol, body.timeframe) ?? defaultSmaMicroTrendConfig;
+  const rates = await broker.getRates(body.symbol, body.timeframe, 150);
+  const macroTimeframe = config.filters.requireMacroTrendAlignment
+    ? resolveMacroTimeframe(body.timeframe, config.filters.macroTimeframe)
+    : null;
+  if (config.filters.requireMacroTrendAlignment && !macroTimeframe) {
+    set.status = 400;
+    return { error: 'Macro timeframe must be higher than entry timeframe' };
+  }
+  const macroRates = macroTimeframe ? await broker.getRates(body.symbol, macroTimeframe, 400) : null;
+  const closed = rates.slice(0, -1);
+  const fast = sma(closed.map((r) => r.c), config.indicators.fastSMA);
+  const slow = sma(closed.map((r) => r.c), config.indicators.slowSMA);
+  const atrSeries = atr(closed, config.indicators.atrPeriod);
+  const signals = closed.map((_, i) => {
+    if (i === 0) return null;
+    const signal = evaluateSmaMicroTrend(rates.slice(0, i + 2), config).signal;
+    if (!signal || !macroRates) return signal;
+    const macroTrend = macroTrendAt(macroRates, rates[i + 1]!.t, config);
+    return (signal === 'BUY' && macroTrend === 'UP') || (signal === 'SELL' && macroTrend === 'DOWN') ? signal : null;
+  });
+  const positions = (await broker.getPositions()).filter((p) => p.symbol === body.symbol);
+  return { symbol: body.symbol, timeframe: body.timeframe, candles: closed.map((bar, i) => ({ ...bar, fast: fast[i], slow: slow[i], atr: atrSeries[i], signal: signals[i], trend: fast[i] != null && slow[i] != null ? (fast[i]! > slow[i]! ? 'UP' : fast[i]! < slow[i]! ? 'DOWN' : 'NEUTRAL') : 'NOT_READY' })), positions };
+}, { body: t.Object({ symbol: t.String(), timeframe: t.String() }) });
 
 let shuttingDown = false;
 async function shutdown(signal: string) {

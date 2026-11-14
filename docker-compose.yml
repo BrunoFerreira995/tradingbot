@@ -16,7 +16,7 @@ services:
     environment:
       NODE_ENV: production
       DATABASE_URL: postgres://trader:trader@postgres:5432/tradingbot
-      TRADING_MODE: ${TRADING_MODE:-paper}
+      TRADING_MODE: ${TRADING_MODE:-auto}
       AUTO_TRADING_ENABLED: ${AUTO_TRADING_ENABLED:-false}
       EMERGENCY_STOP: ${EMERGENCY_STOP:-false}
       STRATEGY_RUNNER: ${STRATEGY_RUNNER:-}

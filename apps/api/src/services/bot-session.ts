@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import { readdir, readFile } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import type { AccountInfo } from '@trade/shared';
-import { defaultMeanReversionConfig } from '@trade/strategy';
+import { defaultMeanReversionConfig, diversifiedTrendSchema } from '@trade/strategy';
 import { getSettings } from './settings';
 
 export const botSessionId = crypto.randomUUID();
@@ -88,15 +88,17 @@ export async function startBotSession(
   registration = (async () => {
     const settings = await getSettings();
     const parameters = {
-      tradingMode: process.env.TRADING_MODE ?? 'paper',
+      tradingMode: process.env.TRADING_MODE ?? 'auto',
       symbols: (
         process.env.MT5_SYMBOLS ??
         process.env.MT5_PRIMARY_SYMBOL ??
         'XAUUSD'
       ).split(','),
       strategy: process.env.STRATEGY_RUNNER ?? null,
-      timeframe: process.env.STRATEGY_TIMEFRAME ?? 'M30',
-      strategyConfig: defaultMeanReversionConfig,
+      timeframe: process.env.STRATEGY_TIMEFRAME ?? (process.env.STRATEGY_RUNNER === 'diversified_trend' ? 'D1' : 'M30'),
+      strategyConfig: process.env.STRATEGY_RUNNER === 'diversified_trend'
+        ? diversifiedTrendSchema.parse(process.env.TREND_CONFIG_JSON ? JSON.parse(process.env.TREND_CONFIG_JSON) : {})
+        : defaultMeanReversionConfig,
       riskSettings: settings,
       marketSessions: settings.marketSessions,
       excursionSampleIntervalMs: 5000,

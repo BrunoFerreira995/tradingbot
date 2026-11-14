@@ -1,0 +1,1 @@
+ALTER TABLE "risk_settings" ADD COLUMN "invert_incoming_signals" boolean DEFAULT false NOT NULL;

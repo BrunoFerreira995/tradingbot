@@ -1,0 +1,3858 @@
+{
+  "generatedAt": "2026-11-14T03:07:14.221Z",
+  "strategy": "diversified_trend",
+  "source": "Dukascopy bid daily UTC, 2014–2025",
+  "evaluation": "2016–2025; 2014–2015 warmup only",
+  "coverage": [
+    {
+      "symbol": "EURUSD",
+      "rawBars": 3753,
+      "normalizedBars": 3129,
+      "from": 1388534400,
+      "to": 1767139200,
+      "sha256": "03820b2b7e58c0ba8bbba276ec4eba8e8bee98a7b41254e3dca83029aff4f720"
+    },
+    {
+      "symbol": "GBPUSD",
+      "rawBars": 3752,
+      "normalizedBars": 3129,
+      "from": 1388534400,
+      "to": 1767139200,
+      "sha256": "77d0035a1c3700ed7e9d604f355c3796becdac2a5a318e96ad9e07262a98abcf"
+    },
+    {
+      "symbol": "USDJPY",
+      "rawBars": 3753,
+      "normalizedBars": 3129,
+      "from": 1388534400,
+      "to": 1767139200,
+      "sha256": "2a5806593c505f6c7cae47e0e8acbac130cfa52d00f9fceae71408dd3b30d814"
+    },
+    {
+      "symbol": "USDCHF",
+      "rawBars": 3753,
+      "normalizedBars": 3129,
+      "from": 1388534400,
+      "to": 1767139200,
+      "sha256": "c1dd6700f5dff47001dd3789c0be2cad8605f286e548cca7801c867ad21bf0e4"
+    },
+    {
+      "symbol": "USDCAD",
+      "rawBars": 3753,
+      "normalizedBars": 3129,
+      "from": 1388534400,
+      "to": 1767139200,
+      "sha256": "be98455a2ad2fe6ab6abb8912dd36d330a1b0ee87035ce4ccb41bafdf80b16ab"
+    },
+    {
+      "symbol": "AUDUSD",
+      "rawBars": 3753,
+      "normalizedBars": 3129,
+      "from": 1388534400,
+      "to": 1767139200,
+      "sha256": "4c803823d1977b4c4cd71d57dd35a59a094333bc6fd5a46d455ad976f8049dfc"
+    },
+    {
+      "symbol": "NZDUSD",
+      "rawBars": 3750,
+      "normalizedBars": 3129,
+      "from": 1388534400,
+      "to": 1767139200,
+      "sha256": "6848c21a2ffd8ec298035c9d1e174d0323865ceb61154f59efecc2c8ed5d69a1"
+    }
+  ],
+  "trials": 72,
+  "trainingQualified": 0,
+  "validationQualified": 0,
+  "approved": false,
+  "selected": {
+    "config": {
+      "lookback": 252,
+      "volatilityPeriod": 60,
+      "minimumScore": 0.5,
+      "stopAtr": 4,
+      "rewardRisk": 6,
+      "annualRiskBudget": 0.1,
+      "maximumGrossLeverage": 2
+    },
+    "train": {
+      "netUsd": -796.5656300947703,
+      "finalEquity": 9203.43436990523,
+      "totalReturn": -0.07965656300947699,
+      "cagr": -0.016457924196594087,
+      "sharpe": -0.5073888465226825,
+      "maxDrawdown": 0.1255682017034592,
+      "maxDrawdownUsd": 1275.6752096009168,
+      "tradeCount": 300,
+      "winRate": 0.29333333333333333,
+      "profitFactor": 0.6896462629161744,
+      "totalFees": 44.40000000000015,
+      "totalFinancing": 452.67197426420404,
+      "skippedMinimumLot": 35,
+      "bySymbol": {
+        "AUDUSD": 126.40528476146216,
+        "EURUSD": -192.10316166504646,
+        "GBPUSD": 15.044831391336286,
+        "NZDUSD": -49.74783537213333,
+        "USDCAD": -292.59656595726096,
+        "USDCHF": -193.98895167475035,
+        "USDJPY": -209.5792315781428
+      },
+      "score": -0.6329570482261416
+    },
+    "validation": {
+      "netUsd": -218.25911048996932,
+      "finalEquity": 9781.74088951003,
+      "totalReturn": -0.021825911048996893,
+      "cagr": -0.010980635099007707,
+      "sharpe": -0.17149374134901044,
+      "maxDrawdown": 0.07861010380423634,
+      "maxDrawdownUsd": 790.5608304575835,
+      "tradeCount": 110,
+      "winRate": 0.2636363636363636,
+      "profitFactor": 0.8374046559765214,
+      "totalFees": 16.40000000000003,
+      "totalFinancing": 282.6649943874082,
+      "skippedMinimumLot": 57,
+      "bySymbol": {
+        "AUDUSD": -155.801434058674,
+        "EURUSD": 59.06247260932751,
+        "GBPUSD": 59.1923555788557,
+        "NZDUSD": -47.05889748910159,
+        "USDCAD": -90.68783777842012,
+        "USDCHF": -180.6513696643548,
+        "USDJPY": 137.68560031225275
+      },
+      "score": -0.2501038451532468
+    }
+  },
+  "comparisons": [
+    {
+      "split": "test",
+      "scenario": "base",
+      "name": "selected_portfolio",
+      "netUsd": -388.8953837731842,
+      "finalEquity": 9611.104616226816,
+      "totalReturn": -0.038889538377318456,
+      "cagr": -0.013131974667799473,
+      "sharpe": -0.42457394386816505,
+      "maxDrawdown": 0.06333394524374869,
+      "maxDrawdownUsd": 640.1005161135745,
+      "tradeCount": 202,
+      "winRate": 0.32673267326732675,
+      "profitFactor": 0.7185507107982982,
+      "totalFees": 21.70000000000007,
+      "totalFinancing": 0,
+      "skippedMinimumLot": 63,
+      "bySymbol": {
+        "AUDUSD": -42.33000000000334,
+        "EURUSD": -170.03981123972616,
+        "GBPUSD": -161.513001916946,
+        "NZDUSD": -137.2500000000017,
+        "USDCAD": 34.75240103170564,
+        "USDCHF": 172.09794868604078,
+        "USDJPY": -84.61292033431921
+      },
+      "score": -0.48790788911191374
+    },
+    {
+      "split": "test",
+      "scenario": "base",
+      "name": "default_portfolio",
+      "netUsd": -1227.4447201637959,
+      "finalEquity": 8772.555279836204,
+      "totalReturn": -0.12274447201637961,
+      "cagr": -0.04270373996831689,
+      "sharpe": -0.9562077461922489,
+      "maxDrawdown": 0.15109579885644106,
+      "maxDrawdownUsd": 1556.8403866633726,
+      "tradeCount": 310,
+      "winRate": 0.3032258064516129,
+      "profitFactor": 0.5570374390562919,
+      "totalFees": 32.76000000000009,
+      "totalFinancing": 0,
+      "skippedMinimumLot": 65,
+      "bySymbol": {
+        "AUDUSD": -30.04404274388952,
+        "EURUSD": -179.59573617315428,
+        "GBPUSD": -206.84080989055343,
+        "NZDUSD": -178.4725921157267,
+        "USDCAD": -149.40007282691968,
+        "USDCHF": -263.1670556331726,
+        "USDJPY": -219.92441078043726
+      },
+      "score": -1.1073035450486899
+    },
+    {
+      "split": "test",
+      "scenario": "base",
+      "name": "selected_GBPUSD",
+      "netUsd": -1582.2700191694748,
+      "finalEquity": 8417.729980830525,
+      "totalReturn": -0.1582270019169475,
+      "cagr": -0.05578545842609306,
+      "sharpe": -0.8472052468883626,
+      "maxDrawdown": 0.20204166042730773,
+      "maxDrawdownUsd": 2044.0100191694764,
+      "tradeCount": 28,
+      "winRate": 0.21428571428571427,
+      "profitFactor": 0.283203918860542,
+      "totalFees": 17.429999999999993,
+      "totalFinancing": 0,
+      "skippedMinimumLot": 0,
+      "bySymbol": {
+        "GBPUSD": -1582.2700191694635
+      },
+      "score": -1.0492469073156703
+    },
+    {
+      "split": "test",
+      "scenario": "stress",
+      "name": "selected_portfolio",
+      "netUsd": -677.592642999789,
+      "finalEquity": 9322.407357000211,
+      "totalReturn": -0.06775926429997892,
+      "cagr": -0.023111473286463124,
+      "sharpe": -0.7515731493693555,
+      "maxDrawdown": 0.08524403610842432,
+      "maxDrawdownUsd": 860.6399147354587,
+      "tradeCount": 202,
+      "winRate": 0.3118811881188119,
+      "profitFactor": 0.5499784222407307,
+      "totalFees": 30.70000000000014,
+      "totalFinancing": 243.69105379876476,
+      "skippedMinimumLot": 63,
+      "bySymbol": {
+        "AUDUSD": -76.45200971936566,
+        "EURUSD": -214.56926120550946,
+        "GBPUSD": -201.97128254665085,
+        "NZDUSD": -175.67557015742597,
+        "USDCAD": -11.812279772993492,
+        "USDCHF": 120.25155080368806,
+        "USDJPY": -117.36379040130208
+      },
+      "score": -0.8368171854777798
+    },
+    {
+      "split": "test",
+      "scenario": "stress",
+      "name": "default_portfolio",
+      "netUsd": -1718.4160629024682,
+      "finalEquity": 8281.583937097532,
+      "totalReturn": -0.1718416062902468,
+      "cagr": -0.060902476016921336,
+      "sharpe": -1.387539185365066,
+      "maxDrawdown": 0.185638727038131,
+      "maxDrawdownUsd": 1885.4700943791686,
+      "tradeCount": 310,
+      "winRate": 0.27419354838709675,
+      "profitFactor": 0.4228344469847133,
+      "totalFees": 45.59999999999989,
+      "totalFinancing": 506.5780818617539,
+      "skippedMinimumLot": 65,
+      "bySymbol": {
+        "AUDUSD": -116.41067538396987,
+        "EURUSD": -269.9762903141597,
+        "GBPUSD": -284.9146275496896,
+        "NZDUSD": -243.89161415542404,
+        "USDCAD": -260.9278191238439,
+        "USDCHF": -279.9410092880322,
+        "USDJPY": -262.3540270870653
+      },
+      "score": -1.573177912403197
+    },
+    {
+      "split": "test",
+      "scenario": "stress",
+      "name": "selected_GBPUSD",
+      "netUsd": -1887.1830915856135,
+      "finalEquity": 8112.8169084143865,
+      "totalReturn": -0.18871830915856136,
+      "cagr": -0.06732400816238004,
+      "sharpe": -1.0327451817528186,
+      "maxDrawdown": 0.22753529938754524,
+      "maxDrawdownUsd": 2296.9822863837,
+      "tradeCount": 28,
+      "winRate": 0.21428571428571427,
+      "profitFactor": 0.23100217865080222,
+      "totalFees": 24.400000000000002,
+      "totalFinancing": 333.7070724161533,
+      "skippedMinimumLot": 0,
+      "bySymbol": {
+        "GBPUSD": -1887.1830915856094
+      },
+      "score": -1.2602804811403638
+    },
+    {
+      "split": "full",
+      "scenario": "base",
+      "name": "selected_portfolio",
+      "netUsd": -402.99383430814305,
+      "finalEquity": 9597.006165691857,
+      "totalReturn": -0.040299383430814295,
+      "cagr": -0.004104380984298217,
+      "sharpe": -0.09279672964156573,
+      "maxDrawdown": 0.0976395383593514,
+      "maxDrawdownUsd": 1022.8096341274468,
+      "tradeCount": 598,
+      "winRate": 0.3177257525083612,
+      "profitFactor": 0.9137125835707399,
+      "totalFees": 64.18999999999907,
+      "totalFinancing": 0,
+      "skippedMinimumLot": 148,
+      "bySymbol": {
+        "AUDUSD": 166.56783744586448,
+        "EURUSD": -121.48850432429205,
+        "GBPUSD": 44.61570866720797,
+        "NZDUSD": -134.851741221133,
+        "USDCAD": -262.3800964630062,
+        "USDCHF": -61.280675372790796,
+        "USDJPY": -34.17636304015057
+      },
+      "score": -0.19043626800091712
+    },
+    {
+      "split": "full",
+      "scenario": "base",
+      "name": "default_portfolio",
+      "netUsd": -1599.1998456437177,
+      "finalEquity": 8400.800154356282,
+      "totalReturn": -0.15991998456437173,
+      "cagr": -0.017272518184142882,
+      "sharpe": -0.3640406307312621,
+      "maxDrawdown": 0.2091114985226532,
+      "maxDrawdownUsd": 2214.374312645554,
+      "tradeCount": 947,
+      "winRate": 0.30834213305174235,
+      "profitFactor": 0.8197789553823851,
+      "totalFees": 96.17999999999587,
+      "totalFinancing": 0,
+      "skippedMinimumLot": 364,
+      "bySymbol": {
+        "AUDUSD": -2.765512496718891,
+        "EURUSD": 211.57815561517867,
+        "GBPUSD": -95.2256982336883,
+        "NZDUSD": -590.4755882853004,
+        "USDCAD": -388.1975756176247,
+        "USDCHF": -680.7652534629499,
+        "USDJPY": -53.348373162806865
+      },
+      "score": -0.5731521292539152
+    },
+    {
+      "split": "full",
+      "scenario": "base",
+      "name": "selected_GBPUSD",
+      "netUsd": -171.24427917697176,
+      "finalEquity": 9828.755720823028,
+      "totalReturn": -0.017124427917697194,
+      "cagr": -0.0017255477710318434,
+      "sharpe": 0.018390487780852227,
+      "maxDrawdown": 0.2548330848245459,
+      "maxDrawdownUsd": 3219.4387351587575,
+      "tradeCount": 70,
+      "winRate": 0.3,
+      "profitFactor": 0.9741209692489853,
+      "totalFees": 46.200000000000045,
+      "totalFinancing": 0,
+      "skippedMinimumLot": 0,
+      "bySymbol": {
+        "GBPUSD": -171.24427917695164
+      },
+      "score": -0.2364425970436937
+    },
+    {
+      "split": "full",
+      "scenario": "stress",
+      "name": "selected_portfolio",
+      "netUsd": -1586.4328335939736,
+      "finalEquity": 8413.567166406026,
+      "totalReturn": -0.15864328335939737,
+      "cagr": -0.017123291859774348,
+      "sharpe": -0.45882976614763427,
+      "maxDrawdown": 0.18030719725310962,
+      "maxDrawdownUsd": 1831.7808053953995,
+      "tradeCount": 598,
+      "winRate": 0.2959866220735786,
+      "profitFactor": 0.6809850699642587,
+      "totalFees": 85.99999999999852,
+      "totalFinancing": 933.0505374401514,
+      "skippedMinimumLot": 251,
+      "bySymbol": {
+        "AUDUSD": -75.28134858487789,
+        "EURUSD": -298.2148475907462,
+        "GBPUSD": -145.8595077598951,
+        "NZDUSD": -202.31740775090196,
+        "USDCAD": -382.50830206532083,
+        "USDCHF": -289.41998706238945,
+        "USDJPY": -192.83143277930574
+      },
+      "score": -0.6391369634007439
+    },
+    {
+      "split": "full",
+      "scenario": "stress",
+      "name": "default_portfolio",
+      "netUsd": -3094.9403813192876,
+      "finalEquity": 6905.059618680712,
+      "totalReturn": -0.3094940381319288,
+      "cagr": -0.03635084561215951,
+      "sharpe": -0.8096443307903746,
+      "maxDrawdown": 0.3337347466684026,
+      "maxDrawdownUsd": 3452.118899439324,
+      "tradeCount": 933,
+      "winRate": 0.2754555198285102,
+      "profitFactor": 0.6585444540180785,
+      "totalFees": 126.49999999999667,
+      "totalFinancing": 1550.2970759752336,
+      "skippedMinimumLot": 759,
+      "bySymbol": {
+        "AUDUSD": -213.67088930163854,
+        "EURUSD": -84.90101804413462,
+        "GBPUSD": -278.9166913949048,
+        "NZDUSD": -769.116496154101,
+        "USDCAD": -659.2687503578394,
+        "USDCHF": -877.3171787971361,
+        "USDJPY": -211.7493572696307
+      },
+      "score": -1.143379077458777
+    },
+    {
+      "split": "full",
+      "scenario": "stress",
+      "name": "selected_GBPUSD",
+      "netUsd": -1453.3223689524348,
+      "finalEquity": 8546.677631047565,
+      "totalReturn": -0.14533223689524344,
+      "cagr": -0.015579461960590013,
+      "sharpe": -0.15151448857540112,
+      "maxDrawdown": 0.28370658553493167,
+      "maxDrawdownUsd": 3260.4723612864727,
+      "tradeCount": 70,
+      "winRate": 0.2714285714285714,
+      "profitFactor": 0.7870992173060902,
+      "totalFees": 60.700000000000024,
+      "totalFinancing": 1360.3712328542106,
+      "skippedMinimumLot": 0,
+      "bySymbol": {
+        "GBPUSD": -1453.3223689524234
+      },
+      "score": -0.4352210741103328
+    }
+  ],
+  "annual": [
+    {
+      "year": 2016,
+      "startEquity": 10000,
+      "endEquity": 9889.098898970247,
+      "pnlUsd": -110.90110102975268,
+      "return": -0.011090110102975226
+    },
+    {
+      "year": 2017,
+      "startEquity": 9889.098898970247,
+      "endEquity": 9818.965653325155,
+      "pnlUsd": -70.13324564509276,
+      "return": -0.007091975352010671
+    },
+    {
+      "year": 2018,
+      "startEquity": 9818.965653325155,
+      "endEquity": 9428.720628846628,
+      "pnlUsd": -390.24502447852683,
+      "return": -0.039744005454013576
+    },
+    {
+      "year": 2019,
+      "startEquity": 9428.720628846628,
+      "endEquity": 9287.997879946344,
+      "pnlUsd": -140.72274890028348,
+      "return": -0.014924903859146132
+    },
+    {
+      "year": 2020,
+      "startEquity": 9287.997879946344,
+      "endEquity": 9799.287939773123,
+      "pnlUsd": 511.2900598267788,
+      "return": 0.055048468618915436
+    },
+    {
+      "year": 2021,
+      "startEquity": 9799.287939773123,
+      "endEquity": 9424.797454787493,
+      "pnlUsd": -374.49048498563025,
+      "return": -0.03821609154535166
+    },
+    {
+      "year": 2022,
+      "startEquity": 9424.797454787493,
+      "endEquity": 9986.693370311597,
+      "pnlUsd": 561.8959155241046,
+      "return": 0.05961888499138834
+    },
+    {
+      "year": 2023,
+      "startEquity": 9986.693370311597,
+      "endEquity": 9682.739007650542,
+      "pnlUsd": -303.9543626610557,
+      "return": -0.030435936239381345
+    },
+    {
+      "year": 2024,
+      "startEquity": 9682.739007650542,
+      "endEquity": 9717.232488055375,
+      "pnlUsd": 34.49348040483346,
+      "return": 0.003562368083822154
+    },
+    {
+      "year": 2025,
+      "startEquity": 9717.232488055375,
+      "endEquity": 9597.006165691857,
+      "pnlUsd": -120.2263223635182,
+      "return": -0.01237248594301954
+    }
+  ],
+  "trainingGrid": [
+    {
+      "config": {
+        "lookback": 63,
+        "volatilityPeriod": 20,
+        "minimumScore": 0,
+        "stopAtr": 2,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1122.0615584026327,
+        "finalEquity": 8877.938441597367,
+        "totalReturn": -0.11220615584026328,
+        "cagr": -0.023512542098218292,
+        "sharpe": -0.5455264253210087,
+        "maxDrawdown": 0.1630258641198016,
+        "maxDrawdownUsd": 1654.8038602489578,
+        "tradeCount": 723,
+        "winRate": 0.3070539419087137,
+        "profitFactor": 0.8160536461138407,
+        "totalFees": 105.19999999999797,
+        "totalFinancing": 859.5730644764301,
+        "skippedMinimumLot": 313,
+        "bySymbol": {
+          "AUDUSD": -293.06244250409816,
+          "EURUSD": -145.93629569764542,
+          "GBPUSD": 70.92281001543124,
+          "NZDUSD": 6.387670212259529,
+          "USDCAD": -424.0554184463318,
+          "USDCHF": -417.9398570246466,
+          "USDJPY": 81.62197504251728
+        },
+        "score": -0.7085522894408103
+      }
+    },
+    {
+      "config": {
+        "lookback": 63,
+        "volatilityPeriod": 20,
+        "minimumScore": 0,
+        "stopAtr": 2,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -985.8427851896413,
+        "finalEquity": 9014.157214810359,
+        "totalReturn": -0.09858427851896412,
+        "cagr": -0.020535440313166786,
+        "sharpe": -0.4566802416256131,
+        "maxDrawdown": 0.15077663340958933,
+        "maxDrawdownUsd": 1532.3466583060945,
+        "tradeCount": 622,
+        "winRate": 0.30385852090032156,
+        "profitFactor": 0.7891464855967902,
+        "totalFees": 90.29999999999883,
+        "totalFinancing": 888.2616520192089,
+        "skippedMinimumLot": 222,
+        "bySymbol": {
+          "AUDUSD": -167.53281283596982,
+          "EURUSD": -182.65955726222919,
+          "GBPUSD": 74.44741324661892,
+          "NZDUSD": 25.157542407448325,
+          "USDCAD": -399.91784529659304,
+          "USDCHF": -453.0841925692472,
+          "USDJPY": 117.74666712039436
+        },
+        "score": -0.6074568750352024
+      }
+    },
+    {
+      "config": {
+        "lookback": 63,
+        "volatilityPeriod": 20,
+        "minimumScore": 0,
+        "stopAtr": 3,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1062.2139098846583,
+        "finalEquity": 8937.786090115342,
+        "totalReturn": -0.10622139098846584,
+        "cagr": -0.022200084523131713,
+        "sharpe": -0.5170899820570283,
+        "maxDrawdown": 0.15817215405360108,
+        "maxDrawdownUsd": 1608.7472643396777,
+        "tradeCount": 603,
+        "winRate": 0.30845771144278605,
+        "profitFactor": 0.7830574929124491,
+        "totalFees": 86.89999999999903,
+        "totalFinancing": 869.0997711157194,
+        "skippedMinimumLot": 258,
+        "bySymbol": {
+          "AUDUSD": -310.6773381058917,
+          "EURUSD": -197.04629822389003,
+          "GBPUSD": 69.71076522239457,
+          "NZDUSD": 100.85101453174462,
+          "USDCAD": -411.8349602155321,
+          "USDCHF": -399.62619489972667,
+          "USDJPY": 86.40910180644937
+        },
+        "score": -0.6752621361106294
+      }
+    },
+    {
+      "config": {
+        "lookback": 63,
+        "volatilityPeriod": 20,
+        "minimumScore": 0,
+        "stopAtr": 3,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1265.0797828872455,
+        "finalEquity": 8734.920217112754,
+        "totalReturn": -0.1265079782887245,
+        "cagr": -0.026677839940956738,
+        "sharpe": -0.5971136867410973,
+        "maxDrawdown": 0.17078229270506914,
+        "maxDrawdownUsd": 1736.8983305113397,
+        "tradeCount": 566,
+        "winRate": 0.31095406360424027,
+        "profitFactor": 0.697876739639372,
+        "totalFees": 81.79999999999933,
+        "totalFinancing": 887.8583490760209,
+        "skippedMinimumLot": 182,
+        "bySymbol": {
+          "AUDUSD": -275.8432505911148,
+          "EURUSD": -232.43695455888923,
+          "GBPUSD": 49.270931095895115,
+          "NZDUSD": -13.054994685299754,
+          "USDCAD": -351.0639980819067,
+          "USDCHF": -436.6706539040838,
+          "USDJPY": -5.280862161792349
+        },
+        "score": -0.7678959794461665
+      }
+    },
+    {
+      "config": {
+        "lookback": 63,
+        "volatilityPeriod": 20,
+        "minimumScore": 0,
+        "stopAtr": 4,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -851.4992693113927,
+        "finalEquity": 9148.500730688607,
+        "totalReturn": -0.08514992693113932,
+        "cagr": -0.0176343717023848,
+        "sharpe": -0.38425365523655003,
+        "maxDrawdown": 0.14604686807945902,
+        "maxDrawdownUsd": 1485.4719342465578,
+        "tradeCount": 570,
+        "winRate": 0.312280701754386,
+        "profitFactor": 0.8100883680418903,
+        "totalFees": 84.29999999999923,
+        "totalFinancing": 904.8514075291349,
+        "skippedMinimumLot": 198,
+        "bySymbol": {
+          "AUDUSD": -144.57419147281362,
+          "EURUSD": -201.15727225410686,
+          "GBPUSD": 86.8172528181646,
+          "NZDUSD": -40.75553419624681,
+          "USDCAD": -308.3356237815547,
+          "USDCHF": -378.9933075256398,
+          "USDJPY": 135.499407100832
+        },
+        "score": -0.5303005233160091
+      }
+    },
+    {
+      "config": {
+        "lookback": 63,
+        "volatilityPeriod": 20,
+        "minimumScore": 0,
+        "stopAtr": 4,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1210.365328586804,
+        "finalEquity": 8789.634671413196,
+        "totalReturn": -0.12103653285868043,
+        "cagr": -0.025462029477927528,
+        "sharpe": -0.5545425947835504,
+        "maxDrawdown": 0.1660675115353529,
+        "maxDrawdownUsd": 1689.1059070278625,
+        "tradeCount": 552,
+        "winRate": 0.31521739130434784,
+        "profitFactor": 0.701056999245328,
+        "totalFees": 81.0999999999994,
+        "totalFinancing": 912.1644856947772,
+        "skippedMinimumLot": 163,
+        "bySymbol": {
+          "AUDUSD": -283.74704679142627,
+          "EURUSD": -208.11348901661896,
+          "GBPUSD": 51.813597809726815,
+          "NZDUSD": -87.50953264886806,
+          "USDCAD": -305.41623400817275,
+          "USDCHF": -426.9179068164465,
+          "USDJPY": 49.52528288498123
+        },
+        "score": -0.7206101063189033
+      }
+    },
+    {
+      "config": {
+        "lookback": 63,
+        "volatilityPeriod": 20,
+        "minimumScore": 0.5,
+        "stopAtr": 2,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -998.8446845778217,
+        "finalEquity": 9001.155315422178,
+        "totalReturn": -0.0998844684577822,
+        "cagr": -0.02081804074102389,
+        "sharpe": -0.5567220168664491,
+        "maxDrawdown": 0.13537308838678758,
+        "maxDrawdownUsd": 1364.6617607950775,
+        "tradeCount": 566,
+        "winRate": 0.31448763250883394,
+        "profitFactor": 0.7728780624352559,
+        "totalFees": 83.0999999999991,
+        "totalFinancing": 541.5327085557834,
+        "skippedMinimumLot": 192,
+        "bySymbol": {
+          "AUDUSD": -239.35132978527866,
+          "EURUSD": -139.7222016420862,
+          "GBPUSD": 76.84058099671861,
+          "NZDUSD": -130.1927890302594,
+          "USDCAD": -348.67585081644637,
+          "USDCHF": -178.20855366168038,
+          "USDJPY": -39.5345406389626
+        },
+        "score": -0.6920951052532367
+      }
+    },
+    {
+      "config": {
+        "lookback": 63,
+        "volatilityPeriod": 20,
+        "minimumScore": 0.5,
+        "stopAtr": 2,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1056.6310462341626,
+        "finalEquity": 8943.368953765837,
+        "totalReturn": -0.10566310462341622,
+        "cagr": -0.022078011347343218,
+        "sharpe": -0.562140524234613,
+        "maxDrawdown": 0.1409025013248065,
+        "maxDrawdownUsd": 1422.1586466142726,
+        "tradeCount": 507,
+        "winRate": 0.3175542406311637,
+        "profitFactor": 0.7029622078244413,
+        "totalFees": 75.39999999999966,
+        "totalFinancing": 560.3018798083493,
+        "skippedMinimumLot": 147,
+        "bySymbol": {
+          "AUDUSD": -303.30534987435476,
+          "EURUSD": -143.46351058585822,
+          "GBPUSD": 133.3208029982145,
+          "NZDUSD": -119.28734034045286,
+          "USDCAD": -308.05579756723904,
+          "USDCHF": -215.5543794526248,
+          "USDJPY": -100.28547141201508
+        },
+        "score": -0.7030430255594196
+      }
+    },
+    {
+      "config": {
+        "lookback": 63,
+        "volatilityPeriod": 20,
+        "minimumScore": 0.5,
+        "stopAtr": 3,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -896.712706983164,
+        "finalEquity": 9103.287293016836,
+        "totalReturn": -0.08967127069831637,
+        "cagr": -0.01860690117283681,
+        "sharpe": -0.47676215564887,
+        "maxDrawdown": 0.12033238669017714,
+        "maxDrawdownUsd": 1215.5165934748347,
+        "tradeCount": 503,
+        "winRate": 0.31610337972166996,
+        "profitFactor": 0.7676862226973692,
+        "totalFees": 75.09999999999968,
+        "totalFinancing": 560.5610880219031,
+        "skippedMinimumLot": 150,
+        "bySymbol": {
+          "AUDUSD": -323.5518299208326,
+          "EURUSD": -142.12958337439338,
+          "GBPUSD": 179.80001074657355,
+          "NZDUSD": -93.71593877991847,
+          "USDCAD": -289.89049990497506,
+          "USDCHF": -279.7786713064779,
+          "USDJPY": 52.553805556697704
+        },
+        "score": -0.5970945423390471
+      }
+    },
+    {
+      "config": {
+        "lookback": 63,
+        "volatilityPeriod": 20,
+        "minimumScore": 0.5,
+        "stopAtr": 3,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1087.5124191173527,
+        "finalEquity": 8912.487580882647,
+        "totalReturn": -0.10875124191173524,
+        "cagr": -0.02275401972503932,
+        "sharpe": -0.5657895845798712,
+        "maxDrawdown": 0.13942745960050573,
+        "maxDrawdownUsd": 1407.2765213776638,
+        "tradeCount": 482,
+        "winRate": 0.31742738589211617,
+        "profitFactor": 0.6805631526892593,
+        "totalFees": 71.49999999999983,
+        "totalFinancing": 565.7637902806295,
+        "skippedMinimumLot": 149,
+        "bySymbol": {
+          "AUDUSD": -269.58812307826986,
+          "EURUSD": -130.4581212517123,
+          "GBPUSD": 48.47048681147578,
+          "NZDUSD": -115.02331442347929,
+          "USDCAD": -270.6552830978203,
+          "USDCHF": -268.53158873939014,
+          "USDJPY": -81.7264753383203
+        },
+        "score": -0.7052170441803769
+      }
+    },
+    {
+      "config": {
+        "lookback": 63,
+        "volatilityPeriod": 20,
+        "minimumScore": 0.5,
+        "stopAtr": 4,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -914.6957446582,
+        "finalEquity": 9085.3042553418,
+        "totalReturn": -0.09146957446582005,
+        "cagr": -0.018994786149150067,
+        "sharpe": -0.47587463573011435,
+        "maxDrawdown": 0.13541836287167086,
+        "maxDrawdownUsd": 1366.8116967686037,
+        "tradeCount": 480,
+        "winRate": 0.3145833333333333,
+        "profitFactor": 0.7330221152113803,
+        "totalFees": 72.09999999999982,
+        "totalFinancing": 569.1138880219024,
+        "skippedMinimumLot": 127,
+        "bySymbol": {
+          "AUDUSD": -307.25582026218785,
+          "EURUSD": -131.4067859242896,
+          "GBPUSD": 147.4063992414582,
+          "NZDUSD": -20.174347545357378,
+          "USDCAD": -300.2421655883878,
+          "USDCHF": -238.58635511084105,
+          "USDJPY": -64.43666946876593
+        },
+        "score": -0.6112929986017852
+      }
+    },
+    {
+      "config": {
+        "lookback": 63,
+        "volatilityPeriod": 20,
+        "minimumScore": 0.5,
+        "stopAtr": 4,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1046.1416713140025,
+        "finalEquity": 8953.858328685998,
+        "totalReturn": -0.10461416713140026,
+        "cagr": -0.021848818702431272,
+        "sharpe": -0.519144651655831,
+        "maxDrawdown": 0.13561951983787246,
+        "maxDrawdownUsd": 1368.8420247718404,
+        "tradeCount": 476,
+        "winRate": 0.3172268907563025,
+        "profitFactor": 0.6827970529796602,
+        "totalFees": 71.39999999999985,
+        "totalFinancing": 578.47123723477,
+        "skippedMinimumLot": 122,
+        "bySymbol": {
+          "AUDUSD": -244.354774769561,
+          "EURUSD": -134.1304709103483,
+          "GBPUSD": 58.11672717317521,
+          "NZDUSD": -92.63007967145677,
+          "USDCAD": -315.29325126360186,
+          "USDCHF": -264.7642133790124,
+          "USDJPY": -53.08560849340044
+        },
+        "score": -0.6547641714937035
+      }
+    },
+    {
+      "config": {
+        "lookback": 63,
+        "volatilityPeriod": 60,
+        "minimumScore": 0,
+        "stopAtr": 2,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1293.4527529409916,
+        "finalEquity": 8706.547247059008,
+        "totalReturn": -0.12934527529409912,
+        "cagr": -0.02731071679446473,
+        "sharpe": -0.65013173900215,
+        "maxDrawdown": 0.17348340172402202,
+        "maxDrawdownUsd": 1760.6643914474043,
+        "tradeCount": 719,
+        "winRate": 0.30180806675938804,
+        "profitFactor": 0.7833999323989953,
+        "totalFees": 98.19999999999811,
+        "totalFinancing": 830.4818956879252,
+        "skippedMinimumLot": 312,
+        "bySymbol": {
+          "AUDUSD": -269.66459772473274,
+          "EURUSD": -199.68126994569784,
+          "GBPUSD": -12.407031254597285,
+          "NZDUSD": -97.56577421149412,
+          "USDCAD": -276.68741467544834,
+          "USDCHF": -479.6290617091048,
+          "USDJPY": 42.18239658035646
+        },
+        "score": -0.823615140726172
+      }
+    },
+    {
+      "config": {
+        "lookback": 63,
+        "volatilityPeriod": 60,
+        "minimumScore": 0,
+        "stopAtr": 2,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1062.305453197927,
+        "finalEquity": 8937.694546802073,
+        "totalReturn": -0.1062305453197927,
+        "cagr": -0.02220208668931889,
+        "sharpe": -0.5138651956365778,
+        "maxDrawdown": 0.15785012566676532,
+        "maxDrawdownUsd": 1603.5852774423147,
+        "tradeCount": 619,
+        "winRate": 0.30048465266558966,
+        "profitFactor": 0.7680388899865739,
+        "totalFees": 84.3999999999991,
+        "totalFinancing": 849.9007972621944,
+        "skippedMinimumLot": 289,
+        "bySymbol": {
+          "AUDUSD": -112.07748517081069,
+          "EURUSD": -219.4930870419922,
+          "GBPUSD": 25.914494152294235,
+          "NZDUSD": -106.34177094893502,
+          "USDCAD": -301.8669138241693,
+          "USDCHF": -473.58040231564956,
+          "USDJPY": 125.13971195155118
+        },
+        "score": -0.6717153213033431
+      }
+    },
+    {
+      "config": {
+        "lookback": 63,
+        "volatilityPeriod": 60,
+        "minimumScore": 0,
+        "stopAtr": 3,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1188.806492462625,
+        "finalEquity": 8811.193507537375,
+        "totalReturn": -0.11888064924626252,
+        "cagr": -0.024984632994908273,
+        "sharpe": -0.5824088012869596,
+        "maxDrawdown": 0.1626872712848191,
+        "maxDrawdownUsd": 1654.0485103841438,
+        "tradeCount": 601,
+        "winRate": 0.30615640599001664,
+        "profitFactor": 0.7564464372826478,
+        "totalFees": 81.49999999999925,
+        "totalFinancing": 848.6281757700681,
+        "skippedMinimumLot": 280,
+        "bySymbol": {
+          "AUDUSD": -223.1310106426581,
+          "EURUSD": -262.71910630938646,
+          "GBPUSD": -10.928063886043084,
+          "NZDUSD": 30.791687636735695,
+          "USDCAD": -404.50127706192495,
+          "USDCHF": -466.7264636236439,
+          "USDJPY": 148.4077414246019
+        },
+        "score": -0.7450960725717787
+      }
+    },
+    {
+      "config": {
+        "lookback": 63,
+        "volatilityPeriod": 60,
+        "minimumScore": 0,
+        "stopAtr": 3,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1297.923361221201,
+        "finalEquity": 8702.076638778799,
+        "totalReturn": -0.12979233612212016,
+        "cagr": -0.027410586942307136,
+        "sharpe": -0.632878923371657,
+        "maxDrawdown": 0.17638393168074887,
+        "maxDrawdownUsd": 1791.9167787823408,
+        "tradeCount": 563,
+        "winRate": 0.3108348134991119,
+        "profitFactor": 0.6813627367951044,
+        "totalFees": 76.29999999999953,
+        "totalFinancing": 866.2844161533658,
+        "skippedMinimumLot": 241,
+        "bySymbol": {
+          "AUDUSD": -272.55070949570626,
+          "EURUSD": -263.8332806369174,
+          "GBPUSD": -27.346734950385297,
+          "NZDUSD": -27.321417815763816,
+          "USDCAD": -289.57900894327304,
+          "USDCHF": -484.96496228736044,
+          "USDJPY": 67.67275290842124
+        },
+        "score": -0.8092628550524058
+      }
+    },
+    {
+      "config": {
+        "lookback": 63,
+        "volatilityPeriod": 60,
+        "minimumScore": 0,
+        "stopAtr": 4,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1004.052874741381,
+        "finalEquity": 8995.947125258619,
+        "totalReturn": -0.10040528747413813,
+        "cagr": -0.020931334035799942,
+        "sharpe": -0.4762101065205948,
+        "maxDrawdown": 0.15092871904832084,
+        "maxDrawdownUsd": 1533.4562573614276,
+        "tradeCount": 568,
+        "winRate": 0.31161971830985913,
+        "profitFactor": 0.770605192094774,
+        "totalFees": 78.5999999999995,
+        "totalFinancing": 864.6519091034025,
+        "skippedMinimumLot": 262,
+        "bySymbol": {
+          "AUDUSD": -114.62963450273313,
+          "EURUSD": -226.10434001591275,
+          "GBPUSD": 50.167995006828335,
+          "NZDUSD": -95.38282427153811,
+          "USDCAD": -328.46291567113366,
+          "USDCHF": -433.2743182001266,
+          "USDJPY": 143.63316291345234
+        },
+        "score": -0.6271388255689156
+      }
+    },
+    {
+      "config": {
+        "lookback": 63,
+        "volatilityPeriod": 60,
+        "minimumScore": 0,
+        "stopAtr": 4,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1294.6774134078878,
+        "finalEquity": 8705.322586592112,
+        "totalReturn": -0.12946774134078876,
+        "cagr": -0.02733807074043504,
+        "sharpe": -0.6188134704134991,
+        "maxDrawdown": 0.17614161345367374,
+        "maxDrawdownUsd": 1789.622684373262,
+        "tradeCount": 550,
+        "winRate": 0.3109090909090909,
+        "profitFactor": 0.6694742160818723,
+        "totalFees": 75.19999999999968,
+        "totalFinancing": 871.3202409309166,
+        "skippedMinimumLot": 234,
+        "bySymbol": {
+          "AUDUSD": -259.3902943475369,
+          "EURUSD": -231.06791393106013,
+          "GBPUSD": -36.71262290373133,
+          "NZDUSD": -107.92605968514488,
+          "USDCAD": -264.93530297482454,
+          "USDCHF": -475.2122151997231,
+          "USDJPY": 80.56699563437068
+        },
+        "score": -0.7949550838671728
+      }
+    },
+    {
+      "config": {
+        "lookback": 63,
+        "volatilityPeriod": 60,
+        "minimumScore": 0.5,
+        "stopAtr": 2,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1214.0039830008227,
+        "finalEquity": 8785.996016999177,
+        "totalReturn": -0.12140039830008231,
+        "cagr": -0.025542695819487427,
+        "sharpe": -0.6962115842173904,
+        "maxDrawdown": 0.15283092127270503,
+        "maxDrawdownUsd": 1540.2981744233257,
+        "tradeCount": 561,
+        "winRate": 0.3048128342245989,
+        "profitFactor": 0.723865655186824,
+        "totalFees": 78.59999999999957,
+        "totalFinancing": 506.2084736481829,
+        "skippedMinimumLot": 161,
+        "bySymbol": {
+          "AUDUSD": -268.94927046993627,
+          "EURUSD": -186.45999943207212,
+          "GBPUSD": 17.98123943281856,
+          "NZDUSD": -170.88903043681714,
+          "USDCAD": -246.19650024477983,
+          "USDCHF": -196.6952683769286,
+          "USDJPY": -162.79515347301856
+        },
+        "score": -0.8490425054900954
+      }
+    },
+    {
+      "config": {
+        "lookback": 63,
+        "volatilityPeriod": 60,
+        "minimumScore": 0.5,
+        "stopAtr": 2,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1135.7369511005109,
+        "finalEquity": 8864.26304889949,
+        "totalReturn": -0.11357369511005111,
+        "cagr": -0.02381343629202126,
+        "sharpe": -0.6399813614606732,
+        "maxDrawdown": 0.14682098596162277,
+        "maxDrawdownUsd": 1481.0693273391153,
+        "tradeCount": 496,
+        "winRate": 0.3064516129032258,
+        "profitFactor": 0.670156749737475,
+        "totalFees": 70.69999999999997,
+        "totalFinancing": 522.4595268993847,
+        "skippedMinimumLot": 172,
+        "bySymbol": {
+          "AUDUSD": -337.9217524197274,
+          "EURUSD": -184.7228211718078,
+          "GBPUSD": 123.10517008711335,
+          "NZDUSD": -128.06585485000477,
+          "USDCAD": -224.81144060603134,
+          "USDCHF": -196.25975484711705,
+          "USDJPY": -187.06049729292886
+        },
+        "score": -0.7868023474222959
+      }
+    },
+    {
+      "config": {
+        "lookback": 63,
+        "volatilityPeriod": 60,
+        "minimumScore": 0.5,
+        "stopAtr": 3,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -894.5592010644123,
+        "finalEquity": 9105.440798935588,
+        "totalReturn": -0.08945592010644121,
+        "cagr": -0.018560492259228956,
+        "sharpe": -0.4754907960279228,
+        "maxDrawdown": 0.12397696371011616,
+        "maxDrawdownUsd": 1251.103362405598,
+        "tradeCount": 500,
+        "winRate": 0.314,
+        "profitFactor": 0.7700774893494909,
+        "totalFees": 72.29999999999994,
+        "totalFinancing": 536.877567145788,
+        "skippedMinimumLot": 159,
+        "bySymbol": {
+          "AUDUSD": -339.7723133201998,
+          "EURUSD": -202.82886216128014,
+          "GBPUSD": 146.7867877689896,
+          "NZDUSD": -50.869185297564776,
+          "USDCAD": -237.53571940223412,
+          "USDCHF": -178.22294254328696,
+          "USDJPY": -32.11696610895445
+        },
+        "score": -0.599467759738039
+      }
+    },
+    {
+      "config": {
+        "lookback": 63,
+        "volatilityPeriod": 60,
+        "minimumScore": 0.5,
+        "stopAtr": 3,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1113.3461646725573,
+        "finalEquity": 8886.653835327443,
+        "totalReturn": -0.11133461646725573,
+        "cagr": -0.023320974196922473,
+        "sharpe": -0.6037723650431966,
+        "maxDrawdown": 0.14131380875508015,
+        "maxDrawdownUsd": 1425.515203469089,
+        "tradeCount": 472,
+        "winRate": 0.3177966101694915,
+        "profitFactor": 0.6610578436680503,
+        "totalFees": 67.80000000000005,
+        "totalFinancing": 535.9976306639294,
+        "skippedMinimumLot": 141,
+        "bySymbol": {
+          "AUDUSD": -289.1904025077532,
+          "EURUSD": -194.35288237422918,
+          "GBPUSD": 58.32579210867502,
+          "NZDUSD": -98.83606280564973,
+          "USDCAD": -191.37567742584005,
+          "USDCHF": -209.5769773091515,
+          "USDJPY": -188.33995435862954
+        },
+        "score": -0.7450861737982768
+      }
+    },
+    {
+      "config": {
+        "lookback": 63,
+        "volatilityPeriod": 60,
+        "minimumScore": 0.5,
+        "stopAtr": 4,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -976.5007888461932,
+        "finalEquity": 9023.499211153807,
+        "totalReturn": -0.0976500788846193,
+        "cagr": -0.02033259032409307,
+        "sharpe": -0.5392322117135256,
+        "maxDrawdown": 0.13812310639984618,
+        "maxDrawdownUsd": 1393.328718954941,
+        "tradeCount": 470,
+        "winRate": 0.3148936170212766,
+        "profitFactor": 0.7096565340615301,
+        "totalFees": 67.80000000000005,
+        "totalFinancing": 532.7995154004119,
+        "skippedMinimumLot": 160,
+        "bySymbol": {
+          "AUDUSD": -357.36679649629434,
+          "EURUSD": -190.49022740272682,
+          "GBPUSD": 171.97817309498288,
+          "NZDUSD": -18.448930160003933,
+          "USDCAD": -218.86308604398343,
+          "USDCHF": -211.44411577044488,
+          "USDJPY": -151.86580606775874
+        },
+        "score": -0.6773553181133718
+      }
+    },
+    {
+      "config": {
+        "lookback": 63,
+        "volatilityPeriod": 60,
+        "minimumScore": 0.5,
+        "stopAtr": 4,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1042.2888380143577,
+        "finalEquity": 8957.711161985642,
+        "totalReturn": -0.1042288838014358,
+        "cagr": -0.021764688309759195,
+        "sharpe": -0.5486790425759628,
+        "maxDrawdown": 0.13903273647200293,
+        "maxDrawdownUsd": 1402.5046905660347,
+        "tradeCount": 465,
+        "winRate": 0.31827956989247314,
+        "profitFactor": 0.6710674555217074,
+        "totalFees": 66.80000000000007,
+        "totalFinancing": 541.0771871321003,
+        "skippedMinimumLot": 141,
+        "bySymbol": {
+          "AUDUSD": -243.68481890236697,
+          "EURUSD": -193.2139123887855,
+          "GBPUSD": 62.01310034223715,
+          "NZDUSD": -73.55632936344753,
+          "USDCAD": -224.77535095078437,
+          "USDCHF": -217.07146508866865,
+          "USDJPY": -152.00006166260508
+        },
+        "score": -0.6877117790479657
+      }
+    },
+    {
+      "config": {
+        "lookback": 126,
+        "volatilityPeriod": 20,
+        "minimumScore": 0,
+        "stopAtr": 2,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1784.1973514542333,
+        "finalEquity": 8215.802648545767,
+        "totalReturn": -0.1784197351454233,
+        "cagr": -0.03852719001264149,
+        "sharpe": -0.8905807748740796,
+        "maxDrawdown": 0.2385367642151247,
+        "maxDrawdownUsd": 2437.2558244139045,
+        "tradeCount": 619,
+        "winRate": 0.26009693053311794,
+        "profitFactor": 0.7129509883640994,
+        "totalFees": 91.59999999999852,
+        "totalFinancing": 845.0153029432307,
+        "skippedMinimumLot": 314,
+        "bySymbol": {
+          "AUDUSD": -119.41477483566713,
+          "EURUSD": -170.4559868485557,
+          "GBPUSD": -176.44657433553687,
+          "NZDUSD": -400.4994807798428,
+          "USDCAD": -417.9434092594323,
+          "USDCHF": -425.00332009887177,
+          "USDJPY": -74.43380529610496
+        },
+        "score": -1.1291175390892043
+      }
+    },
+    {
+      "config": {
+        "lookback": 126,
+        "volatilityPeriod": 20,
+        "minimumScore": 0,
+        "stopAtr": 2,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -2050.290832578473,
+        "finalEquity": 7949.709167421527,
+        "totalReturn": -0.2050290832578473,
+        "cagr": -0.04483493576263431,
+        "sharpe": -1.0144448802555472,
+        "maxDrawdown": 0.2571607660501372,
+        "maxDrawdownUsd": 2630.945301436288,
+        "tradeCount": 498,
+        "winRate": 0.24096385542168675,
+        "profitFactor": 0.5498408002748192,
+        "totalFees": 75.39999999999958,
+        "totalFinancing": 863.6474803559637,
+        "skippedMinimumLot": 247,
+        "bySymbol": {
+          "AUDUSD": -157.32380160729122,
+          "EURUSD": -154.2951375721584,
+          "GBPUSD": -237.99220149337935,
+          "NZDUSD": -463.30584369143963,
+          "USDCAD": -364.50604864468073,
+          "USDCHF": -463.55330131306573,
+          "USDJPY": -209.31449825632268
+        },
+        "score": -1.2716056463056844
+      }
+    },
+    {
+      "config": {
+        "lookback": 126,
+        "volatilityPeriod": 20,
+        "minimumScore": 0,
+        "stopAtr": 3,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1837.587380244674,
+        "finalEquity": 8162.412619755326,
+        "totalReturn": -0.1837587380244674,
+        "cagr": -0.03977955466142902,
+        "sharpe": -0.9231339786640207,
+        "maxDrawdown": 0.241397032450859,
+        "maxDrawdownUsd": 2469.670619131023,
+        "tradeCount": 490,
+        "winRate": 0.25918367346938775,
+        "profitFactor": 0.6604409426190216,
+        "totalFees": 74.19999999999965,
+        "totalFinancing": 855.6611964408336,
+        "skippedMinimumLot": 245,
+        "bySymbol": {
+          "AUDUSD": -76.51183443063594,
+          "EURUSD": -68.24113949899458,
+          "GBPUSD": -228.44140511756518,
+          "NZDUSD": -372.28181169139174,
+          "USDCAD": -393.87224500954295,
+          "USDCHF": -491.27002541396735,
+          "USDJPY": -206.9689190823384
+        },
+        "score": -1.1645310111148797
+      }
+    },
+    {
+      "config": {
+        "lookback": 126,
+        "volatilityPeriod": 20,
+        "minimumScore": 0,
+        "stopAtr": 3,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1749.7177087061445,
+        "finalEquity": 8250.282291293855,
+        "totalReturn": -0.17497177087061444,
+        "cagr": -0.0377218606391837,
+        "sharpe": -0.8343878463452581,
+        "maxDrawdown": 0.24877292949455287,
+        "maxDrawdownUsd": 2582.1866154797017,
+        "tradeCount": 446,
+        "winRate": 0.257847533632287,
+        "profitFactor": 0.6059070751617199,
+        "totalFees": 69.69999999999989,
+        "totalFinancing": 913.357716084923,
+        "skippedMinimumLot": 192,
+        "bySymbol": {
+          "AUDUSD": -165.2824488051076,
+          "EURUSD": -154.67250010969838,
+          "GBPUSD": -58.32353537087624,
+          "NZDUSD": -531.2600011777647,
+          "USDCAD": -385.10653540291935,
+          "USDCHF": -391.60253112350165,
+          "USDJPY": -63.47015671624789
+        },
+        "score": -1.083160775839811
+      }
+    },
+    {
+      "config": {
+        "lookback": 126,
+        "volatilityPeriod": 20,
+        "minimumScore": 0,
+        "stopAtr": 4,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1772.6949065944264,
+        "finalEquity": 8227.305093405574,
+        "totalReturn": -0.17726949065944264,
+        "cagr": -0.03825823122078287,
+        "sharpe": -0.8623687453641306,
+        "maxDrawdown": 0.24019359590271971,
+        "maxDrawdownUsd": 2465.4928366136555,
+        "tradeCount": 439,
+        "winRate": 0.26879271070615035,
+        "profitFactor": 0.5909664885828062,
+        "totalFees": 68.1,
+        "totalFinancing": 891.2524024641108,
+        "skippedMinimumLot": 148,
+        "bySymbol": {
+          "AUDUSD": -229.89745584304802,
+          "EURUSD": -134.0406745714542,
+          "GBPUSD": -120.81113600396938,
+          "NZDUSD": -393.62788265674715,
+          "USDCAD": -372.57454746112876,
+          "USDCHF": -392.213129888485,
+          "USDJPY": -129.5300801695442
+        },
+        "score": -1.1025623412668502
+      }
+    },
+    {
+      "config": {
+        "lookback": 126,
+        "volatilityPeriod": 20,
+        "minimumScore": 0,
+        "stopAtr": 4,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1532.1548459937221,
+        "finalEquity": 8467.845154006278,
+        "totalReturn": -0.15321548459937218,
+        "cagr": -0.03270150619723933,
+        "sharpe": -0.6916735119419338,
+        "maxDrawdown": 0.23938112135964335,
+        "maxDrawdownUsd": 2497.2291767041734,
+        "tradeCount": 429,
+        "winRate": 0.26107226107226106,
+        "profitFactor": 0.6417461717661765,
+        "totalFees": 67.60000000000001,
+        "totalFinancing": 941.8274841889722,
+        "skippedMinimumLot": 159,
+        "bySymbol": {
+          "AUDUSD": -152.67916378206905,
+          "EURUSD": -150.67312186474595,
+          "GBPUSD": -53.44269660070506,
+          "NZDUSD": -467.8487904374502,
+          "USDCAD": -300.2836343859606,
+          "USDCHF": -350.4984961383525,
+          "USDJPY": -56.728942784565284
+        },
+        "score": -0.9310546333015772
+      }
+    },
+    {
+      "config": {
+        "lookback": 126,
+        "volatilityPeriod": 20,
+        "minimumScore": 0.5,
+        "stopAtr": 2,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1174.9463890203751,
+        "finalEquity": 8825.053610979625,
+        "totalReturn": -0.11749463890203748,
+        "cagr": -0.02467820971701351,
+        "sharpe": -0.682723256617277,
+        "maxDrawdown": 0.17936957641146165,
+        "maxDrawdownUsd": 1820.3111695696534,
+        "tradeCount": 489,
+        "winRate": 0.31901840490797545,
+        "profitFactor": 0.7031147535500991,
+        "totalFees": 71.0999999999996,
+        "totalFinancing": 495.5662937713899,
+        "skippedMinimumLot": 141,
+        "bySymbol": {
+          "AUDUSD": -7.541972437307983,
+          "EURUSD": -121.6761285735946,
+          "GBPUSD": -57.39411544388666,
+          "NZDUSD": -332.8923865197345,
+          "USDCAD": -235.62231079693257,
+          "USDCHF": -280.849966589619,
+          "USDJPY": -138.96950865920422
+        },
+        "score": -0.8620928330287386
+      }
+    },
+    {
+      "config": {
+        "lookback": 126,
+        "volatilityPeriod": 20,
+        "minimumScore": 0.5,
+        "stopAtr": 2,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1144.0828773822268,
+        "finalEquity": 8855.917122617773,
+        "totalReturn": -0.11440828773822265,
+        "cagr": -0.023997250911714008,
+        "sharpe": -0.6578520745120251,
+        "maxDrawdown": 0.17808624579776686,
+        "maxDrawdownUsd": 1808.9151953000892,
+        "tradeCount": 438,
+        "winRate": 0.317351598173516,
+        "profitFactor": 0.6589394270707812,
+        "totalFees": 64.89999999999988,
+        "totalFinancing": 504.8641982203966,
+        "skippedMinimumLot": 115,
+        "bySymbol": {
+          "AUDUSD": -13.913612598420357,
+          "EURUSD": -126.7161181212101,
+          "GBPUSD": -88.19738263289668,
+          "NZDUSD": -328.07254145246566,
+          "USDCAD": -202.99603610653915,
+          "USDCHF": -285.1747629677809,
+          "USDJPY": -99.01242350279391
+        },
+        "score": -0.835938320309792
+      }
+    },
+    {
+      "config": {
+        "lookback": 126,
+        "volatilityPeriod": 20,
+        "minimumScore": 0.5,
+        "stopAtr": 3,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1185.428667038901,
+        "finalEquity": 8814.571332961099,
+        "totalReturn": -0.11854286670389014,
+        "cagr": -0.024909919507851486,
+        "sharpe": -0.7022234743146769,
+        "maxDrawdown": 0.17998175404421238,
+        "maxDrawdownUsd": 1829.2448710759836,
+        "tradeCount": 424,
+        "winRate": 0.32547169811320753,
+        "profitFactor": 0.6656830576214583,
+        "totalFees": 62.89999999999996,
+        "totalFinancing": 493.82428035592255,
+        "skippedMinimumLot": 191,
+        "bySymbol": {
+          "AUDUSD": -13.709526443282781,
+          "EURUSD": -135.34216281723295,
+          "GBPUSD": -37.540432542283426,
+          "NZDUSD": -305.18424068821315,
+          "USDCAD": -202.3921940788742,
+          "USDCHF": -321.9933929679375,
+          "USDJPY": -169.26671750090173
+        },
+        "score": -0.8822052283588893
+      }
+    },
+    {
+      "config": {
+        "lookback": 126,
+        "volatilityPeriod": 20,
+        "minimumScore": 0.5,
+        "stopAtr": 3,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1253.1320799187506,
+        "finalEquity": 8746.86792008125,
+        "totalReturn": -0.12531320799187506,
+        "cagr": -0.026411830986760143,
+        "sharpe": -0.7324164138786146,
+        "maxDrawdown": 0.18515941621994883,
+        "maxDrawdownUsd": 1880.7610888350773,
+        "tradeCount": 406,
+        "winRate": 0.3251231527093596,
+        "profitFactor": 0.6072439136332257,
+        "totalFees": 60.69999999999999,
+        "totalFinancing": 504.37511184120706,
+        "skippedMinimumLot": 101,
+        "bySymbol": {
+          "AUDUSD": -56.957194632987,
+          "EURUSD": -139.3428291995575,
+          "GBPUSD": -93.43626060889196,
+          "NZDUSD": -309.84238442788705,
+          "USDCAD": -195.97051132190728,
+          "USDCHF": -321.9933929679375,
+          "USDJPY": -135.58950675937962
+        },
+        "score": -0.9175758300985634
+      }
+    },
+    {
+      "config": {
+        "lookback": 126,
+        "volatilityPeriod": 20,
+        "minimumScore": 0.5,
+        "stopAtr": 4,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1116.6092406656826,
+        "finalEquity": 8883.390759334317,
+        "totalReturn": -0.11166092406656825,
+        "cagr": -0.02339268032400721,
+        "sharpe": -0.6459486492586795,
+        "maxDrawdown": 0.1761079863557642,
+        "maxDrawdownUsd": 1788.8209788778495,
+        "tradeCount": 399,
+        "winRate": 0.3283208020050125,
+        "profitFactor": 0.6338881603587735,
+        "totalFees": 59.8,
+        "totalFinancing": 510.6402787132102,
+        "skippedMinimumLot": 100,
+        "bySymbol": {
+          "AUDUSD": -29.249329059389837,
+          "EURUSD": -89.7702496622753,
+          "GBPUSD": -88.84031759068668,
+          "NZDUSD": -314.4009828135746,
+          "USDCAD": -146.5569076941182,
+          "USDCHF": -327.0211097643019,
+          "USDJPY": -120.77034408119735
+        },
+        "score": -0.8220566356144436
+      }
+    },
+    {
+      "config": {
+        "lookback": 126,
+        "volatilityPeriod": 20,
+        "minimumScore": 0.5,
+        "stopAtr": 4,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1153.484962922952,
+        "finalEquity": 8846.515037077048,
+        "totalReturn": -0.11534849629229516,
+        "cagr": -0.02420449297214977,
+        "sharpe": -0.6619120599646132,
+        "maxDrawdown": 0.17973837154736452,
+        "maxDrawdownUsd": 1825.696701135119,
+        "tradeCount": 396,
+        "winRate": 0.3282828282828283,
+        "profitFactor": 0.6155614993733719,
+        "totalFees": 59.60000000000002,
+        "totalFinancing": 514.4510187542771,
+        "skippedMinimumLot": 100,
+        "bySymbol": {
+          "AUDUSD": -51.81884462696267,
+          "EURUSD": -86.96590520129864,
+          "GBPUSD": -88.84031759068668,
+          "NZDUSD": -314.4009828135746,
+          "USDCAD": -154.3742864212107,
+          "USDCHF": -327.0211097643019,
+          "USDJPY": -130.06351650481486
+        },
+        "score": -0.8416504315119777
+      }
+    },
+    {
+      "config": {
+        "lookback": 126,
+        "volatilityPeriod": 60,
+        "minimumScore": 0,
+        "stopAtr": 2,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1815.8247283683395,
+        "finalEquity": 8184.1752716316605,
+        "totalReturn": -0.18158247283683393,
+        "cagr": -0.03926828128913307,
+        "sharpe": -0.9546920065330584,
+        "maxDrawdown": 0.23311646646061396,
+        "maxDrawdownUsd": 2373.428646671129,
+        "tradeCount": 619,
+        "winRate": 0.2552504038772213,
+        "profitFactor": 0.6981470848374882,
+        "totalFees": 86.39999999999866,
+        "totalFinancing": 791.2666015058547,
+        "skippedMinimumLot": 350,
+        "bySymbol": {
+          "AUDUSD": -187.00016048782186,
+          "EURUSD": -120.3923259006245,
+          "GBPUSD": -297.0672572722883,
+          "NZDUSD": -471.4046538551681,
+          "USDCAD": -346.99632786490605,
+          "USDCHF": -316.4928657420211,
+          "USDJPY": -76.47113724518584
+        },
+        "score": -1.1878084729936724
+      }
+    },
+    {
+      "config": {
+        "lookback": 126,
+        "volatilityPeriod": 60,
+        "minimumScore": 0,
+        "stopAtr": 2,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -2048.520858178086,
+        "finalEquity": 7951.479141821914,
+        "totalReturn": -0.20485208581780867,
+        "cagr": -0.044792424189823654,
+        "sharpe": -1.0588917315681297,
+        "maxDrawdown": 0.24786790047793475,
+        "maxDrawdownUsd": 2526.5707117062448,
+        "tradeCount": 495,
+        "winRate": 0.2383838383838384,
+        "profitFactor": 0.5266155813107236,
+        "totalFees": 70.89999999999978,
+        "totalFinancing": 823.9938469541804,
+        "skippedMinimumLot": 431,
+        "bySymbol": {
+          "AUDUSD": -111.04691939910025,
+          "EURUSD": -137.81234739875765,
+          "GBPUSD": -338.55260602524993,
+          "NZDUSD": -507.15421472808356,
+          "USDCAD": -326.2654811570271,
+          "USDCHF": -427.68110643150135,
+          "USDJPY": -200.00818303808666
+        },
+        "score": -1.3067596320460644
+      }
+    },
+    {
+      "config": {
+        "lookback": 126,
+        "volatilityPeriod": 60,
+        "minimumScore": 0,
+        "stopAtr": 3,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1919.1018026857555,
+        "finalEquity": 8080.8981973142445,
+        "totalReturn": -0.19191018026857554,
+        "cagr": -0.041704332144752665,
+        "sharpe": -0.9880954617626326,
+        "maxDrawdown": 0.24558947240433962,
+        "maxDrawdownUsd": 2540.3529828817245,
+        "tradeCount": 491,
+        "winRate": 0.25865580448065173,
+        "profitFactor": 0.642479743547883,
+        "totalFees": 72.99999999999972,
+        "totalFinancing": 845.0153544148212,
+        "skippedMinimumLot": 353,
+        "bySymbol": {
+          "AUDUSD": -94.58876207231317,
+          "EURUSD": -9.97953984908491,
+          "GBPUSD": -202.7557324139301,
+          "NZDUSD": -462.0860543668233,
+          "USDCAD": -450.21839047851347,
+          "USDCHF": -555.2641299655191,
+          "USDJPY": -144.20919353952803
+        },
+        "score": -1.2336849341669722
+      }
+    },
+    {
+      "config": {
+        "lookback": 126,
+        "volatilityPeriod": 60,
+        "minimumScore": 0,
+        "stopAtr": 3,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1948.660339640779,
+        "finalEquity": 8051.339660359221,
+        "totalReturn": -0.19486603396407787,
+        "cagr": -0.042406128207794325,
+        "sharpe": -0.9870678789736573,
+        "maxDrawdown": 0.2484300304478886,
+        "maxDrawdownUsd": 2567.9598112903623,
+        "tradeCount": 449,
+        "winRate": 0.25389755011135856,
+        "profitFactor": 0.5500725777181289,
+        "totalFees": 67.20000000000006,
+        "totalFinancing": 876.1740725530892,
+        "skippedMinimumLot": 342,
+        "bySymbol": {
+          "AUDUSD": -170.5203171038549,
+          "EURUSD": -76.5724435124922,
+          "GBPUSD": -182.55277989952918,
+          "NZDUSD": -583.8164841610451,
+          "USDCAD": -350.07928534977896,
+          "USDCHF": -494.54033503851855,
+          "USDJPY": -90.57869457556583
+        },
+        "score": -1.235497909421546
+      }
+    },
+    {
+      "config": {
+        "lookback": 126,
+        "volatilityPeriod": 60,
+        "minimumScore": 0,
+        "stopAtr": 4,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1862.6183872267748,
+        "finalEquity": 8137.381612773225,
+        "totalReturn": -0.18626183872267743,
+        "cagr": -0.0403689624060134,
+        "sharpe": -0.9337423705150123,
+        "maxDrawdown": 0.24426217518653534,
+        "maxDrawdownUsd": 2511.127822862194,
+        "tradeCount": 444,
+        "winRate": 0.26576576576576577,
+        "profitFactor": 0.5644622554099136,
+        "totalFees": 66.4000000000001,
+        "totalFinancing": 867.6111266256419,
+        "skippedMinimumLot": 271,
+        "bySymbol": {
+          "AUDUSD": -211.21530936803038,
+          "EURUSD": -95.83795206117587,
+          "GBPUSD": -146.98866455653467,
+          "NZDUSD": -463.300282382962,
+          "USDCAD": -386.7492392768693,
+          "USDCHF": -440.9712136053571,
+          "USDJPY": -117.55572597572825
+        },
+        "score": -1.1780045457015476
+      }
+    },
+    {
+      "config": {
+        "lookback": 126,
+        "volatilityPeriod": 60,
+        "minimumScore": 0,
+        "stopAtr": 4,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1706.6612830176982,
+        "finalEquity": 8293.338716982302,
+        "totalReturn": -0.17066612830176986,
+        "cagr": -0.03671997843792896,
+        "sharpe": -0.8023052784764275,
+        "maxDrawdown": 0.24663830748474494,
+        "maxDrawdownUsd": 2575.2575608973702,
+        "tradeCount": 434,
+        "winRate": 0.25806451612903225,
+        "profitFactor": 0.6026099026375262,
+        "totalFees": 66.30000000000011,
+        "totalFinancing": 929.2709409993668,
+        "skippedMinimumLot": 168,
+        "bySymbol": {
+          "AUDUSD": -179.01700391059012,
+          "EURUSD": -98.60768148999112,
+          "GBPUSD": -116.40262388126541,
+          "NZDUSD": -527.6105996092502,
+          "USDCAD": -306.6689508263378,
+          "USDCHF": -408.59329715998024,
+          "USDJPY": -69.76112614053656
+        },
+        "score": -1.0489435859611724
+      }
+    },
+    {
+      "config": {
+        "lookback": 126,
+        "volatilityPeriod": 60,
+        "minimumScore": 0.5,
+        "stopAtr": 2,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1125.1226825442227,
+        "finalEquity": 8874.877317455777,
+        "totalReturn": -0.11251226825442229,
+        "cagr": -0.023579862557838505,
+        "sharpe": -0.6921757184917062,
+        "maxDrawdown": 0.15532661022564923,
+        "maxDrawdownUsd": 1575.5245332907234,
+        "tradeCount": 482,
+        "winRate": 0.31950207468879666,
+        "profitFactor": 0.7159677160506914,
+        "totalFees": 69.09999999999994,
+        "totalFinancing": 468.8981815195092,
+        "skippedMinimumLot": 103,
+        "bySymbol": {
+          "AUDUSD": -41.33796689008891,
+          "EURUSD": -77.25415627520717,
+          "GBPUSD": -202.58174245689617,
+          "NZDUSD": -216.65350898122966,
+          "USDCAD": -145.57486314804473,
+          "USDCHF": -272.27741197100227,
+          "USDJPY": -169.44303282155084
+        },
+        "score": -0.8475023287173554
+      }
+    },
+    {
+      "config": {
+        "lookback": 126,
+        "volatilityPeriod": 60,
+        "minimumScore": 0.5,
+        "stopAtr": 2,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1324.3084226798874,
+        "finalEquity": 8675.691577320113,
+        "totalReturn": -0.13243084226798874,
+        "cagr": -0.028000847596904244,
+        "sharpe": -0.8203490276015447,
+        "maxDrawdown": 0.17652777649150392,
+        "maxDrawdownUsd": 1792.18785206975,
+        "tradeCount": 425,
+        "winRate": 0.31529411764705884,
+        "profitFactor": 0.5950492818193214,
+        "totalFees": 61.000000000000036,
+        "totalFinancing": 478.1930354551715,
+        "skippedMinimumLot": 95,
+        "bySymbol": {
+          "AUDUSD": -93.63249268014145,
+          "EURUSD": -107.94069353140604,
+          "GBPUSD": -178.10367014996982,
+          "NZDUSD": -275.29037587311535,
+          "USDCAD": -179.32067196095977,
+          "USDCHF": -311.0743254174064,
+          "USDJPY": -178.9461930666679
+        },
+        "score": -0.9968768040930487
+      }
+    },
+    {
+      "config": {
+        "lookback": 126,
+        "volatilityPeriod": 60,
+        "minimumScore": 0.5,
+        "stopAtr": 3,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1283.3462070246642,
+        "finalEquity": 8716.653792975336,
+        "totalReturn": -0.12833462070246637,
+        "cagr": -0.027085095013985816,
+        "sharpe": -0.7780251037218876,
+        "maxDrawdown": 0.17440474204546555,
+        "maxDrawdownUsd": 1771.676534749835,
+        "tradeCount": 403,
+        "winRate": 0.3176178660049628,
+        "profitFactor": 0.6128365428595689,
+        "totalFees": 58.20000000000006,
+        "totalFinancing": 486.307383436005,
+        "skippedMinimumLot": 97,
+        "bySymbol": {
+          "AUDUSD": -84.75180899369343,
+          "EURUSD": -96.78575454160708,
+          "GBPUSD": -177.49494025670822,
+          "NZDUSD": -272.5693033349195,
+          "USDCAD": -207.15933917558556,
+          "USDCHF": -295.45762159619386,
+          "USDJPY": -149.12743912576994
+        },
+        "score": -0.9524298457673531
+      }
+    },
+    {
+      "config": {
+        "lookback": 126,
+        "volatilityPeriod": 60,
+        "minimumScore": 0.5,
+        "stopAtr": 3,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1272.5368585814122,
+        "finalEquity": 8727.463141418588,
+        "totalReturn": -0.12725368585814123,
+        "cagr": -0.02684401516296908,
+        "sharpe": -0.774116100660917,
+        "maxDrawdown": 0.17258058309271074,
+        "maxDrawdownUsd": 1752.114203606685,
+        "tradeCount": 389,
+        "winRate": 0.31362467866323906,
+        "profitFactor": 0.5799108162291425,
+        "totalFees": 56.40000000000008,
+        "totalFinancing": 484.5996035592101,
+        "skippedMinimumLot": 95,
+        "bySymbol": {
+          "AUDUSD": -142.75005251366022,
+          "EURUSD": -123.11780380077938,
+          "GBPUSD": -161.09350651885183,
+          "NZDUSD": -258.9411555345299,
+          "USDCAD": -131.20477547980414,
+          "USDCHF": -295.45762159619386,
+          "USDJPY": -159.9719431373483
+        },
+        "score": -0.9466966837536277
+      }
+    },
+    {
+      "config": {
+        "lookback": 126,
+        "volatilityPeriod": 60,
+        "minimumScore": 0.5,
+        "stopAtr": 4,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1087.935377451793,
+        "finalEquity": 8912.064622548207,
+        "totalReturn": -0.1087935377451793,
+        "cagr": -0.02276329149108558,
+        "sharpe": -0.6627251989377098,
+        "maxDrawdown": 0.16121127064421015,
+        "maxDrawdownUsd": 1649.9193285577912,
+        "tradeCount": 381,
+        "winRate": 0.32020997375328086,
+        "profitFactor": 0.6218771269053766,
+        "totalFees": 56.600000000000094,
+        "totalFinancing": 497.09081286790143,
+        "skippedMinimumLot": 76,
+        "bySymbol": {
+          "AUDUSD": -82.26329225476746,
+          "EURUSD": -77.94160852719064,
+          "GBPUSD": -90.77867082404737,
+          "NZDUSD": -283.42518342317953,
+          "USDCAD": -161.43480908983733,
+          "USDCHF": -311.8245394374729,
+          "USDJPY": -80.26727389512808
+        },
+        "score": -0.8239364695819199
+      }
+    },
+    {
+      "config": {
+        "lookback": 126,
+        "volatilityPeriod": 60,
+        "minimumScore": 0.5,
+        "stopAtr": 4,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1023.8203562504095,
+        "finalEquity": 8976.17964374959,
+        "totalReturn": -0.102382035625041,
+        "cagr": -0.021361812445373607,
+        "sharpe": -0.5959648875835345,
+        "maxDrawdown": 0.1564809663648508,
+        "maxDrawdownUsd": 1604.4199470160256,
+        "tradeCount": 377,
+        "winRate": 0.3183023872679045,
+        "profitFactor": 0.641022188070468,
+        "totalFees": 57.10000000000011,
+        "totalFinancing": 512.9236796714586,
+        "skippedMinimumLot": 75,
+        "bySymbol": {
+          "AUDUSD": -129.938559890482,
+          "EURUSD": -75.13726406621397,
+          "GBPUSD": -93.15849751809259,
+          "NZDUSD": -295.267129761304,
+          "USDCAD": -175.9370578380042,
+          "USDCHF": -316.83697475093203,
+          "USDJPY": 62.45512757462053
+        },
+        "score": -0.7524458539483853
+      }
+    },
+    {
+      "config": {
+        "lookback": 252,
+        "volatilityPeriod": 20,
+        "minimumScore": 0,
+        "stopAtr": 2,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1611.3844808763006,
+        "finalEquity": 8388.6155191237,
+        "totalReturn": -0.16113844808763,
+        "cagr": -0.0345176850529908,
+        "sharpe": -0.8074661779519545,
+        "maxDrawdown": 0.20817183700802894,
+        "maxDrawdownUsd": 2109.9664574094422,
+        "tradeCount": 579,
+        "winRate": 0.27288428324697755,
+        "profitFactor": 0.7318152622842456,
+        "totalFees": 80.39999999999911,
+        "totalFinancing": 811.6197612594551,
+        "skippedMinimumLot": 334,
+        "bySymbol": {
+          "AUDUSD": -40.708239147715894,
+          "EURUSD": -106.52442880723054,
+          "GBPUSD": -111.09167542895949,
+          "NZDUSD": -184.68075829254616,
+          "USDCAD": -491.9949914474975,
+          "USDCHF": -302.9377581585717,
+          "USDJPY": -373.4466295933891
+        },
+        "score": -1.0156380149599835
+      }
+    },
+    {
+      "config": {
+        "lookback": 252,
+        "volatilityPeriod": 20,
+        "minimumScore": 0,
+        "stopAtr": 2,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1574.3982785672433,
+        "finalEquity": 8425.601721432757,
+        "totalReturn": -0.15743982785672428,
+        "cagr": -0.033668151018827475,
+        "sharpe": -0.783188713959894,
+        "maxDrawdown": 0.1981770143493512,
+        "maxDrawdownUsd": 2009.123471860049,
+        "tradeCount": 468,
+        "winRate": 0.24145299145299146,
+        "profitFactor": 0.6548687772291321,
+        "totalFees": 63.59999999999978,
+        "totalFinancing": 793.776122108191,
+        "skippedMinimumLot": 247,
+        "bySymbol": {
+          "AUDUSD": -8.076303805204851,
+          "EURUSD": -120.78355656060094,
+          "GBPUSD": -142.0294121906185,
+          "NZDUSD": -163.35215350838655,
+          "USDCAD": -385.4671729534087,
+          "USDCHF": -419.37409467374505,
+          "USDJPY": -335.3155848748426
+        },
+        "score": -0.9813657283092452
+      }
+    },
+    {
+      "config": {
+        "lookback": 252,
+        "volatilityPeriod": 20,
+        "minimumScore": 0,
+        "stopAtr": 3,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1566.2815936227635,
+        "finalEquity": 8433.718406377237,
+        "totalReturn": -0.15662815936227636,
+        "cagr": -0.033482118685993045,
+        "sharpe": -0.7861900281826045,
+        "maxDrawdown": 0.20157213765780263,
+        "maxDrawdownUsd": 2049.037260089386,
+        "tradeCount": 446,
+        "winRate": 0.2802690582959641,
+        "profitFactor": 0.6875930465479047,
+        "totalFees": 61.99999999999983,
+        "totalFinancing": 826.8871293634911,
+        "skippedMinimumLot": 242,
+        "bySymbol": {
+          "AUDUSD": -30.298795446573536,
+          "EURUSD": -199.18336111390997,
+          "GBPUSD": -107.52756014017683,
+          "NZDUSD": -89.46760160930233,
+          "USDCAD": -421.37524105016115,
+          "USDCHF": -415.1324743051523,
+          "USDJPY": -303.29655995737113
+        },
+        "score": -0.9877621658404072
+      }
+    },
+    {
+      "config": {
+        "lookback": 252,
+        "volatilityPeriod": 20,
+        "minimumScore": 0,
+        "stopAtr": 3,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1538.2264617625387,
+        "finalEquity": 8461.773538237461,
+        "totalReturn": -0.15382264617625385,
+        "cagr": -0.03284020354901451,
+        "sharpe": -0.6939797732565549,
+        "maxDrawdown": 0.20165241401233824,
+        "maxDrawdownUsd": 2049.764831714915,
+        "tradeCount": 393,
+        "winRate": 0.27735368956743,
+        "profitFactor": 0.6052897885274017,
+        "totalFees": 55.99999999999996,
+        "totalFinancing": 884.7215397673363,
+        "skippedMinimumLot": 117,
+        "bySymbol": {
+          "AUDUSD": -169.51998576658866,
+          "EURUSD": -150.04983328805173,
+          "GBPUSD": 14.487531202649976,
+          "NZDUSD": -115.45728916603873,
+          "USDCAD": -348.5526605159329,
+          "USDCHF": -365.5588097927873,
+          "USDJPY": -403.57541443575803
+        },
+        "score": -0.8956321872688932
+      }
+    },
+    {
+      "config": {
+        "lookback": 252,
+        "volatilityPeriod": 20,
+        "minimumScore": 0,
+        "stopAtr": 4,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1416.9512353981136,
+        "finalEquity": 8583.048764601886,
+        "totalReturn": -0.1416951235398114,
+        "cagr": -0.03008480285283488,
+        "sharpe": -0.6518773136780192,
+        "maxDrawdown": 0.19078111776879167,
+        "maxDrawdownUsd": 1937.679103697099,
+        "tradeCount": 394,
+        "winRate": 0.2766497461928934,
+        "profitFactor": 0.6633556120535152,
+        "totalFees": 55.29999999999998,
+        "totalFinancing": 844.314966187584,
+        "skippedMinimumLot": 168,
+        "bySymbol": {
+          "AUDUSD": 58.24773882228224,
+          "EURUSD": -146.8915226552149,
+          "GBPUSD": 1.7709046660451548,
+          "NZDUSD": -102.08339581878525,
+          "USDCAD": -373.895969302541,
+          "USDCHF": -514.1046299831705,
+          "USDJPY": -339.9943611264885
+        },
+        "score": -0.8426584314468109
+      }
+    },
+    {
+      "config": {
+        "lookback": 252,
+        "volatilityPeriod": 20,
+        "minimumScore": 0,
+        "stopAtr": 4,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1681.3552553674417,
+        "finalEquity": 8318.644744632558,
+        "totalReturn": -0.16813552553674416,
+        "cagr": -0.03613307139652833,
+        "sharpe": -0.756996454780402,
+        "maxDrawdown": 0.21174796262613016,
+        "maxDrawdownUsd": 2150.6300373411705,
+        "tradeCount": 374,
+        "winRate": 0.2700534759358289,
+        "profitFactor": 0.5478837956714162,
+        "totalFees": 53.000000000000014,
+        "totalFinancing": 882.5880777550097,
+        "skippedMinimumLot": 112,
+        "bySymbol": {
+          "AUDUSD": -123.95582212036408,
+          "EURUSD": -200.90207036806572,
+          "GBPUSD": 9.954201924743103,
+          "NZDUSD": -9.552607326422276,
+          "USDCAD": -418.91642120345057,
+          "USDCHF": -520.7911510347403,
+          "USDJPY": -417.1913852389627
+        },
+        "score": -0.9687444174065322
+      }
+    },
+    {
+      "config": {
+        "lookback": 252,
+        "volatilityPeriod": 20,
+        "minimumScore": 0.5,
+        "stopAtr": 2,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1089.8978933093877,
+        "finalEquity": 8910.102106690612,
+        "totalReturn": -0.10898978933093872,
+        "cagr": -0.022806316855628506,
+        "sharpe": -0.7543693206048798,
+        "maxDrawdown": 0.16900245151082463,
+        "maxDrawdownUsd": 1723.6511032954604,
+        "tradeCount": 421,
+        "winRate": 0.2755344418052256,
+        "profitFactor": 0.7119328142880577,
+        "totalFees": 60.19999999999992,
+        "totalFinancing": 432.77184777549655,
+        "skippedMinimumLot": 107,
+        "bySymbol": {
+          "AUDUSD": 290.34130943197624,
+          "EURUSD": -234.08490033641766,
+          "GBPUSD": -84.0386138365865,
+          "NZDUSD": -88.06051477484034,
+          "USDCAD": -496.9109105418962,
+          "USDCHF": -208.72679896862354,
+          "USDJPY": -268.41746428283426
+        },
+        "score": -0.9233717721157044
+      }
+    },
+    {
+      "config": {
+        "lookback": 252,
+        "volatilityPeriod": 20,
+        "minimumScore": 0.5,
+        "stopAtr": 2,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1023.5315856657508,
+        "finalEquity": 8976.46841433425,
+        "totalReturn": -0.10235315856657512,
+        "cagr": -0.021355518402991658,
+        "sharpe": -0.710786692765253,
+        "maxDrawdown": 0.1643657796425386,
+        "maxDrawdownUsd": 1676.6042014566938,
+        "tradeCount": 365,
+        "winRate": 0.2684931506849315,
+        "profitFactor": 0.6563382068967959,
+        "totalFees": 51.700000000000024,
+        "totalFinancing": 427.9871414099973,
+        "skippedMinimumLot": 94,
+        "bySymbol": {
+          "AUDUSD": 316.90831891160803,
+          "EURUSD": -227.83529095783052,
+          "GBPUSD": -113.51294127121542,
+          "NZDUSD": -3.9064481089397987,
+          "USDCAD": -457.1230613345713,
+          "USDCHF": -252.8812090002012,
+          "USDJPY": -285.18095390430824
+        },
+        "score": -0.8751524724077916
+      }
+    },
+    {
+      "config": {
+        "lookback": 252,
+        "volatilityPeriod": 20,
+        "minimumScore": 0.5,
+        "stopAtr": 3,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1118.02480375507,
+        "finalEquity": 8881.97519624493,
+        "totalReturn": -0.111802480375507,
+        "cagr": -0.023423793890940514,
+        "sharpe": -0.7748327775281543,
+        "maxDrawdown": 0.1706750512239877,
+        "maxDrawdownUsd": 1742.9941449566104,
+        "tradeCount": 363,
+        "winRate": 0.2727272727272727,
+        "profitFactor": 0.6727754927370484,
+        "totalFees": 50.700000000000024,
+        "totalFinancing": 434.5578694045205,
+        "skippedMinimumLot": 138,
+        "bySymbol": {
+          "AUDUSD": 271.09454094988473,
+          "EURUSD": -292.4778918326163,
+          "GBPUSD": -110.48477820774565,
+          "NZDUSD": 16.60390688547631,
+          "USDCAD": -422.6206904817763,
+          "USDCHF": -269.3050807448671,
+          "USDJPY": -310.8348103231645
+        },
+        "score": -0.945507828752142
+      }
+    },
+    {
+      "config": {
+        "lookback": 252,
+        "volatilityPeriod": 20,
+        "minimumScore": 0.5,
+        "stopAtr": 3,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1152.8349306555992,
+        "finalEquity": 8847.1650693444,
+        "totalReturn": -0.11528349306555996,
+        "cagr": -0.024190159202490347,
+        "sharpe": -0.8117761125516783,
+        "maxDrawdown": 0.16745610000160732,
+        "maxDrawdownUsd": 1710.1210736244284,
+        "tradeCount": 336,
+        "winRate": 0.2708333333333333,
+        "profitFactor": 0.5821609038352262,
+        "totalFees": 46.90000000000005,
+        "totalFinancing": 439.3946321697503,
+        "skippedMinimumLot": 74,
+        "bySymbol": {
+          "AUDUSD": 228.83606768264414,
+          "EURUSD": -240.1030536708966,
+          "GBPUSD": -136.2561140247183,
+          "NZDUSD": -14.755375304907794,
+          "USDCAD": -424.38820258916877,
+          "USDCHF": -268.72449692080056,
+          "USDJPY": -297.4437558274559
+        },
+        "score": -0.9792322125532855
+      }
+    },
+    {
+      "config": {
+        "lookback": 252,
+        "volatilityPeriod": 20,
+        "minimumScore": 0.5,
+        "stopAtr": 4,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -999.844621989394,
+        "finalEquity": 9000.155378010606,
+        "totalReturn": -0.09998446219893942,
+        "cagr": -0.02083978822119259,
+        "sharpe": -0.6793007337511737,
+        "maxDrawdown": 0.16447401148043758,
+        "maxDrawdownUsd": 1679.6669281891955,
+        "tradeCount": 329,
+        "winRate": 0.2735562310030395,
+        "profitFactor": 0.6338197387591277,
+        "totalFees": 46.40000000000005,
+        "totalFinancing": 438.5618792607853,
+        "skippedMinimumLot": 70,
+        "bySymbol": {
+          "AUDUSD": 296.9223124939778,
+          "EURUSD": -240.7774950766539,
+          "GBPUSD": -113.34180030819022,
+          "NZDUSD": 6.663637453585515,
+          "USDCAD": -425.18613917163265,
+          "USDCHF": -233.48075106115655,
+          "USDJPY": -290.6443863189747
+        },
+        "score": -0.8437747452316113
+      }
+    },
+    {
+      "config": {
+        "lookback": 252,
+        "volatilityPeriod": 20,
+        "minimumScore": 0.5,
+        "stopAtr": 4,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1027.3509551055504,
+        "finalEquity": 8972.64904489445,
+        "totalReturn": -0.10273509551055504,
+        "cagr": -0.02143877846411124,
+        "sharpe": -0.709833861475379,
+        "maxDrawdown": 0.16447401148043758,
+        "maxDrawdownUsd": 1679.6669281891955,
+        "tradeCount": 326,
+        "winRate": 0.26993865030674846,
+        "profitFactor": 0.6142803189866899,
+        "totalFees": 45.80000000000004,
+        "totalFinancing": 439.3711956194436,
+        "skippedMinimumLot": 70,
+        "bySymbol": {
+          "AUDUSD": 253.97268484026392,
+          "EURUSD": -240.7774950766539,
+          "GBPUSD": -113.34180030819022,
+          "NZDUSD": 55.60300276479924,
+          "USDCAD": -425.18613917163265,
+          "USDCHF": -266.97682183482993,
+          "USDJPY": -290.6443863189747
+        },
+        "score": -0.8743078729558166
+      }
+    },
+    {
+      "config": {
+        "lookback": 252,
+        "volatilityPeriod": 60,
+        "minimumScore": 0,
+        "stopAtr": 2,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1402.5164726957737,
+        "finalEquity": 8597.483527304226,
+        "totalReturn": -0.1402516472695774,
+        "cagr": -0.029758919990494292,
+        "sharpe": -0.7204711149185209,
+        "maxDrawdown": 0.1774549984611605,
+        "maxDrawdownUsd": 1790.7185499123916,
+        "tradeCount": 591,
+        "winRate": 0.27411167512690354,
+        "profitFactor": 0.7579838722214397,
+        "totalFees": 78.89999999999911,
+        "totalFinancing": 790.8881861738964,
+        "skippedMinimumLot": 346,
+        "bySymbol": {
+          "AUDUSD": 16.974294619879633,
+          "EURUSD": -129.5124667956903,
+          "GBPUSD": -266.76938445343467,
+          "NZDUSD": -123.13140522874082,
+          "USDCAD": -329.3289604284542,
+          "USDCHF": -310.75200946651813,
+          "USDJPY": -259.9965409423016
+        },
+        "score": -0.8979261133796814
+      }
+    },
+    {
+      "config": {
+        "lookback": 252,
+        "volatilityPeriod": 60,
+        "minimumScore": 0,
+        "stopAtr": 2,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1548.474881940263,
+        "finalEquity": 8451.525118059737,
+        "totalReturn": -0.15484748819402627,
+        "cagr": -0.03307449473882573,
+        "sharpe": -0.7663982456367103,
+        "maxDrawdown": 0.19388675250598225,
+        "maxDrawdownUsd": 1957.7162564944929,
+        "tradeCount": 476,
+        "winRate": 0.24369747899159663,
+        "profitFactor": 0.6573194049434882,
+        "totalFees": 62.399999999999785,
+        "totalFinancing": 788.1404681725236,
+        "skippedMinimumLot": 312,
+        "bySymbol": {
+          "AUDUSD": -5.678105605638699,
+          "EURUSD": -186.12810956541207,
+          "GBPUSD": -286.541836068265,
+          "NZDUSD": -165.34000907933927,
+          "USDCAD": -358.7240386590056,
+          "USDCHF": -389.6476135720807,
+          "USDJPY": -156.41516939017438
+        },
+        "score": -0.9602849981426926
+      }
+    },
+    {
+      "config": {
+        "lookback": 252,
+        "volatilityPeriod": 60,
+        "minimumScore": 0,
+        "stopAtr": 3,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1629.3925711499014,
+        "finalEquity": 8370.607428850099,
+        "totalReturn": -0.16293925711499013,
+        "cagr": -0.034932397102436896,
+        "sharpe": -0.8495697349354897,
+        "maxDrawdown": 0.20002425216251987,
+        "maxDrawdownUsd": 2026.603114687021,
+        "tradeCount": 446,
+        "winRate": 0.2825112107623318,
+        "profitFactor": 0.6592960770582911,
+        "totalFees": 58.99999999999994,
+        "totalFinancing": 785.708917727629,
+        "skippedMinimumLot": 304,
+        "bySymbol": {
+          "AUDUSD": -17.51395811144771,
+          "EURUSD": -239.41647196608076,
+          "GBPUSD": -265.3796959565294,
+          "NZDUSD": -50.8314193370004,
+          "USDCAD": -343.3665903001759,
+          "USDCHF": -427.2756100763613,
+          "USDJPY": -285.6088254018759
+        },
+        "score": -1.0495939870980096
+      }
+    },
+    {
+      "config": {
+        "lookback": 252,
+        "volatilityPeriod": 60,
+        "minimumScore": 0,
+        "stopAtr": 3,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1507.41334395364,
+        "finalEquity": 8492.58665604636,
+        "totalReturn": -0.15074133439536397,
+        "cagr": -0.032137143485895914,
+        "sharpe": -0.6981374180923334,
+        "maxDrawdown": 0.1880284439776049,
+        "maxDrawdownUsd": 1903.6092178204017,
+        "tradeCount": 401,
+        "winRate": 0.2793017456359102,
+        "profitFactor": 0.5963314919922063,
+        "totalFees": 54.400000000000006,
+        "totalFinancing": 846.7209286790342,
+        "skippedMinimumLot": 200,
+        "bySymbol": {
+          "AUDUSD": 29.456442410165373,
+          "EURUSD": -196.77618499709388,
+          "GBPUSD": -132.6668395310316,
+          "NZDUSD": -107.65198464047081,
+          "USDCAD": -350.3594265355995,
+          "USDCHF": -357.9611689872229,
+          "USDJPY": -391.454181672024
+        },
+        "score": -0.8861658620699383
+      }
+    },
+    {
+      "config": {
+        "lookback": 252,
+        "volatilityPeriod": 60,
+        "minimumScore": 0,
+        "stopAtr": 4,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1499.0522495952391,
+        "finalEquity": 8500.94775040476,
+        "totalReturn": -0.14990522495952396,
+        "cagr": -0.03194672125013043,
+        "sharpe": -0.7428080435475637,
+        "maxDrawdown": 0.1899010043131476,
+        "maxDrawdownUsd": 1920.9936784793117,
+        "tradeCount": 403,
+        "winRate": 0.2803970223325062,
+        "profitFactor": 0.6367153869782526,
+        "totalFees": 53.59999999999999,
+        "totalFinancing": 796.9208843258476,
+        "skippedMinimumLot": 259,
+        "bySymbol": {
+          "AUDUSD": 93.80944350981667,
+          "EURUSD": -205.73543062238033,
+          "GBPUSD": -128.6824829855613,
+          "NZDUSD": -166.72106681857633,
+          "USDCAD": -353.5647825589971,
+          "USDCHF": -434.5321693687148,
+          "USDJPY": -303.62576075036947
+        },
+        "score": -0.9327090478607113
+      }
+    },
+    {
+      "config": {
+        "lookback": 252,
+        "volatilityPeriod": 60,
+        "minimumScore": 0,
+        "stopAtr": 4,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1535.7036549396216,
+        "finalEquity": 8464.296345060378,
+        "totalReturn": -0.1535703654939622,
+        "cagr": -0.03278256398070667,
+        "sharpe": -0.7263609070020841,
+        "maxDrawdown": 0.1900998084700998,
+        "maxDrawdownUsd": 1923.004734345719,
+        "tradeCount": 384,
+        "winRate": 0.2786458333333333,
+        "profitFactor": 0.5704411413121916,
+        "totalFees": 52.30000000000002,
+        "totalFinancing": 850.3810327173663,
+        "skippedMinimumLot": 123,
+        "bySymbol": {
+          "AUDUSD": 86.5878659598018,
+          "EURUSD": -212.1752342284356,
+          "GBPUSD": -68.25414799883522,
+          "NZDUSD": -66.02576565623532,
+          "USDCAD": -429.3962063727451,
+          "USDCHF": -437.5297786281884,
+          "USDJPY": -408.91038801468676
+        },
+        "score": -0.9164607154721839
+      }
+    },
+    {
+      "config": {
+        "lookback": 252,
+        "volatilityPeriod": 60,
+        "minimumScore": 0.5,
+        "stopAtr": 2,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1088.6623706348091,
+        "finalEquity": 8911.33762936519,
+        "totalReturn": -0.10886623706348086,
+        "cagr": -0.02277922889699613,
+        "sharpe": -0.7789966300570045,
+        "maxDrawdown": 0.1598034398906675,
+        "maxDrawdownUsd": 1619.311884318733,
+        "tradeCount": 394,
+        "winRate": 0.2868020304568528,
+        "profitFactor": 0.6863971075670876,
+        "totalFees": 54.8000000000001,
+        "totalFinancing": 406.81144257357874,
+        "skippedMinimumLot": 148,
+        "bySymbol": {
+          "AUDUSD": 108.37686211469709,
+          "EURUSD": -187.69433806978364,
+          "GBPUSD": -139.80372917140426,
+          "NZDUSD": -147.9663617287071,
+          "USDCAD": -342.9881280055825,
+          "USDCHF": -142.40399904260812,
+          "USDJPY": -236.1826767311914
+        },
+        "score": -0.938800069947672
+      }
+    },
+    {
+      "config": {
+        "lookback": 252,
+        "volatilityPeriod": 60,
+        "minimumScore": 0.5,
+        "stopAtr": 2,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1135.7566964623456,
+        "finalEquity": 8864.243303537654,
+        "totalReturn": -0.11357566964623456,
+        "cagr": -0.023813871009749188,
+        "sharpe": -0.8046403412305294,
+        "maxDrawdown": 0.15710574424212612,
+        "maxDrawdownUsd": 1594.201133259323,
+        "tradeCount": 337,
+        "winRate": 0.27299703264094954,
+        "profitFactor": 0.5956358373609737,
+        "totalFees": 47.500000000000135,
+        "totalFinancing": 404.7431791923348,
+        "skippedMinimumLot": 140,
+        "bySymbol": {
+          "AUDUSD": 115.08754515604411,
+          "EURUSD": -192.89610422945285,
+          "GBPUSD": -223.6184100682747,
+          "NZDUSD": -134.98028967026073,
+          "USDCAD": -300.64894546507975,
+          "USDCHF": -156.24647573786686,
+          "USDJPY": -242.45401644713763
+        },
+        "score": -0.9617460854726555
+      }
+    },
+    {
+      "config": {
+        "lookback": 252,
+        "volatilityPeriod": 60,
+        "minimumScore": 0.5,
+        "stopAtr": 3,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1075.4055409970024,
+        "finalEquity": 8924.594459002998,
+        "totalReturn": -0.1075405540997002,
+        "cagr": -0.022488771231930937,
+        "sharpe": -0.7605653709558401,
+        "maxDrawdown": 0.15820234264915006,
+        "maxDrawdownUsd": 1607.2126850626937,
+        "tradeCount": 335,
+        "winRate": 0.28955223880597014,
+        "profitFactor": 0.6566956250783735,
+        "totalFees": 46.800000000000125,
+        "totalFinancing": 408.6251789185501,
+        "skippedMinimumLot": 134,
+        "bySymbol": {
+          "AUDUSD": 114.14320709841121,
+          "EURUSD": -190.30831010767977,
+          "GBPUSD": -267.2237459134577,
+          "NZDUSD": 7.718197582237298,
+          "USDCAD": -329.9035918196239,
+          "USDCHF": -178.45348910030785,
+          "USDJPY": -231.3778087362553
+        },
+        "score": -0.9187677136049901
+      }
+    },
+    {
+      "config": {
+        "lookback": 252,
+        "volatilityPeriod": 60,
+        "minimumScore": 0.5,
+        "stopAtr": 3,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1129.9721182429348,
+        "finalEquity": 8870.027881757065,
+        "totalReturn": -0.11299721182429345,
+        "cagr": -0.02368654973042117,
+        "sharpe": -0.8167498889255823,
+        "maxDrawdown": 0.1565995438416304,
+        "maxDrawdownUsd": 1590.929496508641,
+        "tradeCount": 313,
+        "winRate": 0.29073482428115016,
+        "profitFactor": 0.5682895531642126,
+        "totalFees": 44.000000000000114,
+        "totalFinancing": 410.79572019165073,
+        "skippedMinimumLot": 132,
+        "bySymbol": {
+          "AUDUSD": 91.13806926439,
+          "EURUSD": -189.89960731112902,
+          "GBPUSD": -267.8660721560232,
+          "NZDUSD": -59.219310476260695,
+          "USDCAD": -303.2910521608746,
+          "USDCHF": -160.84620919176055,
+          "USDJPY": -239.98793621094342
+        },
+        "score": -0.9733494327672128
+      }
+    },
+    {
+      "config": {
+        "lookback": 252,
+        "volatilityPeriod": 60,
+        "minimumScore": 0.5,
+        "stopAtr": 4,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -746.6593995113471,
+        "finalEquity": 9253.340600488653,
+        "totalReturn": -0.07466593995113469,
+        "cagr": -0.015394003115606236,
+        "sharpe": -0.47991715491479364,
+        "maxDrawdown": 0.12751626078488218,
+        "maxDrawdownUsd": 1295.465973849321,
+        "tradeCount": 307,
+        "winRate": 0.2899022801302932,
+        "profitFactor": 0.7176479405866504,
+        "totalFees": 45.40000000000015,
+        "totalFinancing": 443.5672908966476,
+        "skippedMinimumLot": 103,
+        "bySymbol": {
+          "AUDUSD": 238.54315849215993,
+          "EURUSD": -192.10316166504646,
+          "GBPUSD": -19.854075559002354,
+          "NZDUSD": -86.46365608442306,
+          "USDCAD": -292.59656595726096,
+          "USDCHF": -184.60586715938456,
+          "USDJPY": -209.5792315781428
+        },
+        "score": -0.6074334156996758
+      }
+    },
+    {
+      "config": {
+        "lookback": 252,
+        "volatilityPeriod": 60,
+        "minimumScore": 0.5,
+        "stopAtr": 4,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -796.5656300947703,
+        "finalEquity": 9203.43436990523,
+        "totalReturn": -0.07965656300947699,
+        "cagr": -0.016457924196594087,
+        "sharpe": -0.5073888465226825,
+        "maxDrawdown": 0.1255682017034592,
+        "maxDrawdownUsd": 1275.6752096009168,
+        "tradeCount": 300,
+        "winRate": 0.29333333333333333,
+        "profitFactor": 0.6896462629161744,
+        "totalFees": 44.40000000000015,
+        "totalFinancing": 452.67197426420404,
+        "skippedMinimumLot": 35,
+        "bySymbol": {
+          "AUDUSD": 126.40528476146216,
+          "EURUSD": -192.10316166504646,
+          "GBPUSD": 15.044831391336286,
+          "NZDUSD": -49.74783537213333,
+          "USDCAD": -292.59656595726096,
+          "USDCHF": -193.98895167475035,
+          "USDJPY": -209.5792315781428
+        },
+        "score": -0.6329570482261416
+      }
+    }
+  ],
+  "shortlist": [
+    {
+      "config": {
+        "lookback": 63,
+        "volatilityPeriod": 20,
+        "minimumScore": 0,
+        "stopAtr": 4,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -851.4992693113927,
+        "finalEquity": 9148.500730688607,
+        "totalReturn": -0.08514992693113932,
+        "cagr": -0.0176343717023848,
+        "sharpe": -0.38425365523655003,
+        "maxDrawdown": 0.14604686807945902,
+        "maxDrawdownUsd": 1485.4719342465578,
+        "tradeCount": 570,
+        "winRate": 0.312280701754386,
+        "profitFactor": 0.8100883680418903,
+        "totalFees": 84.29999999999923,
+        "totalFinancing": 904.8514075291349,
+        "skippedMinimumLot": 198,
+        "bySymbol": {
+          "AUDUSD": -144.57419147281362,
+          "EURUSD": -201.15727225410686,
+          "GBPUSD": 86.8172528181646,
+          "NZDUSD": -40.75553419624681,
+          "USDCAD": -308.3356237815547,
+          "USDCHF": -378.9933075256398,
+          "USDJPY": 135.499407100832
+        },
+        "score": -0.5303005233160091
+      },
+      "validation": {
+        "netUsd": -646.135527028775,
+        "finalEquity": 9353.864472971225,
+        "totalReturn": -0.0646135527028775,
+        "cagr": -0.032868336775525364,
+        "sharpe": -0.6225561334428782,
+        "maxDrawdown": 0.10382609798695089,
+        "maxDrawdownUsd": 1046.4238224611927,
+        "tradeCount": 227,
+        "winRate": 0.31277533039647576,
+        "profitFactor": 0.6785588080449086,
+        "totalFees": 32.5000000000002,
+        "totalFinancing": 360.39310280630747,
+        "skippedMinimumLot": 99,
+        "bySymbol": {
+          "AUDUSD": -198.45147173168826,
+          "EURUSD": -26.11592110447055,
+          "GBPUSD": 56.939694260245325,
+          "NZDUSD": -269.6104328542074,
+          "USDCAD": -127.18347408551396,
+          "USDCHF": -305.3154910166525,
+          "USDJPY": 223.6015695034753
+        },
+        "score": -0.726382231429829
+      }
+    },
+    {
+      "config": {
+        "lookback": 63,
+        "volatilityPeriod": 20,
+        "minimumScore": 0.5,
+        "stopAtr": 3,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -896.712706983164,
+        "finalEquity": 9103.287293016836,
+        "totalReturn": -0.08967127069831637,
+        "cagr": -0.01860690117283681,
+        "sharpe": -0.47676215564887,
+        "maxDrawdown": 0.12033238669017714,
+        "maxDrawdownUsd": 1215.5165934748347,
+        "tradeCount": 503,
+        "winRate": 0.31610337972166996,
+        "profitFactor": 0.7676862226973692,
+        "totalFees": 75.09999999999968,
+        "totalFinancing": 560.5610880219031,
+        "skippedMinimumLot": 150,
+        "bySymbol": {
+          "AUDUSD": -323.5518299208326,
+          "EURUSD": -142.12958337439338,
+          "GBPUSD": 179.80001074657355,
+          "NZDUSD": -93.71593877991847,
+          "USDCAD": -289.89049990497506,
+          "USDCHF": -279.7786713064779,
+          "USDJPY": 52.553805556697704
+        },
+        "score": -0.5970945423390471
+      },
+      "validation": {
+        "netUsd": -509.24833462444985,
+        "finalEquity": 9490.75166537555,
+        "totalReturn": -0.05092483346244503,
+        "cagr": -0.025812548466958796,
+        "sharpe": -0.6214558312152234,
+        "maxDrawdown": 0.09264019053526189,
+        "maxDrawdownUsd": 933.6853081546578,
+        "tradeCount": 221,
+        "winRate": 0.2895927601809955,
+        "profitFactor": 0.6820018242788164,
+        "totalFees": 31.600000000000218,
+        "totalFinancing": 216.63330376454277,
+        "skippedMinimumLot": 80,
+        "bySymbol": {
+          "AUDUSD": -140.48872183435643,
+          "EURUSD": -125.50033575672119,
+          "GBPUSD": 78.59553991868114,
+          "NZDUSD": -101.77878110882878,
+          "USDCAD": -158.73534137125932,
+          "USDCHF": -266.5869831452839,
+          "USDJPY": 205.24628867328005
+        },
+        "score": -0.7140960217504853
+      }
+    },
+    {
+      "config": {
+        "lookback": 63,
+        "volatilityPeriod": 60,
+        "minimumScore": 0.5,
+        "stopAtr": 3,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -894.5592010644123,
+        "finalEquity": 9105.440798935588,
+        "totalReturn": -0.08945592010644121,
+        "cagr": -0.018560492259228956,
+        "sharpe": -0.4754907960279228,
+        "maxDrawdown": 0.12397696371011616,
+        "maxDrawdownUsd": 1251.103362405598,
+        "tradeCount": 500,
+        "winRate": 0.314,
+        "profitFactor": 0.7700774893494909,
+        "totalFees": 72.29999999999994,
+        "totalFinancing": 536.877567145788,
+        "skippedMinimumLot": 159,
+        "bySymbol": {
+          "AUDUSD": -339.7723133201998,
+          "EURUSD": -202.82886216128014,
+          "GBPUSD": 146.7867877689896,
+          "NZDUSD": -50.869185297564776,
+          "USDCAD": -237.53571940223412,
+          "USDCHF": -178.22294254328696,
+          "USDJPY": -32.11696610895445
+        },
+        "score": -0.599467759738039
+      },
+      "validation": {
+        "netUsd": -235.513581958754,
+        "finalEquity": 9764.486418041246,
+        "totalReturn": -0.023551358195875394,
+        "cagr": -0.011853906383131663,
+        "sharpe": -0.25103100450926225,
+        "maxDrawdown": 0.06898706997764002,
+        "maxDrawdownUsd": 695.1223612049016,
+        "tradeCount": 225,
+        "winRate": 0.3333333333333333,
+        "profitFactor": 0.8555571922840285,
+        "totalFees": 32.4000000000002,
+        "totalFinancing": 233.2839085557814,
+        "skippedMinimumLot": 49,
+        "bySymbol": {
+          "AUDUSD": -95.59242039698552,
+          "EURUSD": 37.30294440840536,
+          "GBPUSD": 51.496048829968345,
+          "NZDUSD": -97.76501327857507,
+          "USDCAD": -160.91607484107425,
+          "USDCHF": -207.9665411661056,
+          "USDJPY": 237.92747448552336
+        },
+        "score": -0.3200180744869023
+      }
+    },
+    {
+      "config": {
+        "lookback": 252,
+        "volatilityPeriod": 60,
+        "minimumScore": 0.5,
+        "stopAtr": 4,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -746.6593995113471,
+        "finalEquity": 9253.340600488653,
+        "totalReturn": -0.07466593995113469,
+        "cagr": -0.015394003115606236,
+        "sharpe": -0.47991715491479364,
+        "maxDrawdown": 0.12751626078488218,
+        "maxDrawdownUsd": 1295.465973849321,
+        "tradeCount": 307,
+        "winRate": 0.2899022801302932,
+        "profitFactor": 0.7176479405866504,
+        "totalFees": 45.40000000000015,
+        "totalFinancing": 443.5672908966476,
+        "skippedMinimumLot": 103,
+        "bySymbol": {
+          "AUDUSD": 238.54315849215993,
+          "EURUSD": -192.10316166504646,
+          "GBPUSD": -19.854075559002354,
+          "NZDUSD": -86.46365608442306,
+          "USDCAD": -292.59656595726096,
+          "USDCHF": -184.60586715938456,
+          "USDJPY": -209.5792315781428
+        },
+        "score": -0.6074334156996758
+      },
+      "validation": {
+        "netUsd": -235.42127719410564,
+        "finalEquity": 9764.578722805894,
+        "totalReturn": -0.023542127719410555,
+        "cagr": -0.011849232668296295,
+        "sharpe": -0.19173355122389157,
+        "maxDrawdown": 0.07861010380423634,
+        "maxDrawdownUsd": 790.5608304575835,
+        "tradeCount": 117,
+        "winRate": 0.28205128205128205,
+        "profitFactor": 0.8406992436029096,
+        "totalFees": 17.30000000000004,
+        "totalFinancing": 278.26009801505995,
+        "skippedMinimumLot": 57,
+        "bySymbol": {
+          "AUDUSD": -155.801434058674,
+          "EURUSD": -19.00326155561568,
+          "GBPUSD": 90.16211747032776,
+          "NZDUSD": -49.101692490595305,
+          "USDCAD": -90.68783777842012,
+          "USDCHF": -180.6513696643548,
+          "USDJPY": 169.66220088307387
+        },
+        "score": -0.2703436550281279
+      }
+    },
+    {
+      "config": {
+        "lookback": 63,
+        "volatilityPeriod": 20,
+        "minimumScore": 0,
+        "stopAtr": 2,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -985.8427851896413,
+        "finalEquity": 9014.157214810359,
+        "totalReturn": -0.09858427851896412,
+        "cagr": -0.020535440313166786,
+        "sharpe": -0.4566802416256131,
+        "maxDrawdown": 0.15077663340958933,
+        "maxDrawdownUsd": 1532.3466583060945,
+        "tradeCount": 622,
+        "winRate": 0.30385852090032156,
+        "profitFactor": 0.7891464855967902,
+        "totalFees": 90.29999999999883,
+        "totalFinancing": 888.2616520192089,
+        "skippedMinimumLot": 222,
+        "bySymbol": {
+          "AUDUSD": -167.53281283596982,
+          "EURUSD": -182.65955726222919,
+          "GBPUSD": 74.44741324661892,
+          "NZDUSD": 25.157542407448325,
+          "USDCAD": -399.91784529659304,
+          "USDCHF": -453.0841925692472,
+          "USDJPY": 117.74666712039436
+        },
+        "score": -0.6074568750352024
+      },
+      "validation": {
+        "netUsd": -533.6257735483796,
+        "finalEquity": 9466.37422645162,
+        "totalReturn": -0.05336257735483796,
+        "cagr": -0.027065332809930065,
+        "sharpe": -0.5493847997598548,
+        "maxDrawdown": 0.1043022071988482,
+        "maxDrawdownUsd": 1051.2223464458384,
+        "tradeCount": 252,
+        "winRate": 0.2976190476190476,
+        "profitFactor": 0.7494941875407317,
+        "totalFees": 35.80000000000005,
+        "totalFinancing": 346.1222663928909,
+        "skippedMinimumLot": 134,
+        "bySymbol": {
+          "AUDUSD": -217.7305018690254,
+          "EURUSD": -8.54433770413766,
+          "GBPUSD": 193.0083264497882,
+          "NZDUSD": -254.63402516708754,
+          "USDCAD": -142.24068906375805,
+          "USDCHF": -285.9332972426773,
+          "USDJPY": 182.44875104856882
+        },
+        "score": -0.653687006958703
+      }
+    },
+    {
+      "config": {
+        "lookback": 63,
+        "volatilityPeriod": 20,
+        "minimumScore": 0.5,
+        "stopAtr": 4,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -914.6957446582,
+        "finalEquity": 9085.3042553418,
+        "totalReturn": -0.09146957446582005,
+        "cagr": -0.018994786149150067,
+        "sharpe": -0.47587463573011435,
+        "maxDrawdown": 0.13541836287167086,
+        "maxDrawdownUsd": 1366.8116967686037,
+        "tradeCount": 480,
+        "winRate": 0.3145833333333333,
+        "profitFactor": 0.7330221152113803,
+        "totalFees": 72.09999999999982,
+        "totalFinancing": 569.1138880219024,
+        "skippedMinimumLot": 127,
+        "bySymbol": {
+          "AUDUSD": -307.25582026218785,
+          "EURUSD": -131.4067859242896,
+          "GBPUSD": 147.4063992414582,
+          "NZDUSD": -20.174347545357378,
+          "USDCAD": -300.2421655883878,
+          "USDCHF": -238.58635511084105,
+          "USDJPY": -64.43666946876593
+        },
+        "score": -0.6112929986017852
+      },
+      "validation": {
+        "netUsd": -519.5732502112951,
+        "finalEquity": 9480.426749788705,
+        "totalReturn": -0.051957325021129486,
+        "cagr": -0.026342961124318665,
+        "sharpe": -0.6185054948482595,
+        "maxDrawdown": 0.09259010930696557,
+        "maxDrawdownUsd": 933.1805584687554,
+        "tradeCount": 213,
+        "winRate": 0.2863849765258216,
+        "profitFactor": 0.6740562969311961,
+        "totalFees": 30.5000000000002,
+        "totalFinancing": 220.00350171115468,
+        "skippedMinimumLot": 69,
+        "bySymbol": {
+          "AUDUSD": -140.48872183435643,
+          "EURUSD": -123.43078275154595,
+          "GBPUSD": 66.520189387353,
+          "NZDUSD": -101.77878110882878,
+          "USDCAD": -159.94822889292658,
+          "USDCHF": -304.5811523476871,
+          "USDJPY": 244.13422733665521
+        },
+        "score": -0.711095604155225
+      }
+    },
+    {
+      "config": {
+        "lookback": 63,
+        "volatilityPeriod": 60,
+        "minimumScore": 0,
+        "stopAtr": 4,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1004.052874741381,
+        "finalEquity": 8995.947125258619,
+        "totalReturn": -0.10040528747413813,
+        "cagr": -0.020931334035799942,
+        "sharpe": -0.4762101065205948,
+        "maxDrawdown": 0.15092871904832084,
+        "maxDrawdownUsd": 1533.4562573614276,
+        "tradeCount": 568,
+        "winRate": 0.31161971830985913,
+        "profitFactor": 0.770605192094774,
+        "totalFees": 78.5999999999995,
+        "totalFinancing": 864.6519091034025,
+        "skippedMinimumLot": 262,
+        "bySymbol": {
+          "AUDUSD": -114.62963450273313,
+          "EURUSD": -226.10434001591275,
+          "GBPUSD": 50.167995006828335,
+          "NZDUSD": -95.38282427153811,
+          "USDCAD": -328.46291567113366,
+          "USDCHF": -433.2743182001266,
+          "USDJPY": 143.63316291345234
+        },
+        "score": -0.6271388255689156
+      },
+      "validation": {
+        "netUsd": -472.4873145280744,
+        "finalEquity": 9527.512685471926,
+        "totalReturn": -0.04724873145280739,
+        "cagr": -0.023926394274002893,
+        "sharpe": -0.47241040691425906,
+        "maxDrawdown": 0.10247558578974188,
+        "maxDrawdownUsd": 1032.4169352864483,
+        "tradeCount": 227,
+        "winRate": 0.31277533039647576,
+        "profitFactor": 0.7622983480117131,
+        "totalFees": 31.700000000000212,
+        "totalFinancing": 349.6745987679778,
+        "skippedMinimumLot": 66,
+        "bySymbol": {
+          "AUDUSD": -171.85646913073,
+          "EURUSD": 5.204344439932839,
+          "GBPUSD": 151.7541100499721,
+          "NZDUSD": -249.28264175222273,
+          "USDCAD": -145.18562375450182,
+          "USDCHF": -295.45456973891083,
+          "USDJPY": 232.33353535833373
+        },
+        "score": -0.574885992704001
+      }
+    },
+    {
+      "config": {
+        "lookback": 252,
+        "volatilityPeriod": 60,
+        "minimumScore": 0.5,
+        "stopAtr": 4,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -796.5656300947703,
+        "finalEquity": 9203.43436990523,
+        "totalReturn": -0.07965656300947699,
+        "cagr": -0.016457924196594087,
+        "sharpe": -0.5073888465226825,
+        "maxDrawdown": 0.1255682017034592,
+        "maxDrawdownUsd": 1275.6752096009168,
+        "tradeCount": 300,
+        "winRate": 0.29333333333333333,
+        "profitFactor": 0.6896462629161744,
+        "totalFees": 44.40000000000015,
+        "totalFinancing": 452.67197426420404,
+        "skippedMinimumLot": 35,
+        "bySymbol": {
+          "AUDUSD": 126.40528476146216,
+          "EURUSD": -192.10316166504646,
+          "GBPUSD": 15.044831391336286,
+          "NZDUSD": -49.74783537213333,
+          "USDCAD": -292.59656595726096,
+          "USDCHF": -193.98895167475035,
+          "USDJPY": -209.5792315781428
+        },
+        "score": -0.6329570482261416
+      },
+      "validation": {
+        "netUsd": -218.25911048996932,
+        "finalEquity": 9781.74088951003,
+        "totalReturn": -0.021825911048996893,
+        "cagr": -0.010980635099007707,
+        "sharpe": -0.17149374134901044,
+        "maxDrawdown": 0.07861010380423634,
+        "maxDrawdownUsd": 790.5608304575835,
+        "tradeCount": 110,
+        "winRate": 0.2636363636363636,
+        "profitFactor": 0.8374046559765214,
+        "totalFees": 16.40000000000003,
+        "totalFinancing": 282.6649943874082,
+        "skippedMinimumLot": 57,
+        "bySymbol": {
+          "AUDUSD": -155.801434058674,
+          "EURUSD": 59.06247260932751,
+          "GBPUSD": 59.1923555788557,
+          "NZDUSD": -47.05889748910159,
+          "USDCAD": -90.68783777842012,
+          "USDCHF": -180.6513696643548,
+          "USDJPY": 137.68560031225275
+        },
+        "score": -0.2501038451532468
+      }
+    },
+    {
+      "config": {
+        "lookback": 63,
+        "volatilityPeriod": 20,
+        "minimumScore": 0.5,
+        "stopAtr": 4,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1046.1416713140025,
+        "finalEquity": 8953.858328685998,
+        "totalReturn": -0.10461416713140026,
+        "cagr": -0.021848818702431272,
+        "sharpe": -0.519144651655831,
+        "maxDrawdown": 0.13561951983787246,
+        "maxDrawdownUsd": 1368.8420247718404,
+        "tradeCount": 476,
+        "winRate": 0.3172268907563025,
+        "profitFactor": 0.6827970529796602,
+        "totalFees": 71.39999999999985,
+        "totalFinancing": 578.47123723477,
+        "skippedMinimumLot": 122,
+        "bySymbol": {
+          "AUDUSD": -244.354774769561,
+          "EURUSD": -134.1304709103483,
+          "GBPUSD": 58.11672717317521,
+          "NZDUSD": -92.63007967145677,
+          "USDCAD": -315.29325126360186,
+          "USDCHF": -264.7642133790124,
+          "USDJPY": -53.08560849340044
+        },
+        "score": -0.6547641714937035
+      },
+      "validation": {
+        "netUsd": -510.7900105590179,
+        "finalEquity": 9489.209989440982,
+        "totalReturn": -0.051079001055901796,
+        "cagr": -0.025891729288715082,
+        "sharpe": -0.5888522462923031,
+        "maxDrawdown": 0.09259010930696557,
+        "maxDrawdownUsd": 933.1805584687554,
+        "tradeCount": 209,
+        "winRate": 0.2966507177033493,
+        "profitFactor": 0.6419122137882899,
+        "totalFees": 29.90000000000019,
+        "totalFinancing": 225.87491197809504,
+        "skippedMinimumLot": 70,
+        "bySymbol": {
+          "AUDUSD": -140.48872183435643,
+          "EURUSD": -123.43078275154595,
+          "GBPUSD": 27.277499437809617,
+          "NZDUSD": -101.77878110882878,
+          "USDCAD": -158.73534137125932,
+          "USDCHF": -308.5289336135478,
+          "USDJPY": 294.8950506825947
+        },
+        "score": -0.6814423555992687
+      }
+    },
+    {
+      "config": {
+        "lookback": 63,
+        "volatilityPeriod": 60,
+        "minimumScore": 0,
+        "stopAtr": 2,
+        "rewardRisk": 6,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1062.305453197927,
+        "finalEquity": 8937.694546802073,
+        "totalReturn": -0.1062305453197927,
+        "cagr": -0.02220208668931889,
+        "sharpe": -0.5138651956365778,
+        "maxDrawdown": 0.15785012566676532,
+        "maxDrawdownUsd": 1603.5852774423147,
+        "tradeCount": 619,
+        "winRate": 0.30048465266558966,
+        "profitFactor": 0.7680388899865739,
+        "totalFees": 84.3999999999991,
+        "totalFinancing": 849.9007972621944,
+        "skippedMinimumLot": 289,
+        "bySymbol": {
+          "AUDUSD": -112.07748517081069,
+          "EURUSD": -219.4930870419922,
+          "GBPUSD": 25.914494152294235,
+          "NZDUSD": -106.34177094893502,
+          "USDCAD": -301.8669138241693,
+          "USDCHF": -473.58040231564956,
+          "USDJPY": 125.13971195155118
+        },
+        "score": -0.6717153213033431
+      },
+      "validation": {
+        "netUsd": -493.8537643175223,
+        "finalEquity": 9506.146235682478,
+        "totalReturn": -0.049385376431752226,
+        "cagr": -0.02502223210759358,
+        "sharpe": -0.5143312600341281,
+        "maxDrawdown": 0.1030854183906571,
+        "maxDrawdownUsd": 1037.9778778563632,
+        "tradeCount": 252,
+        "winRate": 0.29365079365079366,
+        "profitFactor": 0.7649594542134275,
+        "totalFees": 35.10000000000006,
+        "totalFinancing": 341.6584443531932,
+        "skippedMinimumLot": 99,
+        "bySymbol": {
+          "AUDUSD": -182.9272290421945,
+          "EURUSD": 14.46225762795482,
+          "GBPUSD": 147.45607551239254,
+          "NZDUSD": -230.9449794701938,
+          "USDCAD": -147.41160467612093,
+          "USDCHF": -293.7105643205061,
+          "USDJPY": 199.22228005108414
+        },
+        "score": -0.6174166784247852
+      }
+    },
+    {
+      "config": {
+        "lookback": 63,
+        "volatilityPeriod": 20,
+        "minimumScore": 0,
+        "stopAtr": 3,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -1062.2139098846583,
+        "finalEquity": 8937.786090115342,
+        "totalReturn": -0.10622139098846584,
+        "cagr": -0.022200084523131713,
+        "sharpe": -0.5170899820570283,
+        "maxDrawdown": 0.15817215405360108,
+        "maxDrawdownUsd": 1608.7472643396777,
+        "tradeCount": 603,
+        "winRate": 0.30845771144278605,
+        "profitFactor": 0.7830574929124491,
+        "totalFees": 86.89999999999903,
+        "totalFinancing": 869.0997711157194,
+        "skippedMinimumLot": 258,
+        "bySymbol": {
+          "AUDUSD": -310.6773381058917,
+          "EURUSD": -197.04629822389003,
+          "GBPUSD": 69.71076522239457,
+          "NZDUSD": 100.85101453174462,
+          "USDCAD": -411.8349602155321,
+          "USDCHF": -399.62619489972667,
+          "USDJPY": 86.40910180644937
+        },
+        "score": -0.6752621361106294
+      },
+      "validation": {
+        "netUsd": -472.0668791944645,
+        "finalEquity": 9527.933120805536,
+        "totalReturn": -0.04720668791944649,
+        "cagr": -0.02390484340350163,
+        "sharpe": -0.4572887822283814,
+        "maxDrawdown": 0.10230821294130304,
+        "maxDrawdownUsd": 1031.1256353741355,
+        "tradeCount": 244,
+        "winRate": 0.3073770491803279,
+        "profitFactor": 0.7840728413468494,
+        "totalFees": 35.00000000000007,
+        "totalFinancing": 356.60068227242556,
+        "skippedMinimumLot": 121,
+        "bySymbol": {
+          "AUDUSD": -213.7949281054559,
+          "EURUSD": 20.691110965224,
+          "GBPUSD": 211.21908485389503,
+          "NZDUSD": -281.62567301636886,
+          "USDCAD": -118.06067788230715,
+          "USDCHF": -298.6047504165262,
+          "USDJPY": 208.10895440698323
+        },
+        "score": -0.5595969951696844
+      }
+    },
+    {
+      "config": {
+        "lookback": 63,
+        "volatilityPeriod": 60,
+        "minimumScore": 0.5,
+        "stopAtr": 4,
+        "rewardRisk": 3,
+        "annualRiskBudget": 0.1,
+        "maximumGrossLeverage": 2
+      },
+      "train": {
+        "netUsd": -976.5007888461932,
+        "finalEquity": 9023.499211153807,
+        "totalReturn": -0.0976500788846193,
+        "cagr": -0.02033259032409307,
+        "sharpe": -0.5392322117135256,
+        "maxDrawdown": 0.13812310639984618,
+        "maxDrawdownUsd": 1393.328718954941,
+        "tradeCount": 470,
+        "winRate": 0.3148936170212766,
+        "profitFactor": 0.7096565340615301,
+        "totalFees": 67.80000000000005,
+        "totalFinancing": 532.7995154004119,
+        "skippedMinimumLot": 160,
+        "bySymbol": {
+          "AUDUSD": -357.36679649629434,
+          "EURUSD": -190.49022740272682,
+          "GBPUSD": 171.97817309498288,
+          "NZDUSD": -18.448930160003933,
+          "USDCAD": -218.86308604398343,
+          "USDCHF": -211.44411577044488,
+          "USDJPY": -151.86580606775874
+        },
+        "score": -0.6773553181133718
+      },
+      "validation": {
+        "netUsd": -177.26956091174543,
+        "finalEquity": 9822.730439088255,
+        "totalReturn": -0.017726956091174584,
+        "cagr": -0.00890918151183584,
+        "sharpe": -0.18107247134396426,
+        "maxDrawdown": 0.06985747211143431,
+        "maxDrawdownUsd": 704.5966604864589,
+        "tradeCount": 214,
+        "winRate": 0.3364485981308411,
+        "profitFactor": 0.8798160897809248,
+        "totalFees": 30.6000000000002,
+        "totalFinancing": 234.2359841204631,
+        "skippedMinimumLot": 48,
+        "bySymbol": {
+          "AUDUSD": -95.59242039698552,
+          "EURUSD": 43.68182121833929,
+          "GBPUSD": 50.86294425386944,
+          "NZDUSD": -97.76501327857507,
+          "USDCAD": -160.91607484107425,
+          "USDCHF": -184.57794093170358,
+          "USDJPY": 267.03712306430117
+        },
+        "score": -0.25092994345539854
+      }
+    }
+  ],
+  "assumptions": [
+    "Trend-inspired adaptation, NOT replication of Moskowitz/Ooi/Pedersen: spot Forex rather than diversified futures, with ATR SL/TP and discrete lots.",
+    "Seven USD majors are correlated; risk budget 10% is sum of standalone volatility budgets, NOT predicted portfolio volatility. Gross leverage capped at entry to 2x; exposures drift between entries.",
+    "Sizing at entry only, no daily rebalancing; 10000 USD start for every split, 0.01 lot minimum/step, 100000 base currency per lot.",
+    "USD-base currency profits converted at exit quote. Cash, realized trades and funding reconciled. MTM equity used for portfolio DD/Sharpe; DD is DAILY CLOSE, not intraday risk.",
+    "Daily volatility from log returns, annualization 252; momentum 63/126/252 sessions. UTC Sunday merged into Monday, research session calendar differs from MT5 server daily candles.",
+    "Indicators warmed up from past data; entries next open; no future prices enter features. Stop/target at entry, same-bar stop-first, gaps adverse for SL and no favorable TP gap improvement.",
+    "Base commissions USD 7/lot round trip, archived fixed median spreads, zero slippage, NO swap. Stress spread1.5x, slippage0.1x base spread, commission USD10/lot, negative financing2% annual gross notional.",
+    "Funding stress is a hypothetical uniformly negative drag, NOT actual historical swaps or interest differentials. Base results without swap are optimistic for long holds.",
+    "Selection under stress: train2016–20, min60 trades/PF1.05/positive net/DD<=20%; top12 to validation2021–22, min20 trades/PF1.05/positive net. Score Sharpe minus DD fraction.",
+    "Only 72 configurations; no per-pair parameter fitting or removal of losing symbols. Test2023–25 used only after selection froze. GBPUSD aggregate periods have been viewed previously; not pristine independent validation.",
+    "Full2016–25 includes training and selection periods: descriptive, not out-of-sample. GBPUSD alone uses same total budget as portfolio, not same lot.",
+    "Not a full trading-engine replay: broker market hours, account-specific risk limits, execution failures, riskPercentage/monetary-stop overrides not reproduced.",
+    "Candidate config is saved for research, not promoted automatically to live settings. Positive backtest does not establish a persistent edge."
+  ]
+}

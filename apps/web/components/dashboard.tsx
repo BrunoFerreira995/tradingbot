@@ -1,5 +1,6 @@
 'use client';
 import { MarketSessionsControl } from './market-sessions-control';
+import { CyclesPanel } from './cycles-panel';
 import { Radio, ShieldAlert, Wifi } from 'lucide-react';
 import { useDashboard } from '../hooks/use-dashboard';
 import { MonetaryStopControl } from './monetary-stop-control';
@@ -45,12 +46,15 @@ function Header({
           label={data.brokerConnected ? 'CONNECTED' : 'DISCONNECTED'}
         />
         <span className={`pill ${data.mode === 'live' ? 'red' : 'amber'}`}>
-          {data.mode === 'live' ? 'LIVE' : 'PAPER'}
+          {data.mode === 'live' ? 'LIVE' : data.mode === 'paper' ? 'DEMO' : 'UNKNOWN'}
         </span>
         <Badge
           active={data.settings.autoTradingEnabled}
           label={data.settings.autoTradingEnabled ? 'AUTO ON' : 'AUTO OFF'}
         />
+        {data.settings.invertIncomingSignals && (
+          <span className="pill amber">SIGNALS INVERTED</span>
+        )}
         {data.settings.emergencyStop && (
           <Badge active danger label="EMERGENCY STOP" />
         )}
@@ -207,7 +211,7 @@ function Overview({ data }: { data: DashboardData }) {
         <Stat
           label="Account Balance"
           value={money(data.account.balance, data.account.currency)}
-          hint={data.mode === 'live' ? 'Real-money account' : 'Paper account'}
+          hint={data.mode === 'live' ? 'Real-money account' : data.mode === 'paper' ? 'Demo account' : 'Account mode unavailable'}
         />
         <Stat
           label="Account Equity"
@@ -390,6 +394,12 @@ function Risk({ data }: { data: DashboardData }) {
           field="emergencyStop"
           danger
         />
+        <Control
+          name="Inverter sinais recebidos"
+          description="BUY vira SELL e SELL vira BUY antes da execução. Sinais de fechamento não são alterados."
+          value={s.invertIncomingSignals}
+          field="invertIncomingSignals"
+        />
       </div>
       <div className="panel p-6">
         <h2 className="mb-5 text-lg font-semibold">Risk limits</h2>
@@ -424,6 +434,7 @@ function Risk({ data }: { data: DashboardData }) {
           amount={s.stopRiskAmount}
           currency={data.account.currency}
           connected={data.brokerConnected}
+          needsConfig={s.stopRiskNeedsConfig}
         />
         <DailyTradeLimitControl
           limit={s.maximumDailyTrades}
@@ -685,13 +696,15 @@ function AllowedSymbolsControl({
 }
 function Control({
   name,
+  description,
   value,
   field,
   danger = false,
 }: {
   name: string;
+  description?: string;
   value: boolean;
-  field: 'autoTradingEnabled' | 'emergencyStop';
+  field: 'autoTradingEnabled' | 'emergencyStop' | 'invertIncomingSignals';
   danger?: boolean;
 }) {
   const [busy, setBusy] = React.useState(false);
@@ -724,6 +737,9 @@ function Control({
     <div className="mb-4 flex items-center justify-between gap-4 rounded-xl border border-slate-700 p-4">
       <div>
         <div className="font-semibold">{name}</div>
+        {description && (
+          <div className="muted mt-1 text-xs">{description}</div>
+        )}
         <div
           className={`mt-1 text-xs ${value ? (danger ? 'red' : 'green') : 'muted'}`}
         >
@@ -750,6 +766,8 @@ function Control({
 import React from 'react';
 import { useStrategy } from '../hooks/use-strategy';
 import type { SymbolState } from '../lib/api';
+import { SmaMicroSettings } from './sma-micro-settings';
+import { SmaMicroChart } from './sma-micro-chart';
 
 /** `m:ss`, so a 25-minute wait does not read as 1500. */
 function countdown(seconds: number | null): string {
@@ -778,7 +796,7 @@ const STATUS_TONE: Record<string, string> = {
  * identical to a broken bot. Here every watched pair reports its indicator
  * reading and how far it still is from firing.
  */
-function StrategyPanel() {
+function StrategyPanel({ data }: { data: DashboardData }) {
   const { state, error, saving, setTimeframe } = useStrategy();
   if (!state)
     return (
@@ -790,6 +808,7 @@ function StrategyPanel() {
   const pairs = (state.symbols ?? []).map(
     (symbol) => [symbol, state.symbolStates?.[symbol]] as const,
   );
+  const firstSymbol = pairs[0]?.[0];
 
   return (
     <div className="panel p-6">
@@ -862,6 +881,50 @@ function StrategyPanel() {
           </table>
         </div>
       )}
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        {pairs.map(([symbol, entry]) => entry?.diversifiedTrend && (
+          <div key={`trend-${symbol}`} className="rounded border border-white/10 p-3 text-xs">
+            <div className="mb-2 font-semibold">{symbol} · Tendência diária diversificada</div>
+            {state.trendConfig && <div className="muted mb-1">Momentum: {state.trendConfig.lookback} sessões · Vol: {state.trendConfig.volatilityPeriod} · Stop: {state.trendConfig.stopAtr} ATR · Alvo: {state.trendConfig.rewardRisk}R</div>}
+            <div>Direção: {entry.diversifiedTrend.ready ? entry.diversifiedTrend.side ?? 'NEUTRA' : 'SEM DADOS'}</div>
+            <div>Momentum: {entry.diversifiedTrend.momentum == null ? '—' : `${(entry.diversifiedTrend.momentum * 100).toFixed(2)}% log`}</div>
+            <div>Score normalizado: {entry.diversifiedTrend.score?.toFixed(2) ?? '—'} · Volatilidade anual: {entry.diversifiedTrend.annualVolatility == null ? '—' : `${(entry.diversifiedTrend.annualVolatility * 100).toFixed(1)}%`}</div>
+            <div className="muted mt-2">Dimensionamento por volatilidade na entrada · não é previsão de volatilidade da carteira</div>
+            {entry.detail && <div className="muted mt-1">{entry.detail}</div>}
+          </div>
+        ))}
+        {pairs.map(([symbol, entry]) => entry?.marketForces && !entry.diversifiedTrend && (
+          <div key={symbol} className="rounded border border-white/10 p-3 text-xs">
+            <div className="mb-2 font-semibold">{symbol} · Direção e atrito</div>
+            <div className="grid grid-cols-2 gap-2">
+              <span>Direção: {({ UP: 'ALTA', DOWN: 'BAIXA', NEUTRAL: 'NEUTRA', NOT_READY: 'SEM DADOS' })[entry.marketForces.direction]}</span>
+              <span>Pressão: {({ BUY: 'COMPRADORA', SELL: 'VENDEDORA', BALANCED: 'EQUILIBRADA' })[entry.marketForces.pressure]}</span>
+              <span>Atrito: {({ LOW: 'BAIXO', MODERATE: 'MODERADO', HIGH: 'ALTO', UNKNOWN: 'SEM DADOS' })[entry.marketForces.friction]} {entry.marketForces.frictionScore === null ? '' : `(${entry.marketForces.frictionScore}/100)`}</span>
+              <span>Leitura: {({ BUY: 'FAVORECE COMPRA', SELL: 'FAVORECE VENDA', WAIT: 'AGUARDAR' })[entry.forceShock?.action ?? entry.marketForces.action]}</span>
+            </div>
+            <ul className="muted mt-2 space-y-1">{entry.marketForces.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>
+            {entry.forceShock && <div className={`mt-2 ${entry.forceShock.blocked ? 'text-amber-400' : 'muted'}`}>
+              <div>Choque: {entry.forceShock.shock.index?.toFixed(2) ?? 'SEM DADOS'} · Limite: {entry.forceShock.config.threshold} · Bloqueio: {entry.forceShock.cooldownRemaining} candle(s)</div>
+              <div>{entry.forceShock.reason}</div>
+            </div>}
+            <div className="muted mt-2">Candles fechados · estimativa por preço · score não é probabilidade · {['market_forces', 'market_forces_shock'].includes(state.strategy ?? '') ? 'entradas automáticas sujeitas aos controles de risco' : 'leitura analítica'}</div>
+          </div>
+        ))}
+      </div>
+      {state.strategy === 'sma_micro_trend' && <SmaMicroSettings state={state} />}
+      {state.strategy === 'sma_micro_trend' && firstSymbol && <>
+        <SmaMicroChart state={state} symbol={firstSymbol} />
+        {state.configs?.[firstSymbol]?.visual.showPanel && <div className="mt-4 grid gap-2 text-xs sm:grid-cols-3">
+          <span>Estratégia: SMA Micro Trend</span><span>Ativo: {firstSymbol} · {state.timeframe}</span><span>Tendência: {pairs[0]?.[1]?.trend ?? 'NOT_READY'}</span>
+          <span>SMA rápida: {pairs[0]?.[1]?.fastSMA ?? '—'}</span><span>SMA lenta: {pairs[0]?.[1]?.slowSMA ?? '—'}</span><span>ATR: {pairs[0]?.[1]?.atr ?? '—'}</span>
+          <span>Último sinal: {pairs[0]?.[1]?.side ?? '—'}</span><span>Posição: {data.positions.find((p) => p.symbol === firstSymbol)?.side ?? '—'}</span>
+          <span>Entrada: {data.positions.find((p) => p.symbol === firstSymbol)?.entryPrice ?? '—'}</span><span>Stop: {data.positions.find((p) => p.symbol === firstSymbol)?.stopLoss ?? '—'}</span>
+          <span>P&L não realizado: {data.positions.filter((p) => p.symbol === firstSymbol).reduce((n,p) => n + p.unrealizedPnl,0)}</span>
+          <span>P&L realizado: {data.trades.filter((t) => t.symbol === firstSymbol).reduce((n,t) => n + Number(t.pnl ?? 0),0)}</span>
+          <span>Operações executadas: {data.orders.filter((o) => o.symbol === firstSymbol && o.status === 'FILLED').length}</span>
+        </div>}
+      </>}
 
       {error && (
         <div className="mt-4 text-xs text-red-400">Last error: {error}</div>
@@ -954,7 +1017,7 @@ function TradingPanel({
   return (
     <div className="space-y-5">
       <WinRate data={data} />
-      <StrategyPanel />
+      <StrategyPanel data={data} />
       <div role="tablist" aria-label="Trading" className="flex gap-2">
         {(['signals', 'orders', 'positions'] as const).map((item) => (
           <button
@@ -1007,9 +1070,11 @@ export function Dashboard({ section }: { section: string }) {
   const title =
     section === 'dashboard'
       ? 'Trading overview'
-      : isTrading
-        ? 'Trading'
-        : section[0]!.toUpperCase() + section.slice(1);
+      : section === 'cycles'
+        ? 'Ciclos'
+        : isTrading
+          ? 'Trading'
+          : section[0]!.toUpperCase() + section.slice(1);
   return (
     <>
       <Header
@@ -1017,14 +1082,30 @@ export function Dashboard({ section }: { section: string }) {
         subtitle={
           section === 'dashboard'
             ? 'Your paper trading operation at a glance.'
-            : isTrading
-              ? 'Signals, orders and positions in one workspace.'
-              : `Monitor ${section} and execution status.`
+            : section === 'cycles'
+              ? 'Projeção de capital composto por ciclo.'
+              : isTrading
+                ? 'Signals, orders and positions in one workspace.'
+                : `Monitor ${section} and execution status.`
         }
         data={data}
       />
       {section === 'dashboard' ? (
         <Overview data={data} />
+      ) : section === 'cycles' ? (
+        <CyclesPanel
+          balance={data.account.balance}
+          currency={data.account.currency}
+        />
+      ) : section === 'strategies' ? (
+        <div className="space-y-5">
+          <StrategyPanel data={data} />
+          <Table
+            rows={data.strategies}
+            columns={fields.strategies ?? []}
+            empty="No strategies registered."
+          />
+        </div>
       ) : section === 'risk' || section === 'settings' ? (
         <Risk data={data} />
       ) : section === 'broker' ? (
@@ -1040,11 +1121,11 @@ export function Dashboard({ section }: { section: string }) {
           />
           <Stat
             label="Mode"
-            value={data.mode === 'live' ? 'Live' : 'Paper'}
+            value={data.mode === 'live' ? 'Live' : data.mode === 'paper' ? 'Demo' : 'Unknown'}
             hint={
               data.mode === 'live'
                 ? 'Real-money account'
-                : 'Demo account, real market data'
+                : data.mode === 'paper' ? 'Demo account, real market data' : 'Waiting for terminal account'
             }
           />
           <Stat

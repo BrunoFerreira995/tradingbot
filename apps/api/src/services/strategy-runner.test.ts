@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import type { BrokerAdapter } from '@trade/broker';
+import { defaultSmaMicroTrendConfig, defaultDiversifiedTrendConfig } from '@trade/strategy';
 import type {
   AccountInfo,
   MarketOrderRequest,
@@ -61,13 +62,17 @@ const price: MarketPrice = {
 
 class FakeBroker implements BrokerAdapter {
   connected = true;
+  positions: Position[] = [];
   rates: Rate[] = [];
   /** Per-symbol overrides, for tests where symbols must behave differently. */
   ratesBySymbol: Record<string, Rate[]> = {};
+  ratesByTimeframe: Partial<Record<Timeframe, Rate[]>> = {};
   failWith: Error | undefined;
+  priceFailure: Error | undefined;
   failSymbols = new Set<string>();
   rateRequests: number[] = [];
   priceRequests = 0;
+  quote: MarketPrice = price;
   async connect() {}
   async disconnect() {
     this.connected = false;
@@ -80,8 +85,9 @@ class FakeBroker implements BrokerAdapter {
   }
   async getPrice() {
     this.priceRequests++;
+    if (this.priceFailure) throw this.priceFailure;
     if (this.failWith) throw this.failWith;
-    return price;
+    return this.quote;
   }
   async getRates(
     symbol: string,
@@ -92,10 +98,10 @@ class FakeBroker implements BrokerAdapter {
     if (this.failSymbols.has(symbol))
       throw new Error(`${symbol} not reachable`);
     this.rateRequests.push(count);
-    return (this.ratesBySymbol[symbol] ?? this.rates).slice(-count);
+    return (this.ratesByTimeframe[_period] ?? this.ratesBySymbol[symbol] ?? this.rates).slice(-count);
   }
   async getPositions(): Promise<Position[]> {
-    return [];
+    return this.positions;
   }
   async getOrders(): Promise<Order[]> {
     return [];
@@ -323,6 +329,10 @@ describe('StrategyRunner', () => {
     broker.rates = calmRates();
     const runner = build(broker, engine(), collector());
     await runner.tick();
+    const forces = runner.state.symbolStates.XAUUSD?.marketForces;
+    expect(forces).toBeDefined();
+    await runner.tick();
+    expect(runner.state.symbolStates.XAUUSD?.marketForces).toEqual(forces);
     advance(broker, 100, 100);
     expect((await runner.tick()).status).toBe('NO_SETUP');
     expect(broker.priceRequests).toBe(0);
@@ -413,9 +423,9 @@ describe('StrategyRunner', () => {
     await runner.tick();
 
     const signal = eng.signals[0] as TradingSignal;
-    // Mid of bid 99.5 and ask 100.5 is 100; 1% stop, 1.5% target.
-    expect(signal.stopLoss).toBeCloseTo(1, 8);
-    expect(signal.takeProfit).toBeCloseTo(1.5, 8);
+    // Mid of bid 99.5 and ask 100.5 is 100; 0.2% stop, 0.4% target.
+    expect(signal.stopLoss).toBeCloseTo(0.2, 8);
+    expect(signal.takeProfit).toBeCloseTo(0.4, 8);
     expect(signal.lots).toBe(0.01);
   });
 
@@ -610,11 +620,325 @@ describe('StrategyRunner', () => {
   });
 });
 
+describe('SMA runner integration', () => {
+  const smaConfig = { ...defaultSmaMicroTrendConfig, indicators: { fastSMA: 2, slowSMA: 3, atrPeriod: 2 } };
+  const rates = (closes: number[]) => closes.map((c, i) => ({ t: 1000 + i * 1800, o: c, h: c + 1, l: c - 1, c, v: 1 }));
+  test('submits one closed-bar signal with ATR distance and no replay', async () => {
+    const broker = new FakeBroker();
+    broker.rates = rates([5, 4, 3, 4]);
+    const eng = engine();
+    const runner = new StrategyRunner(broker, eng as never, { strategyName: 'sma_micro_trend', symbols: ['XAUUSD'], timeframe: 'M30', smaConfig, reporter: collector().reporter });
+    await runner.tick();
+    broker.rates = rates([5, 4, 3, 4, 6, 7]);
+    await runner.tick();
+    await runner.tick();
+    expect(eng.signals).toHaveLength(1);
+    expect(eng.signals[0]?.action).toBe('BUY');
+    expect(eng.signals[0]?.stopLoss).toBeGreaterThan(0);
+    expect(eng.signals[0]?.maximumEntrySpread).toBeGreaterThan(0);
+    expect(eng.signals[0]?.minimumEntryStopDistance).toBeGreaterThan(0);
+  });
+  test('skips a costly crossover before closing an opposite position', async () => {
+    const broker = new FakeBroker();
+    broker.rates = rates([3, 4, 5, 4]);
+    broker.quote = { ...price, bid: 90, ask: 100, spread: 10 };
+    broker.positions = [{ id: 'old', symbol: 'XAUUSD', side: 'BUY', lots: 1, entryPrice: 4, currentPrice: 4, unrealizedPnl: 0, openedAt: '' }];
+    const eng = engine();
+    const runner = new StrategyRunner(broker, eng as never, { strategyName: 'sma_micro_trend', symbols: ['XAUUSD'], timeframe: 'M30', smaConfig, reporter: collector().reporter });
+    await runner.tick();
+    broker.rates = rates([3, 4, 5, 4, 2, 1]);
+    expect((await runner.tick()).status).toBe('BLOCKED');
+    expect(eng.signals).toHaveLength(0);
+    expect(broker.positions).toHaveLength(1);
+  });
+  test('retries a crossover when the spread quote briefly fails', async () => {
+    const broker = new FakeBroker();
+    broker.rates = rates([5, 4, 3, 4]);
+    const eng = engine();
+    const runner = new StrategyRunner(broker, eng as never, { strategyName: 'sma_micro_trend', symbols: ['XAUUSD'], timeframe: 'M30', smaConfig, reporter: collector().reporter });
+    await runner.tick();
+    broker.rates = rates([5, 4, 3, 4, 6, 7]);
+    broker.priceFailure = new Error('temporary quote failure');
+    expect((await runner.tick()).status).toBe('BLOCKED');
+    broker.priceFailure = undefined;
+    expect((await runner.tick()).status).toBe('SIGNAL');
+    expect(eng.signals).toHaveLength(1);
+  });
+  test('macro disagreement skips an entry without closing the opposite position', async () => {
+    const broker = new FakeBroker();
+    broker.rates = rates([3, 4, 5, 4]);
+    broker.ratesByTimeframe.H1 = [1, 2, 3, 4, 5].map((c, i) => ({ t: -2600 + i * 3600, o: c, h: c + 1, l: c - 1, c, v: 1 }));
+    broker.positions = [{ id: 'old', symbol: 'XAUUSD', side: 'BUY', lots: 1, entryPrice: 4, currentPrice: 4, unrealizedPnl: 0, openedAt: '' }];
+    const eng = engine();
+    const alignedConfig = { ...smaConfig, filters: { ...smaConfig.filters, requireMacroTrendAlignment: true } };
+    const runner = new StrategyRunner(broker, eng as never, { strategyName: 'sma_micro_trend', symbols: ['XAUUSD'], timeframe: 'M30', smaConfig: alignedConfig, reporter: collector().reporter });
+    await runner.tick();
+    broker.rates = rates([3, 4, 5, 4, 2, 1]);
+    expect((await runner.tick()).symbolStates.XAUUSD?.detail).toContain('not aligned');
+    expect(eng.signals).toHaveLength(0);
+    expect(broker.positions).toHaveLength(1);
+  });
+  test('macro agreement permits the micro crossover', async () => {
+    const broker = new FakeBroker();
+    broker.rates = rates([5, 4, 3, 4]);
+    broker.ratesByTimeframe.H1 = [1, 2, 3, 4, 5].map((c, i) => ({ t: -2600 + i * 3600, o: c, h: c + 1, l: c - 1, c, v: 1 }));
+    const eng = engine();
+    const alignedConfig = { ...smaConfig, filters: { ...smaConfig.filters, requireMacroTrendAlignment: true } };
+    const runner = new StrategyRunner(broker, eng as never, { strategyName: 'sma_micro_trend', symbols: ['XAUUSD'], timeframe: 'M30', smaConfig: alignedConfig, reporter: collector().reporter });
+    await runner.tick();
+    broker.rates = rates([5, 4, 3, 4, 6, 7]);
+    expect((await runner.tick()).status).toBe('SIGNAL');
+    expect(eng.signals.map((signal) => signal.action)).toEqual(['BUY']);
+  });
+  test('confirms opposite close before opening a reversal', async () => {
+    const broker = new FakeBroker();
+    broker.rates = rates([3, 4, 5, 4]);
+    broker.positions = [{ id: 'old', symbol: 'XAUUSD', side: 'BUY', lots: 1, entryPrice: 4, currentPrice: 4, unrealizedPnl: 0, openedAt: '' }];
+    const signals: TradingSignal[] = [];
+    const eng = { async process(signal: TradingSignal) { signals.push(signal); if (signal.action === 'CLOSE_LONG') broker.positions = []; return { status: 'EXECUTED' as const, signalId: signal.signalId }; } };
+    const runner = new StrategyRunner(broker, eng as never, { strategyName: 'sma_micro_trend', symbols: ['XAUUSD'], timeframe: 'M30', smaConfig, reporter: collector().reporter });
+    await runner.tick();
+    broker.rates = rates([3, 4, 5, 4, 2, 1]);
+    await runner.tick();
+    expect(signals.map((s) => s.action)).toEqual(['CLOSE_LONG', 'SELL']);
+  });
+  test('does not open inverse position when close is rejected', async () => {
+    const broker = new FakeBroker();
+    broker.rates = rates([3, 4, 5, 4]);
+    broker.positions = [{ id: 'old', symbol: 'XAUUSD', side: 'BUY', lots: 1, entryPrice: 4, currentPrice: 4, unrealizedPnl: 0, openedAt: '' }];
+    const signals: TradingSignal[] = [];
+    const eng = { async process(signal: TradingSignal) { signals.push(signal); return { status: 'REJECTED' as const, signalId: signal.signalId }; } };
+    const runner = new StrategyRunner(broker, eng as never, { strategyName: 'sma_micro_trend', symbols: ['XAUUSD'], timeframe: 'M30', smaConfig, reporter: collector().reporter });
+    await runner.tick();
+    broker.rates = rates([3, 4, 5, 4, 2, 1]);
+    expect((await runner.tick()).status).toBe('BLOCKED');
+    expect(signals.map((s) => s.action)).toEqual(['CLOSE_LONG']);
+  });
+});
+
+describe('Dow Theory runner integration', () => {
+  test('submits a confirmed closed-bar breakout with the swing stop and 3R target', async () => {
+    const makeRates = (values: Array<[number, number, number]>) => values.map(([h, l, c], i) => ({
+      t: 1_000 + i * 1_800,
+      o: c,
+      h,
+      l,
+      c,
+      v: 1,
+    }));
+    const initial = makeRates([
+      [10, 7, 8], [11, 6, 9], [12, 7, 10], [11, 8, 10],
+      [10, 6, 9], [12, 7, 11], [13, 8, 12], [12, 9, 11],
+      [11, 7, 10], [13, 8, 12], [14, 9, 13], [13, 10, 12.5],
+      [12, 8, 11], [13, 10, 12], [15, 11, 13.8],
+    ]);
+    const broker = new FakeBroker();
+    broker.rates = initial;
+    const eng = engine();
+    const runner = new StrategyRunner(broker, eng as never, {
+      strategyName: 'dow_theory',
+      symbols: ['XAUUSD'],
+      timeframe: 'M30',
+      reporter: collector().reporter,
+    });
+
+    expect((await runner.tick()).status).toBe('WAITING_BAR');
+    broker.rates = [
+      ...initial,
+      ...makeRates([[16, 11, 14.6], [17, 10, 15]]).map((rate, i) => ({
+        ...rate,
+        t: 1_000 + (initial.length + i) * 1_800,
+      })),
+    ];
+    expect((await runner.tick()).status).toBe('SIGNAL');
+    await runner.tick();
+
+    expect(eng.signals).toHaveLength(1);
+    expect(eng.signals[0]?.action).toBe('BUY');
+    expect(eng.signals[0]?.stopLoss).toBe(92.5);
+    expect(eng.signals[0]?.takeProfit).toBe(277.5);
+    expect(eng.signals[0]?.signalReason).toContain('Dow UP breakout');
+  });
+});
+
 /**
  * Two properties the dashboard depends on: a timeframe switch takes effect
  * without a restart, and per-symbol state stays visible so eight pairs do not
  * collapse into one aggregate verdict.
  */
+describe('Market forces automatic entries', () => {
+  function setup(mirror = false, strategyName = 'market_forces', threshold = 1.18) {
+    const broker = new FakeBroker();
+    const makeBars = (length: number): Rate[] => Array.from({ length }, (_, i) => {
+      const c = 100 + i * 0.8 + [0, 1, 2, -1][i % 4]!;
+      const b = { t: 1000 + i * 1800, o: c - 0.8, h: c + 0.1, l: c - 1, c, v: 1 };
+      return mirror ? { ...b, o: 400 - b.o, c: 400 - b.c, h: 400 - b.l, l: 400 - b.h } : b;
+    });
+    broker.rates = makeBars(64);
+    broker.quote = { ...price, bid: 150, ask: 150.01, spread: 0.01 };
+    const eng = engine();
+    const runner = new StrategyRunner(broker, eng as never, {
+      strategyName, symbols: ['XAUUSD'], timeframe: 'M30', reporter: collector().reporter,
+      shockConfig: { threshold },
+    });
+    return { broker, eng, runner, makeBars };
+  }
+
+  for (const mirror of [false, true]) {
+    test(`executes aligned ${mirror ? 'SELL' : 'BUY'} once with protective distances`, async () => {
+      const { broker, eng, runner, makeBars } = setup(mirror);
+      await runner.tick();
+      expect(eng.signals).toHaveLength(0);
+      broker.rates = makeBars(65);
+      expect((await runner.tick()).status).toBe('SIGNAL');
+      await runner.tick();
+      expect(eng.signals).toHaveLength(1);
+      expect(eng.signals[0]!.action).toBe(mirror ? 'SELL' : 'BUY');
+      expect(eng.signals[0]!.stopLoss).toBeGreaterThan(0);
+      expect(eng.signals[0]!.takeProfit).toBe(eng.signals[0]!.stopLoss! * 2);
+      expect(eng.signals[0]!.signalReason).toContain('Market forces');
+    });
+  }
+
+  test('blocks expensive spread without sending an entry', async () => {
+    const { broker, eng, runner, makeBars } = setup();
+    await runner.tick();
+    broker.rates = makeBars(65);
+    broker.quote = { ...price, bid: 100, ask: 110, spread: 10 };
+    expect((await runner.tick()).status).toBe('BLOCKED');
+    expect(eng.signals).toHaveLength(0);
+  });
+
+  test('shock variant blocks an otherwise valid entry and reports its cause', async () => {
+    const { broker, eng, runner, makeBars } = setup(false, 'market_forces_shock', 0.01);
+    await runner.tick();
+    broker.rates = makeBars(65);
+    expect((await runner.tick()).status).toBe('NO_SETUP');
+    const state = runner.state.symbolStates.XAUUSD!;
+    expect(state.marketForces?.action).toBe('BUY');
+    expect(state.forceShock?.blocked).toBe(true);
+    expect(state.forceShock?.action).toBe('WAIT');
+    expect(state.detail).toContain('Choque forte');
+    expect(eng.signals).toHaveLength(0);
+    expect(broker.priceRequests).toBe(0);
+    await runner.tick();
+    expect(runner.state.symbolStates.XAUUSD!.forceShock).toEqual(state.forceShock);
+  });
+
+  test('shock variant routes an unblocked entry through engine with shock context', async () => {
+    const { broker, eng, runner, makeBars } = setup(false, 'market_forces_shock', 1000);
+    await runner.tick();
+    broker.rates = makeBars(65);
+    expect((await runner.tick()).status).toBe('SIGNAL');
+    expect(eng.signals).toHaveLength(1);
+    expect(eng.signals[0]!.strategy).toBe('market_forces_shock');
+    expect(eng.signals[0]!.signalReason).toContain('shock=');
+    await runner.tick();
+    expect(eng.signals).toHaveLength(1);
+  });
+
+  test('does not replay submission after an uncertain engine failure', async () => {
+    const { broker, eng, runner, makeBars } = setup();
+    await runner.tick();
+    broker.rates = makeBars(65);
+    let submissions = 0;
+    eng.process = async () => { submissions++; throw new Error('confirmation timeout'); };
+    expect((await runner.tick()).status).toBe('BLOCKED');
+    await runner.tick();
+    expect(submissions).toBe(1);
+  });
+
+  test('does not add or reverse an existing symbol position', async () => {
+    const { broker, eng, runner, makeBars } = setup();
+    await runner.tick();
+    broker.rates = makeBars(65);
+    broker.positions = [{ symbol: 'XAUUSD', side: 'SELL' } as Position];
+    expect((await runner.tick()).status).toBe('NO_SETUP');
+    expect(eng.signals).toHaveLength(0);
+    expect(broker.priceRequests).toBe(0);
+  });
+
+  test('waits when direction and structure cannot be confirmed', async () => {
+    const { broker, eng, runner } = setup();
+    broker.rates = calmRates();
+    await runner.tick();
+    advance(broker, 100, 100);
+    expect((await runner.tick()).status).toBe('NO_SETUP');
+    expect(eng.signals).toHaveLength(0);
+  });
+});
+
+describe('Diversified daily trend runner', () => {
+  const makeRates = (length: number): Rate[] => Array.from({ length }, (_, i) => {
+    const c = 1 + i * 0.001 + (i % 3) * 0.0002;
+    return { t: 1000 + i * 86400, o: c - 0.0001, h: c + 0.001, l: c - 0.001, c, v: 1 };
+  });
+  function setup() {
+    const broker = new FakeBroker();
+    broker.rates = makeRates(80);
+    broker.quote = { ...price, symbol: 'EURUSD', bid: 1.1, ask: 1.10001, spread: 0.00001 };
+    const eng = engine();
+    const runner = new StrategyRunner(broker, eng as never, {
+      strategyName: 'diversified_trend', symbols: ['EURUSD'], timeframe: 'D1',
+      trendConfig: { ...defaultDiversifiedTrendConfig, lookback: 20, volatilityPeriod: 20 },
+      getMaximumLotSize: async () => 0.02, reporter: collector().reporter,
+    });
+    return { broker, eng, runner };
+  }
+  test('primes, requests sufficient history, sizes within cap and emits once per daily bar', async () => {
+    const { broker, eng, runner } = setup();
+    await runner.tick();
+    expect(eng.signals).toHaveLength(0);
+    broker.rates = makeRates(81);
+    expect((await runner.tick()).status).toBe('SIGNAL');
+    expect(broker.rateRequests).toEqual([305, 2, 305]);
+    expect(eng.signals[0]!.action).toBe('BUY');
+    expect(eng.signals[0]!.lots).toBe(0.02);
+    expect(eng.signals[0]!.minimumEntryStopDistance).toBe(eng.signals[0]!.stopLoss);
+    expect(runner.state.symbolStates.EURUSD!.diversifiedTrend?.ready).toBe(true);
+    await runner.tick();
+    expect(eng.signals).toHaveLength(1);
+    expect(() => runner.setTimeframe('H1')).toThrow('requires D1');
+  });
+  test('holds an aligned position without submitting another entry', async () => {
+    const { broker, eng, runner } = setup();
+    await runner.tick();
+    broker.positions = [{ symbol: 'EURUSD', side: 'BUY' } as Position];
+    broker.rates = makeRates(81);
+    expect((await runner.tick()).status).toBe('NO_SETUP');
+    expect(eng.signals).toHaveLength(0);
+  });
+  test('confirms opposite-position exit before submitting new direction', async () => {
+    const { broker, eng, runner } = setup();
+    await runner.tick();
+    broker.positions = [{ symbol: 'EURUSD', side: 'SELL' } as Position];
+    eng.process = async (signal) => {
+      eng.signals.push(signal);
+      if (signal.action === 'CLOSE') broker.positions = [];
+      return { status: 'EXECUTED', signalId: signal.signalId };
+    };
+    broker.rates = makeRates(81);
+    expect((await runner.tick()).status).toBe('SIGNAL');
+    expect(eng.signals.map((s) => s.action)).toEqual(['CLOSE', 'BUY']);
+  });
+  test('does not reverse when close is not reflected in terminal positions', async () => {
+    const { broker, eng, runner } = setup();
+    await runner.tick();
+    broker.positions = [{ symbol: 'EURUSD', side: 'SELL' } as Position];
+    broker.rates = makeRates(81);
+    expect((await runner.tick()).status).toBe('BLOCKED');
+    expect(eng.signals.map((s) => s.action)).toEqual(['CLOSE']);
+  });
+  test('existing account exposure consumes gross allocation budget', async () => {
+    const { broker, eng, runner } = setup();
+    await runner.tick();
+    broker.positions = [{ symbol: 'USDJPY', side: 'BUY', currentPrice: 100, lots: 10000 } as Position];
+    broker.rates = makeRates(81);
+    expect((await runner.tick()).status).toBe('BLOCKED');
+    expect(eng.signals).toHaveLength(0);
+  });
+});
+
 describe('StrategyRunner timeframe and per-symbol state', () => {
   test('switching timeframe re-primes bars instead of waiting on a stale one', async () => {
     const broker = new FakeBroker();

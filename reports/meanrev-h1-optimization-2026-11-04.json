@@ -1,0 +1,3664 @@
+{
+  "method": "H1-only grid; 60% chronological training / 40% holdout; 0.01 lots; median observed spread and one adverse tick per fill; 1.5x spread stress; no live orders.",
+  "grid_size": 576,
+  "candidate_count_after_training_filter": 564,
+  "training_filter": "At least 8 training trades across at least 4 active symbols.",
+  "parameters_tested": {
+    "bollinger_length": [
+      10,
+      20
+    ],
+    "bollinger_deviation": [
+      1.5,
+      2.0,
+      2.5
+    ],
+    "rsi_length": [
+      7,
+      14
+    ],
+    "rsi_oversold": [
+      20,
+      30
+    ],
+    "rsi_overbought": [
+      70,
+      80
+    ],
+    "stop_percent": [
+      0.05,
+      0.1,
+      0.2
+    ],
+    "reward_risk": [
+      1.0,
+      1.5,
+      2.0,
+      3.0
+    ]
+  },
+  "baseline": {
+    "parameters": {
+      "timeframe": "H1",
+      "bollinger_length": 20,
+      "bollinger_deviation": 2.0,
+      "rsi_length": 14,
+      "rsi_oversold": 20,
+      "rsi_overbought": 80,
+      "stop_percent": 0.2,
+      "reward_risk": 3.0
+    },
+    "train": {
+      "trades": 22,
+      "net_usd": 5.8,
+      "win_rate_pct": 22.7,
+      "profit_factor": 1.24,
+      "max_trade_drawdown_usd": 22.01,
+      "active_symbols": 8,
+      "by_symbol": {
+        "EURUSD": 4.41,
+        "USDJPY": -3.99,
+        "USDCAD": 0,
+        "AUDUSD": -1.41,
+        "NZDUSD": -0.09,
+        "USDCNH": -2.82,
+        "Gasoline": -0.25,
+        "GBPUSD": -0.15,
+        "USDCHF": 10.11
+      }
+    },
+    "train_1_5x_spread": {
+      "trades": 22,
+      "net_usd": -2.62,
+      "win_rate_pct": 18.2,
+      "profit_factor": 0.9,
+      "max_trade_drawdown_usd": 25.24,
+      "active_symbols": 8,
+      "by_symbol": {
+        "EURUSD": 4.41,
+        "USDJPY": -3.99,
+        "USDCAD": 0,
+        "AUDUSD": -1.41,
+        "NZDUSD": -0.09,
+        "USDCNH": -3.16,
+        "Gasoline": -0.31,
+        "GBPUSD": -0.15,
+        "USDCHF": 2.08
+      }
+    },
+    "holdout": {
+      "trades": 23,
+      "net_usd": 27.47,
+      "win_rate_pct": 34.8,
+      "profit_factor": 2.55,
+      "max_trade_drawdown_usd": 4.96,
+      "active_symbols": 9,
+      "by_symbol": {
+        "EURUSD": -2.26,
+        "USDJPY": 6.0,
+        "USDCAD": 6.02,
+        "AUDUSD": -1.41,
+        "NZDUSD": 1.07,
+        "USDCNH": 1.83,
+        "Gasoline": -0.35,
+        "GBPUSD": 2.57,
+        "USDCHF": 13.99
+      }
+    },
+    "holdout_1_5x_spread": {
+      "trades": 24,
+      "net_usd": 25.03,
+      "win_rate_pct": 33.3,
+      "profit_factor": 2.26,
+      "max_trade_drawdown_usd": 6.17,
+      "active_symbols": 9,
+      "by_symbol": {
+        "EURUSD": -2.26,
+        "USDJPY": 6.0,
+        "USDCAD": 6.02,
+        "AUDUSD": -1.41,
+        "NZDUSD": 1.07,
+        "USDCNH": -0.5,
+        "Gasoline": -0.46,
+        "GBPUSD": 2.57,
+        "USDCHF": 13.99
+      }
+    }
+  },
+  "positive_train_and_holdout": 25,
+  "positive_train_holdout_and_both_stress_runs": 15,
+  "top_by_train_net": [
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 20,
+        "bollinger_deviation": 1.5,
+        "rsi_length": 14,
+        "rsi_oversold": 20,
+        "rsi_overbought": 70,
+        "stop_percent": 0.2,
+        "reward_risk": 2.0
+      },
+      "train": {
+        "trades": 56,
+        "net_usd": 45.97,
+        "win_rate_pct": 39.3,
+        "profit_factor": 2.23,
+        "max_trade_drawdown_usd": 14.21,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 17.85,
+          "USDJPY": 9.87,
+          "USDCAD": 4.94,
+          "AUDUSD": -7.02,
+          "NZDUSD": -1.3,
+          "USDCNH": 3.19,
+          "Gasoline": -0.64,
+          "GBPUSD": 5.18,
+          "USDCHF": 13.89
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 56,
+        "net_usd": 40.48,
+        "win_rate_pct": 37.5,
+        "profit_factor": 1.99,
+        "max_trade_drawdown_usd": 16.33,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 17.85,
+          "USDJPY": 9.87,
+          "USDCAD": 4.07,
+          "AUDUSD": -7.02,
+          "NZDUSD": -1.3,
+          "USDCNH": 4.73,
+          "Gasoline": -0.77,
+          "GBPUSD": 5.18,
+          "USDCHF": 7.86
+        }
+      },
+      "holdout": {
+        "trades": 56,
+        "net_usd": 1.27,
+        "win_rate_pct": 25.0,
+        "profit_factor": 1.03,
+        "max_trade_drawdown_usd": 17.36,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.32,
+          "USDJPY": 5.96,
+          "USDCAD": 3.99,
+          "AUDUSD": -1.42,
+          "NZDUSD": -0.04,
+          "USDCNH": 2.47,
+          "Gasoline": -1.09,
+          "GBPUSD": -8.13,
+          "USDCHF": 1.87
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 58,
+        "net_usd": -6.2,
+        "win_rate_pct": 22.4,
+        "profit_factor": 0.89,
+        "max_trade_drawdown_usd": 20.26,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.32,
+          "USDJPY": 5.96,
+          "USDCAD": 3.99,
+          "AUDUSD": -1.42,
+          "NZDUSD": -0.04,
+          "USDCNH": -2.02,
+          "Gasoline": -1.39,
+          "GBPUSD": -10.82,
+          "USDCHF": 1.87
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 20,
+        "bollinger_deviation": 1.5,
+        "rsi_length": 14,
+        "rsi_oversold": 20,
+        "rsi_overbought": 70,
+        "stop_percent": 0.2,
+        "reward_risk": 3.0
+      },
+      "train": {
+        "trades": 51,
+        "net_usd": 42.66,
+        "win_rate_pct": 31.4,
+        "profit_factor": 2.05,
+        "max_trade_drawdown_usd": 30.84,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 15.6,
+          "USDJPY": 1.91,
+          "USDCAD": 6.99,
+          "AUDUSD": -7.02,
+          "NZDUSD": 2.06,
+          "USDCNH": 4.73,
+          "Gasoline": -0.64,
+          "GBPUSD": 5.13,
+          "USDCHF": 13.89
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 52,
+        "net_usd": 33.62,
+        "win_rate_pct": 28.8,
+        "profit_factor": 1.75,
+        "max_trade_drawdown_usd": 34.89,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 15.6,
+          "USDJPY": 1.9,
+          "USDCAD": 6.12,
+          "AUDUSD": -7.02,
+          "NZDUSD": 2.06,
+          "USDCNH": 4.73,
+          "Gasoline": -0.77,
+          "GBPUSD": 5.13,
+          "USDCHF": 5.86
+        }
+      },
+      "holdout": {
+        "trades": 52,
+        "net_usd": 9.56,
+        "win_rate_pct": 21.2,
+        "profit_factor": 1.2,
+        "max_trade_drawdown_usd": 12.15,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -13.48,
+          "USDJPY": 11.95,
+          "USDCAD": 3.56,
+          "AUDUSD": -0.01,
+          "NZDUSD": 1.07,
+          "USDCNH": 1.83,
+          "Gasoline": -1.09,
+          "GBPUSD": -0.12,
+          "USDCHF": 5.85
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 53,
+        "net_usd": 6.93,
+        "win_rate_pct": 20.8,
+        "profit_factor": 1.14,
+        "max_trade_drawdown_usd": 12.42,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -13.48,
+          "USDJPY": 11.95,
+          "USDCAD": 3.56,
+          "AUDUSD": -0.01,
+          "NZDUSD": 1.07,
+          "USDCNH": -0.5,
+          "Gasoline": -1.39,
+          "GBPUSD": -0.12,
+          "USDCHF": 5.86
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 20,
+        "bollinger_deviation": 2.0,
+        "rsi_length": 14,
+        "rsi_oversold": 20,
+        "rsi_overbought": 70,
+        "stop_percent": 0.2,
+        "reward_risk": 2.0
+      },
+      "train": {
+        "trades": 43,
+        "net_usd": 38.88,
+        "win_rate_pct": 41.9,
+        "profit_factor": 2.31,
+        "max_trade_drawdown_usd": 14.12,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 13.38,
+          "USDJPY": 5.98,
+          "USDCAD": 6.09,
+          "AUDUSD": -5.6,
+          "NZDUSD": -2.39,
+          "USDCNH": 3.19,
+          "Gasoline": -0.44,
+          "GBPUSD": 2.52,
+          "USDCHF": 16.17
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 43,
+        "net_usd": 32.88,
+        "win_rate_pct": 39.5,
+        "profit_factor": 2.01,
+        "max_trade_drawdown_usd": 17.61,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 13.38,
+          "USDJPY": 5.98,
+          "USDCAD": 6.09,
+          "AUDUSD": -7.02,
+          "NZDUSD": -2.39,
+          "USDCNH": 4.73,
+          "Gasoline": -0.54,
+          "GBPUSD": 2.52,
+          "USDCHF": 10.14
+        }
+      },
+      "holdout": {
+        "trades": 40,
+        "net_usd": -7.29,
+        "win_rate_pct": 25.0,
+        "profit_factor": 0.83,
+        "max_trade_drawdown_usd": 13.9,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -6.79,
+          "USDJPY": 3.96,
+          "USDCAD": -4.03,
+          "AUDUSD": -1.42,
+          "NZDUSD": -0.04,
+          "USDCNH": 2.47,
+          "Gasoline": -0.54,
+          "GBPUSD": -2.76,
+          "USDCHF": 1.87
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 41,
+        "net_usd": -11.93,
+        "win_rate_pct": 22.0,
+        "profit_factor": 0.74,
+        "max_trade_drawdown_usd": 15.59,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -6.79,
+          "USDJPY": 3.96,
+          "USDCAD": -4.03,
+          "AUDUSD": -1.42,
+          "NZDUSD": -0.04,
+          "USDCNH": -2.02,
+          "Gasoline": -0.69,
+          "GBPUSD": -2.76,
+          "USDCHF": 1.87
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 20,
+        "bollinger_deviation": 2.0,
+        "rsi_length": 7,
+        "rsi_oversold": 30,
+        "rsi_overbought": 70,
+        "stop_percent": 0.2,
+        "reward_risk": 2.0
+      },
+      "train": {
+        "trades": 64,
+        "net_usd": 37.51,
+        "win_rate_pct": 37.5,
+        "profit_factor": 1.87,
+        "max_trade_drawdown_usd": 15.4,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 20.1,
+          "USDJPY": 3.98,
+          "USDCAD": 0.01,
+          "AUDUSD": -5.63,
+          "NZDUSD": 1.0,
+          "USDCNH": 3.19,
+          "Gasoline": -0.64,
+          "GBPUSD": 7.82,
+          "USDCHF": 7.68
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 64,
+        "net_usd": 37.04,
+        "win_rate_pct": 34.4,
+        "profit_factor": 1.84,
+        "max_trade_drawdown_usd": 15.59,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 20.1,
+          "USDJPY": 3.98,
+          "USDCAD": 0.01,
+          "AUDUSD": -7.04,
+          "NZDUSD": 1.0,
+          "USDCNH": 4.73,
+          "Gasoline": -1.23,
+          "GBPUSD": 7.83,
+          "USDCHF": 7.68
+        }
+      },
+      "holdout": {
+        "trades": 56,
+        "net_usd": -13.24,
+        "win_rate_pct": 25.0,
+        "profit_factor": 0.78,
+        "max_trade_drawdown_usd": 24.4,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.33,
+          "USDJPY": 1.96,
+          "USDCAD": -6.03,
+          "AUDUSD": -4.25,
+          "NZDUSD": 3.29,
+          "USDCNH": 0.47,
+          "Gasoline": -0.66,
+          "GBPUSD": -5.45,
+          "USDCHF": -0.23
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 56,
+        "net_usd": -15.92,
+        "win_rate_pct": 23.2,
+        "profit_factor": 0.75,
+        "max_trade_drawdown_usd": 24.5,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.33,
+          "USDJPY": 1.96,
+          "USDCAD": -6.03,
+          "AUDUSD": -4.25,
+          "NZDUSD": 3.29,
+          "USDCNH": -2.02,
+          "Gasoline": -0.85,
+          "GBPUSD": -5.45,
+          "USDCHF": -0.23
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 20,
+        "bollinger_deviation": 2.0,
+        "rsi_length": 14,
+        "rsi_oversold": 20,
+        "rsi_overbought": 70,
+        "stop_percent": 0.2,
+        "reward_risk": 3.0
+      },
+      "train": {
+        "trades": 39,
+        "net_usd": 35.52,
+        "win_rate_pct": 33.3,
+        "profit_factor": 2.08,
+        "max_trade_drawdown_usd": 25.48,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 8.89,
+          "USDJPY": -3.99,
+          "USDCAD": 8.13,
+          "AUDUSD": -5.6,
+          "NZDUSD": -0.16,
+          "USDCNH": 4.73,
+          "Gasoline": -0.44,
+          "GBPUSD": 7.8,
+          "USDCHF": 16.17
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 40,
+        "net_usd": 25.98,
+        "win_rate_pct": 30.0,
+        "profit_factor": 1.71,
+        "max_trade_drawdown_usd": 28.83,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 8.89,
+          "USDJPY": -3.99,
+          "USDCAD": 8.13,
+          "AUDUSD": -7.02,
+          "NZDUSD": -0.15,
+          "USDCNH": 4.73,
+          "Gasoline": -0.54,
+          "GBPUSD": 7.8,
+          "USDCHF": 8.14
+        }
+      },
+      "holdout": {
+        "trades": 38,
+        "net_usd": 1.22,
+        "win_rate_pct": 21.1,
+        "profit_factor": 1.03,
+        "max_trade_drawdown_usd": 14.61,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -13.48,
+          "USDJPY": 7.94,
+          "USDCAD": -4.03,
+          "AUDUSD": -0.01,
+          "NZDUSD": 1.07,
+          "USDCNH": 1.83,
+          "Gasoline": -0.54,
+          "GBPUSD": 2.57,
+          "USDCHF": 5.85
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 39,
+        "net_usd": -1.27,
+        "win_rate_pct": 20.5,
+        "profit_factor": 0.97,
+        "max_trade_drawdown_usd": 16.38,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -13.48,
+          "USDJPY": 7.94,
+          "USDCAD": -4.03,
+          "AUDUSD": -0.01,
+          "NZDUSD": 1.07,
+          "USDCNH": -0.5,
+          "Gasoline": -0.69,
+          "GBPUSD": 2.57,
+          "USDCHF": 5.86
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 20,
+        "bollinger_deviation": 2.0,
+        "rsi_length": 7,
+        "rsi_oversold": 30,
+        "rsi_overbought": 70,
+        "stop_percent": 0.2,
+        "reward_risk": 3.0
+      },
+      "train": {
+        "trades": 56,
+        "net_usd": 31.81,
+        "win_rate_pct": 30.4,
+        "profit_factor": 1.74,
+        "max_trade_drawdown_usd": 18.47,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 2.11,
+          "USDJPY": -3.99,
+          "USDCAD": 2.05,
+          "AUDUSD": -8.44,
+          "NZDUSD": 4.37,
+          "USDCNH": 4.73,
+          "Gasoline": -0.52,
+          "GBPUSD": 15.77,
+          "USDCHF": 15.73
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 57,
+        "net_usd": 21.65,
+        "win_rate_pct": 24.6,
+        "profit_factor": 1.47,
+        "max_trade_drawdown_usd": 25.49,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 2.16,
+          "USDJPY": -3.99,
+          "USDCAD": 2.05,
+          "AUDUSD": -9.91,
+          "NZDUSD": 4.37,
+          "USDCNH": 4.73,
+          "Gasoline": -1.23,
+          "GBPUSD": 15.77,
+          "USDCHF": 7.7
+        }
+      },
+      "holdout": {
+        "trades": 53,
+        "net_usd": -6.81,
+        "win_rate_pct": 18.9,
+        "profit_factor": 0.89,
+        "max_trade_drawdown_usd": 24.76,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -4.55,
+          "USDJPY": 5.95,
+          "USDCAD": -6.03,
+          "AUDUSD": -2.84,
+          "NZDUSD": -1.19,
+          "USDCNH": -0.44,
+          "Gasoline": -0.66,
+          "GBPUSD": -2.8,
+          "USDCHF": 5.76
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 53,
+        "net_usd": -7.33,
+        "win_rate_pct": 18.9,
+        "profit_factor": 0.88,
+        "max_trade_drawdown_usd": 26.81,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -4.55,
+          "USDJPY": 5.95,
+          "USDCAD": -6.03,
+          "AUDUSD": -2.84,
+          "NZDUSD": -1.19,
+          "USDCNH": -0.78,
+          "Gasoline": -0.85,
+          "GBPUSD": -2.8,
+          "USDCHF": 5.76
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 20,
+        "bollinger_deviation": 1.5,
+        "rsi_length": 7,
+        "rsi_oversold": 20,
+        "rsi_overbought": 70,
+        "stop_percent": 0.2,
+        "reward_risk": 2.0
+      },
+      "train": {
+        "trades": 91,
+        "net_usd": 29.56,
+        "win_rate_pct": 34.1,
+        "profit_factor": 1.41,
+        "max_trade_drawdown_usd": 21.95,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 24.57,
+          "USDJPY": 3.33,
+          "USDCAD": -3.16,
+          "AUDUSD": -8.42,
+          "NZDUSD": 4.9,
+          "USDCNH": 3.19,
+          "Gasoline": -0.9,
+          "GBPUSD": 2.5,
+          "USDCHF": 3.55
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 91,
+        "net_usd": 29.58,
+        "win_rate_pct": 31.9,
+        "profit_factor": 1.4,
+        "max_trade_drawdown_usd": 22.28,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 24.57,
+          "USDJPY": 3.33,
+          "USDCAD": -4.03,
+          "AUDUSD": -8.42,
+          "NZDUSD": 4.9,
+          "USDCNH": 4.73,
+          "Gasoline": -1.54,
+          "GBPUSD": 2.5,
+          "USDCHF": 3.55
+        }
+      },
+      "holdout": {
+        "trades": 85,
+        "net_usd": -4.92,
+        "win_rate_pct": 25.9,
+        "profit_factor": 0.94,
+        "max_trade_drawdown_usd": 30.95,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -0.13,
+          "USDJPY": 1.97,
+          "USDCAD": -0.02,
+          "AUDUSD": -2.89,
+          "NZDUSD": -0.13,
+          "USDCNH": 0.47,
+          "Gasoline": -1.22,
+          "GBPUSD": -10.82,
+          "USDCHF": 7.86
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 86,
+        "net_usd": -16.51,
+        "win_rate_pct": 22.1,
+        "profit_factor": 0.81,
+        "max_trade_drawdown_usd": 33.31,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -4.58,
+          "USDJPY": 1.97,
+          "USDCAD": -0.02,
+          "AUDUSD": -4.29,
+          "NZDUSD": -0.13,
+          "USDCNH": -2.02,
+          "Gasoline": -1.77,
+          "GBPUSD": -13.52,
+          "USDCHF": 7.86
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 20,
+        "bollinger_deviation": 2.0,
+        "rsi_length": 7,
+        "rsi_oversold": 20,
+        "rsi_overbought": 70,
+        "stop_percent": 0.2,
+        "reward_risk": 2.0
+      },
+      "train": {
+        "trades": 59,
+        "net_usd": 28.68,
+        "win_rate_pct": 35.6,
+        "profit_factor": 1.65,
+        "max_trade_drawdown_usd": 17.52,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 20.1,
+          "USDJPY": 3.98,
+          "USDCAD": 0.01,
+          "AUDUSD": -4.21,
+          "NZDUSD": -1.26,
+          "USDCNH": 3.19,
+          "Gasoline": -0.64,
+          "GBPUSD": -0.17,
+          "USDCHF": 7.68
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 59,
+        "net_usd": 28.44,
+        "win_rate_pct": 33.9,
+        "profit_factor": 1.63,
+        "max_trade_drawdown_usd": 19.14,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 20.1,
+          "USDJPY": 3.98,
+          "USDCAD": 0.01,
+          "AUDUSD": -5.63,
+          "NZDUSD": -1.26,
+          "USDCNH": 4.73,
+          "Gasoline": -1.0,
+          "GBPUSD": -0.17,
+          "USDCHF": 7.68
+        }
+      },
+      "holdout": {
+        "trades": 55,
+        "net_usd": -19.88,
+        "win_rate_pct": 23.6,
+        "profit_factor": 0.69,
+        "max_trade_drawdown_usd": 27.69,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -9.03,
+          "USDJPY": 1.96,
+          "USDCAD": -6.03,
+          "AUDUSD": -4.25,
+          "NZDUSD": 3.29,
+          "USDCNH": 0.47,
+          "Gasoline": -0.6,
+          "GBPUSD": -5.45,
+          "USDCHF": -0.23
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 55,
+        "net_usd": -22.54,
+        "win_rate_pct": 21.8,
+        "profit_factor": 0.66,
+        "max_trade_drawdown_usd": 27.78,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -9.03,
+          "USDJPY": 1.96,
+          "USDCAD": -6.03,
+          "AUDUSD": -4.25,
+          "NZDUSD": 3.29,
+          "USDCNH": -2.02,
+          "Gasoline": -0.77,
+          "GBPUSD": -5.45,
+          "USDCHF": -0.23
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 20,
+        "bollinger_deviation": 2.0,
+        "rsi_length": 14,
+        "rsi_oversold": 30,
+        "rsi_overbought": 70,
+        "stop_percent": 0.2,
+        "reward_risk": 2.0
+      },
+      "train": {
+        "trades": 54,
+        "net_usd": 27.28,
+        "win_rate_pct": 35.2,
+        "profit_factor": 1.65,
+        "max_trade_drawdown_usd": 15.48,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 20.1,
+          "USDJPY": 3.98,
+          "USDCAD": 0.01,
+          "AUDUSD": -7.01,
+          "NZDUSD": -2.39,
+          "USDCNH": 3.19,
+          "Gasoline": -0.57,
+          "GBPUSD": -0.17,
+          "USDCHF": 10.14
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 54,
+        "net_usd": 27.05,
+        "win_rate_pct": 33.3,
+        "profit_factor": 1.63,
+        "max_trade_drawdown_usd": 17.11,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 20.1,
+          "USDJPY": 3.98,
+          "USDCAD": 0.01,
+          "AUDUSD": -8.42,
+          "NZDUSD": -2.39,
+          "USDCNH": 4.73,
+          "Gasoline": -0.92,
+          "GBPUSD": -0.17,
+          "USDCHF": 10.14
+        }
+      },
+      "holdout": {
+        "trades": 48,
+        "net_usd": -12.97,
+        "win_rate_pct": 25.0,
+        "profit_factor": 0.75,
+        "max_trade_drawdown_usd": 21.78,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -6.79,
+          "USDJPY": 1.96,
+          "USDCAD": -4.03,
+          "AUDUSD": -1.42,
+          "NZDUSD": 4.43,
+          "USDCNH": 0.47,
+          "Gasoline": -0.6,
+          "GBPUSD": -2.75,
+          "USDCHF": -4.23
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 48,
+        "net_usd": -15.63,
+        "win_rate_pct": 22.9,
+        "profit_factor": 0.71,
+        "max_trade_drawdown_usd": 21.88,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -6.79,
+          "USDJPY": 1.96,
+          "USDCAD": -4.03,
+          "AUDUSD": -1.42,
+          "NZDUSD": 4.43,
+          "USDCNH": -2.02,
+          "Gasoline": -0.77,
+          "GBPUSD": -2.76,
+          "USDCHF": -4.23
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 20,
+        "bollinger_deviation": 2.0,
+        "rsi_length": 7,
+        "rsi_oversold": 30,
+        "rsi_overbought": 70,
+        "stop_percent": 0.2,
+        "reward_risk": 1.5
+      },
+      "train": {
+        "trades": 68,
+        "net_usd": 26.35,
+        "win_rate_pct": 39.7,
+        "profit_factor": 1.57,
+        "max_trade_drawdown_usd": 12.25,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 12.24,
+          "USDJPY": 7.96,
+          "USDCAD": -1.01,
+          "AUDUSD": -5.66,
+          "NZDUSD": -0.69,
+          "USDCNH": 1.72,
+          "Gasoline": -0.7,
+          "GBPUSD": 7.85,
+          "USDCHF": 4.63
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 69,
+        "net_usd": 24.08,
+        "win_rate_pct": 36.2,
+        "profit_factor": 1.5,
+        "max_trade_drawdown_usd": 14.07,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 12.24,
+          "USDJPY": 7.96,
+          "USDCAD": -1.01,
+          "AUDUSD": -7.07,
+          "NZDUSD": -0.69,
+          "USDCNH": 1.39,
+          "Gasoline": -1.23,
+          "GBPUSD": 7.85,
+          "USDCHF": 4.63
+        }
+      },
+      "holdout": {
+        "trades": 60,
+        "net_usd": -34.1,
+        "win_rate_pct": 23.3,
+        "profit_factor": 0.51,
+        "max_trade_drawdown_usd": 34.58,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -6.81,
+          "USDJPY": -2.03,
+          "USDCAD": -6.03,
+          "AUDUSD": -4.96,
+          "NZDUSD": 1.61,
+          "USDCNH": -2.53,
+          "Gasoline": -0.66,
+          "GBPUSD": -9.45,
+          "USDCHF": -3.23
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 59,
+        "net_usd": -32.6,
+        "win_rate_pct": 23.7,
+        "profit_factor": 0.52,
+        "max_trade_drawdown_usd": 33.32,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -6.81,
+          "USDJPY": -2.03,
+          "USDCAD": -6.03,
+          "AUDUSD": -4.96,
+          "NZDUSD": 1.61,
+          "USDCNH": -0.84,
+          "Gasoline": -0.85,
+          "GBPUSD": -9.46,
+          "USDCHF": -3.23
+        }
+      }
+    }
+  ],
+  "top_by_holdout_net_selection_biased": [
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 20,
+        "bollinger_deviation": 2.0,
+        "rsi_length": 14,
+        "rsi_oversold": 20,
+        "rsi_overbought": 80,
+        "stop_percent": 0.2,
+        "reward_risk": 3.0
+      },
+      "train": {
+        "trades": 22,
+        "net_usd": 5.8,
+        "win_rate_pct": 22.7,
+        "profit_factor": 1.24,
+        "max_trade_drawdown_usd": 22.01,
+        "active_symbols": 8,
+        "by_symbol": {
+          "EURUSD": 4.41,
+          "USDJPY": -3.99,
+          "USDCAD": 0,
+          "AUDUSD": -1.41,
+          "NZDUSD": -0.09,
+          "USDCNH": -2.82,
+          "Gasoline": -0.25,
+          "GBPUSD": -0.15,
+          "USDCHF": 10.11
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 22,
+        "net_usd": -2.62,
+        "win_rate_pct": 18.2,
+        "profit_factor": 0.9,
+        "max_trade_drawdown_usd": 25.24,
+        "active_symbols": 8,
+        "by_symbol": {
+          "EURUSD": 4.41,
+          "USDJPY": -3.99,
+          "USDCAD": 0,
+          "AUDUSD": -1.41,
+          "NZDUSD": -0.09,
+          "USDCNH": -3.16,
+          "Gasoline": -0.31,
+          "GBPUSD": -0.15,
+          "USDCHF": 2.08
+        }
+      },
+      "holdout": {
+        "trades": 23,
+        "net_usd": 27.47,
+        "win_rate_pct": 34.8,
+        "profit_factor": 2.55,
+        "max_trade_drawdown_usd": 4.96,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 6.0,
+          "USDCAD": 6.02,
+          "AUDUSD": -1.41,
+          "NZDUSD": 1.07,
+          "USDCNH": 1.83,
+          "Gasoline": -0.35,
+          "GBPUSD": 2.57,
+          "USDCHF": 13.99
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 24,
+        "net_usd": 25.03,
+        "win_rate_pct": 33.3,
+        "profit_factor": 2.26,
+        "max_trade_drawdown_usd": 6.17,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 6.0,
+          "USDCAD": 6.02,
+          "AUDUSD": -1.41,
+          "NZDUSD": 1.07,
+          "USDCNH": -0.5,
+          "Gasoline": -0.46,
+          "GBPUSD": 2.57,
+          "USDCHF": 13.99
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 10,
+        "bollinger_deviation": 1.5,
+        "rsi_length": 14,
+        "rsi_oversold": 20,
+        "rsi_overbought": 80,
+        "stop_percent": 0.2,
+        "reward_risk": 3.0
+      },
+      "train": {
+        "trades": 23,
+        "net_usd": 9.92,
+        "win_rate_pct": 26.1,
+        "profit_factor": 1.38,
+        "max_trade_drawdown_usd": 23.99,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 4.41,
+          "USDJPY": -3.99,
+          "USDCAD": 6.09,
+          "AUDUSD": -1.41,
+          "NZDUSD": -0.09,
+          "USDCNH": -2.82,
+          "Gasoline": -0.19,
+          "GBPUSD": -0.15,
+          "USDCHF": 8.07
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 23,
+        "net_usd": 1.51,
+        "win_rate_pct": 21.7,
+        "profit_factor": 1.05,
+        "max_trade_drawdown_usd": 27.21,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 4.41,
+          "USDJPY": -3.99,
+          "USDCAD": 6.09,
+          "AUDUSD": -1.41,
+          "NZDUSD": -0.09,
+          "USDCNH": -3.15,
+          "Gasoline": -0.23,
+          "GBPUSD": -0.15,
+          "USDCHF": 0.03
+        }
+      },
+      "holdout": {
+        "trades": 24,
+        "net_usd": 27.41,
+        "win_rate_pct": 33.3,
+        "profit_factor": 2.54,
+        "max_trade_drawdown_usd": 4.96,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 6.0,
+          "USDCAD": 6.02,
+          "AUDUSD": -1.41,
+          "NZDUSD": 1.07,
+          "USDCNH": 1.83,
+          "Gasoline": -0.41,
+          "GBPUSD": 2.57,
+          "USDCHF": 13.99
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 25,
+        "net_usd": 24.95,
+        "win_rate_pct": 32.0,
+        "profit_factor": 2.25,
+        "max_trade_drawdown_usd": 6.32,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 6.0,
+          "USDCAD": 6.02,
+          "AUDUSD": -1.41,
+          "NZDUSD": 1.07,
+          "USDCNH": -0.5,
+          "Gasoline": -0.54,
+          "GBPUSD": 2.57,
+          "USDCHF": 13.99
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 20,
+        "bollinger_deviation": 1.5,
+        "rsi_length": 14,
+        "rsi_oversold": 20,
+        "rsi_overbought": 80,
+        "stop_percent": 0.2,
+        "reward_risk": 3.0
+      },
+      "train": {
+        "trades": 23,
+        "net_usd": 3.76,
+        "win_rate_pct": 21.7,
+        "profit_factor": 1.14,
+        "max_trade_drawdown_usd": 24.05,
+        "active_symbols": 8,
+        "by_symbol": {
+          "EURUSD": 4.41,
+          "USDJPY": -3.99,
+          "USDCAD": 0,
+          "AUDUSD": -1.41,
+          "NZDUSD": -0.09,
+          "USDCNH": -2.82,
+          "Gasoline": -0.25,
+          "GBPUSD": -0.15,
+          "USDCHF": 8.07
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 24,
+        "net_usd": -6.93,
+        "win_rate_pct": 16.7,
+        "profit_factor": 0.78,
+        "max_trade_drawdown_usd": 29.55,
+        "active_symbols": 8,
+        "by_symbol": {
+          "EURUSD": 4.41,
+          "USDJPY": -3.99,
+          "USDCAD": 0,
+          "AUDUSD": -1.41,
+          "NZDUSD": -0.09,
+          "USDCNH": -5.43,
+          "Gasoline": -0.31,
+          "GBPUSD": -0.15,
+          "USDCHF": 0.03
+        }
+      },
+      "holdout": {
+        "trades": 31,
+        "net_usd": 26.99,
+        "win_rate_pct": 25.8,
+        "profit_factor": 2.48,
+        "max_trade_drawdown_usd": 4.96,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 6.0,
+          "USDCAD": 6.02,
+          "AUDUSD": -1.41,
+          "NZDUSD": 1.07,
+          "USDCNH": 1.83,
+          "Gasoline": -0.83,
+          "GBPUSD": 2.57,
+          "USDCHF": 13.99
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 32,
+        "net_usd": 24.41,
+        "win_rate_pct": 25.0,
+        "profit_factor": 2.19,
+        "max_trade_drawdown_usd": 6.78,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 6.0,
+          "USDCAD": 6.02,
+          "AUDUSD": -1.41,
+          "NZDUSD": 1.07,
+          "USDCNH": -0.5,
+          "Gasoline": -1.08,
+          "GBPUSD": 2.57,
+          "USDCHF": 13.99
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 20,
+        "bollinger_deviation": 1.5,
+        "rsi_length": 7,
+        "rsi_oversold": 30,
+        "rsi_overbought": 80,
+        "stop_percent": 0.2,
+        "reward_risk": 3.0
+      },
+      "train": {
+        "trades": 75,
+        "net_usd": 7.34,
+        "win_rate_pct": 25.3,
+        "profit_factor": 1.11,
+        "max_trade_drawdown_usd": 37.7,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 8.82,
+          "USDJPY": -3.64,
+          "USDCAD": -11.53,
+          "AUDUSD": -9.82,
+          "NZDUSD": 5.75,
+          "USDCNH": -5.45,
+          "Gasoline": -0.65,
+          "GBPUSD": 15.77,
+          "USDCHF": 8.1
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 79,
+        "net_usd": 0.86,
+        "win_rate_pct": 20.3,
+        "profit_factor": 1.01,
+        "max_trade_drawdown_usd": 44.37,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 7.8,
+          "USDJPY": -3.64,
+          "USDCAD": -12.44,
+          "AUDUSD": -11.29,
+          "NZDUSD": 5.69,
+          "USDCNH": -7.44,
+          "Gasoline": -1.69,
+          "GBPUSD": 15.77,
+          "USDCHF": 8.1
+        }
+      },
+      "holdout": {
+        "trades": 74,
+        "net_usd": 26.0,
+        "win_rate_pct": 23.0,
+        "profit_factor": 1.41,
+        "max_trade_drawdown_usd": 16.74,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 2.11,
+          "USDJPY": 11.95,
+          "USDCAD": 4.04,
+          "AUDUSD": -0.07,
+          "NZDUSD": -3.48,
+          "USDCNH": -0.44,
+          "Gasoline": -1.28,
+          "GBPUSD": 5.27,
+          "USDCHF": 7.91
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 75,
+        "net_usd": 22.99,
+        "win_rate_pct": 21.3,
+        "profit_factor": 1.35,
+        "max_trade_drawdown_usd": 19.6,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 2.11,
+          "USDJPY": 11.95,
+          "USDCAD": 4.0,
+          "AUDUSD": -0.07,
+          "NZDUSD": -3.48,
+          "USDCNH": -2.78,
+          "Gasoline": -1.93,
+          "GBPUSD": 5.27,
+          "USDCHF": 7.91
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 10,
+        "bollinger_deviation": 2.0,
+        "rsi_length": 7,
+        "rsi_oversold": 30,
+        "rsi_overbought": 80,
+        "stop_percent": 0.2,
+        "reward_risk": 3.0
+      },
+      "train": {
+        "trades": 43,
+        "net_usd": -27.79,
+        "win_rate_pct": 16.3,
+        "profit_factor": 0.47,
+        "max_trade_drawdown_usd": 37.77,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -9.27,
+          "USDJPY": -8.0,
+          "USDCAD": -2.0,
+          "AUDUSD": -5.62,
+          "NZDUSD": 9.17,
+          "USDCNH": -2.82,
+          "Gasoline": -0.57,
+          "GBPUSD": -10.68,
+          "USDCHF": 2.0
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 45,
+        "net_usd": -30.7,
+        "win_rate_pct": 15.6,
+        "profit_factor": 0.45,
+        "max_trade_drawdown_usd": 41.6,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -9.27,
+          "USDJPY": -8.0,
+          "USDCAD": -2.0,
+          "AUDUSD": -7.09,
+          "NZDUSD": 5.54,
+          "USDCNH": -0.51,
+          "Gasoline": -0.69,
+          "GBPUSD": -10.68,
+          "USDCHF": 2.0
+        }
+      },
+      "holdout": {
+        "trades": 45,
+        "net_usd": 24.42,
+        "win_rate_pct": 35.6,
+        "profit_factor": 1.54,
+        "max_trade_drawdown_usd": 10.68,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 9.93,
+          "USDJPY": 1.97,
+          "USDCAD": 2.01,
+          "AUDUSD": 4.15,
+          "NZDUSD": 2.17,
+          "USDCNH": -1.52,
+          "Gasoline": -0.19,
+          "GBPUSD": -4.06,
+          "USDCHF": 9.95
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 46,
+        "net_usd": 17.75,
+        "win_rate_pct": 30.4,
+        "profit_factor": 1.37,
+        "max_trade_drawdown_usd": 14.77,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 9.88,
+          "USDJPY": 1.97,
+          "USDCAD": 2.0,
+          "AUDUSD": 2.74,
+          "NZDUSD": -2.32,
+          "USDCNH": -1.83,
+          "Gasoline": -0.54,
+          "GBPUSD": -4.12,
+          "USDCHF": 9.95
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 10,
+        "bollinger_deviation": 2.0,
+        "rsi_length": 14,
+        "rsi_oversold": 30,
+        "rsi_overbought": 80,
+        "stop_percent": 0.2,
+        "reward_risk": 3.0
+      },
+      "train": {
+        "trades": 21,
+        "net_usd": -24.68,
+        "win_rate_pct": 4.8,
+        "profit_factor": 0.2,
+        "max_trade_drawdown_usd": 29.36,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -4.56,
+          "USDJPY": -6.0,
+          "USDCAD": 0.01,
+          "AUDUSD": -1.41,
+          "NZDUSD": -2.28,
+          "USDCNH": -2.82,
+          "Gasoline": -0.25,
+          "GBPUSD": -5.35,
+          "USDCHF": -2.02
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 21,
+        "net_usd": -25.02,
+        "win_rate_pct": 4.8,
+        "profit_factor": 0.2,
+        "max_trade_drawdown_usd": 29.7,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -4.51,
+          "USDJPY": -6.0,
+          "USDCAD": 0.01,
+          "AUDUSD": -1.41,
+          "NZDUSD": -2.28,
+          "USDCNH": -3.15,
+          "Gasoline": -0.31,
+          "GBPUSD": -5.35,
+          "USDCHF": -2.02
+        }
+      },
+      "holdout": {
+        "trades": 25,
+        "net_usd": 22.85,
+        "win_rate_pct": 36.0,
+        "profit_factor": 1.85,
+        "max_trade_drawdown_usd": 10.11,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 2.16,
+          "USDJPY": 3.97,
+          "USDCAD": -4.02,
+          "AUDUSD": 2.76,
+          "NZDUSD": -0.06,
+          "USDCNH": 1.56,
+          "Gasoline": -0.12,
+          "GBPUSD": 2.6,
+          "USDCHF": 13.99
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 27,
+        "net_usd": 19.07,
+        "win_rate_pct": 33.3,
+        "profit_factor": 1.63,
+        "max_trade_drawdown_usd": 13.52,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 2.16,
+          "USDJPY": 3.97,
+          "USDCAD": -4.02,
+          "AUDUSD": 1.35,
+          "NZDUSD": -0.06,
+          "USDCNH": -0.77,
+          "Gasoline": -0.15,
+          "GBPUSD": 2.6,
+          "USDCHF": 13.99
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 10,
+        "bollinger_deviation": 2.0,
+        "rsi_length": 14,
+        "rsi_oversold": 20,
+        "rsi_overbought": 80,
+        "stop_percent": 0.2,
+        "reward_risk": 3.0
+      },
+      "train": {
+        "trades": 13,
+        "net_usd": -10.21,
+        "win_rate_pct": 7.7,
+        "profit_factor": 0.37,
+        "max_trade_drawdown_usd": 14.89,
+        "active_symbols": 8,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": -1.99,
+          "USDCAD": 6.09,
+          "AUDUSD": -1.41,
+          "NZDUSD": -2.28,
+          "USDCNH": -2.82,
+          "Gasoline": -0.19,
+          "GBPUSD": -5.35,
+          "USDCHF": 0
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 13,
+        "net_usd": -10.58,
+        "win_rate_pct": 7.7,
+        "profit_factor": 0.37,
+        "max_trade_drawdown_usd": 15.26,
+        "active_symbols": 8,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": -1.99,
+          "USDCAD": 6.09,
+          "AUDUSD": -1.41,
+          "NZDUSD": -2.28,
+          "USDCNH": -3.15,
+          "Gasoline": -0.23,
+          "GBPUSD": -5.35,
+          "USDCHF": 0
+        }
+      },
+      "holdout": {
+        "trades": 18,
+        "net_usd": 22.34,
+        "win_rate_pct": 38.9,
+        "profit_factor": 2.33,
+        "max_trade_drawdown_usd": 8.12,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 5.97,
+          "USDCAD": -2.01,
+          "AUDUSD": -1.41,
+          "NZDUSD": 1.07,
+          "USDCNH": 1.83,
+          "Gasoline": -0.12,
+          "GBPUSD": 5.27,
+          "USDCHF": 13.99
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 18,
+        "net_usd": 21.98,
+        "win_rate_pct": 38.9,
+        "profit_factor": 2.31,
+        "max_trade_drawdown_usd": 8.12,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 5.97,
+          "USDCAD": -2.01,
+          "AUDUSD": -1.41,
+          "NZDUSD": 1.07,
+          "USDCNH": 1.5,
+          "Gasoline": -0.15,
+          "GBPUSD": 5.27,
+          "USDCHF": 13.99
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 20,
+        "bollinger_deviation": 2.0,
+        "rsi_length": 14,
+        "rsi_oversold": 20,
+        "rsi_overbought": 80,
+        "stop_percent": 0.2,
+        "reward_risk": 2.0
+      },
+      "train": {
+        "trades": 23,
+        "net_usd": 18.57,
+        "win_rate_pct": 39.1,
+        "profit_factor": 2.03,
+        "max_trade_drawdown_usd": 10.57,
+        "active_symbols": 8,
+        "by_symbol": {
+          "EURUSD": 8.92,
+          "USDJPY": 5.98,
+          "USDCAD": 0,
+          "AUDUSD": -1.41,
+          "NZDUSD": -1.21,
+          "USDCNH": -2.82,
+          "Gasoline": -0.25,
+          "GBPUSD": -2.78,
+          "USDCHF": 12.14
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 23,
+        "net_usd": 12.15,
+        "win_rate_pct": 34.8,
+        "profit_factor": 1.6,
+        "max_trade_drawdown_usd": 13.76,
+        "active_symbols": 8,
+        "by_symbol": {
+          "EURUSD": 8.92,
+          "USDJPY": 5.98,
+          "USDCAD": 0,
+          "AUDUSD": -1.41,
+          "NZDUSD": -1.2,
+          "USDCNH": -3.16,
+          "Gasoline": -0.31,
+          "GBPUSD": -2.78,
+          "USDCHF": 6.11
+        }
+      },
+      "holdout": {
+        "trades": 25,
+        "net_usd": 18.98,
+        "win_rate_pct": 40.0,
+        "profit_factor": 2.07,
+        "max_trade_drawdown_usd": 8.24,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 7.97,
+          "USDCAD": 4.01,
+          "AUDUSD": -1.41,
+          "NZDUSD": -0.04,
+          "USDCNH": 3.17,
+          "Gasoline": -0.35,
+          "GBPUSD": -0.09,
+          "USDCHF": 7.97
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 26,
+        "net_usd": 16.87,
+        "win_rate_pct": 38.5,
+        "profit_factor": 1.85,
+        "max_trade_drawdown_usd": 10.27,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 7.97,
+          "USDCAD": 4.01,
+          "AUDUSD": -1.41,
+          "NZDUSD": -0.04,
+          "USDCNH": 1.17,
+          "Gasoline": -0.46,
+          "GBPUSD": -0.09,
+          "USDCHF": 7.97
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 10,
+        "bollinger_deviation": 1.5,
+        "rsi_length": 14,
+        "rsi_oversold": 20,
+        "rsi_overbought": 80,
+        "stop_percent": 0.2,
+        "reward_risk": 2.0
+      },
+      "train": {
+        "trades": 24,
+        "net_usd": 20.64,
+        "win_rate_pct": 41.7,
+        "profit_factor": 2.04,
+        "max_trade_drawdown_usd": 8.57,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 8.92,
+          "USDJPY": 5.98,
+          "USDCAD": 4.06,
+          "AUDUSD": -1.41,
+          "NZDUSD": -1.21,
+          "USDCNH": -2.82,
+          "Gasoline": -0.19,
+          "GBPUSD": -2.78,
+          "USDCHF": 10.09
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 24,
+        "net_usd": 14.24,
+        "win_rate_pct": 37.5,
+        "profit_factor": 1.64,
+        "max_trade_drawdown_usd": 13.76,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 8.92,
+          "USDJPY": 5.98,
+          "USDCAD": 4.06,
+          "AUDUSD": -1.41,
+          "NZDUSD": -1.2,
+          "USDCNH": -3.15,
+          "Gasoline": -0.23,
+          "GBPUSD": -2.78,
+          "USDCHF": 4.06
+        }
+      },
+      "holdout": {
+        "trades": 26,
+        "net_usd": 18.92,
+        "win_rate_pct": 38.5,
+        "profit_factor": 2.07,
+        "max_trade_drawdown_usd": 8.36,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 7.97,
+          "USDCAD": 4.01,
+          "AUDUSD": -1.41,
+          "NZDUSD": -0.04,
+          "USDCNH": 3.17,
+          "Gasoline": -0.41,
+          "GBPUSD": -0.09,
+          "USDCHF": 7.97
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 27,
+        "net_usd": 16.79,
+        "win_rate_pct": 37.0,
+        "profit_factor": 1.84,
+        "max_trade_drawdown_usd": 10.43,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 7.97,
+          "USDCAD": 4.01,
+          "AUDUSD": -1.41,
+          "NZDUSD": -0.04,
+          "USDCNH": 1.17,
+          "Gasoline": -0.54,
+          "GBPUSD": -0.09,
+          "USDCHF": 7.97
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 20,
+        "bollinger_deviation": 1.5,
+        "rsi_length": 14,
+        "rsi_oversold": 20,
+        "rsi_overbought": 80,
+        "stop_percent": 0.2,
+        "reward_risk": 2.0
+      },
+      "train": {
+        "trades": 24,
+        "net_usd": 16.52,
+        "win_rate_pct": 37.5,
+        "profit_factor": 1.83,
+        "max_trade_drawdown_usd": 10.57,
+        "active_symbols": 8,
+        "by_symbol": {
+          "EURUSD": 8.92,
+          "USDJPY": 5.98,
+          "USDCAD": 0,
+          "AUDUSD": -1.41,
+          "NZDUSD": -1.21,
+          "USDCNH": -2.82,
+          "Gasoline": -0.25,
+          "GBPUSD": -2.78,
+          "USDCHF": 10.09
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 25,
+        "net_usd": 7.84,
+        "win_rate_pct": 32.0,
+        "profit_factor": 1.32,
+        "max_trade_drawdown_usd": 16.03,
+        "active_symbols": 8,
+        "by_symbol": {
+          "EURUSD": 8.92,
+          "USDJPY": 5.98,
+          "USDCAD": 0,
+          "AUDUSD": -1.41,
+          "NZDUSD": -1.2,
+          "USDCNH": -5.43,
+          "Gasoline": -0.31,
+          "GBPUSD": -2.78,
+          "USDCHF": 4.06
+        }
+      },
+      "holdout": {
+        "trades": 34,
+        "net_usd": 16.49,
+        "win_rate_pct": 29.4,
+        "profit_factor": 1.82,
+        "max_trade_drawdown_usd": 10.74,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 7.97,
+          "USDCAD": 2.0,
+          "AUDUSD": -1.41,
+          "NZDUSD": -0.04,
+          "USDCNH": 3.17,
+          "Gasoline": -0.83,
+          "GBPUSD": -0.09,
+          "USDCHF": 7.97
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 35,
+        "net_usd": 14.24,
+        "win_rate_pct": 28.6,
+        "profit_factor": 1.63,
+        "max_trade_drawdown_usd": 12.9,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 7.97,
+          "USDCAD": 2.0,
+          "AUDUSD": -1.41,
+          "NZDUSD": -0.04,
+          "USDCNH": 1.17,
+          "Gasoline": -1.08,
+          "GBPUSD": -0.09,
+          "USDCHF": 7.97
+        }
+      }
+    }
+  ],
+  "top_stable_candidates": [
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 10,
+        "bollinger_deviation": 1.5,
+        "rsi_length": 14,
+        "rsi_oversold": 20,
+        "rsi_overbought": 80,
+        "stop_percent": 0.2,
+        "reward_risk": 3.0
+      },
+      "train": {
+        "trades": 23,
+        "net_usd": 9.92,
+        "win_rate_pct": 26.1,
+        "profit_factor": 1.38,
+        "max_trade_drawdown_usd": 23.99,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 4.41,
+          "USDJPY": -3.99,
+          "USDCAD": 6.09,
+          "AUDUSD": -1.41,
+          "NZDUSD": -0.09,
+          "USDCNH": -2.82,
+          "Gasoline": -0.19,
+          "GBPUSD": -0.15,
+          "USDCHF": 8.07
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 23,
+        "net_usd": 1.51,
+        "win_rate_pct": 21.7,
+        "profit_factor": 1.05,
+        "max_trade_drawdown_usd": 27.21,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 4.41,
+          "USDJPY": -3.99,
+          "USDCAD": 6.09,
+          "AUDUSD": -1.41,
+          "NZDUSD": -0.09,
+          "USDCNH": -3.15,
+          "Gasoline": -0.23,
+          "GBPUSD": -0.15,
+          "USDCHF": 0.03
+        }
+      },
+      "holdout": {
+        "trades": 24,
+        "net_usd": 27.41,
+        "win_rate_pct": 33.3,
+        "profit_factor": 2.54,
+        "max_trade_drawdown_usd": 4.96,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 6.0,
+          "USDCAD": 6.02,
+          "AUDUSD": -1.41,
+          "NZDUSD": 1.07,
+          "USDCNH": 1.83,
+          "Gasoline": -0.41,
+          "GBPUSD": 2.57,
+          "USDCHF": 13.99
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 25,
+        "net_usd": 24.95,
+        "win_rate_pct": 32.0,
+        "profit_factor": 2.25,
+        "max_trade_drawdown_usd": 6.32,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 6.0,
+          "USDCAD": 6.02,
+          "AUDUSD": -1.41,
+          "NZDUSD": 1.07,
+          "USDCNH": -0.5,
+          "Gasoline": -0.54,
+          "GBPUSD": 2.57,
+          "USDCHF": 13.99
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 20,
+        "bollinger_deviation": 1.5,
+        "rsi_length": 7,
+        "rsi_oversold": 30,
+        "rsi_overbought": 80,
+        "stop_percent": 0.2,
+        "reward_risk": 3.0
+      },
+      "train": {
+        "trades": 75,
+        "net_usd": 7.34,
+        "win_rate_pct": 25.3,
+        "profit_factor": 1.11,
+        "max_trade_drawdown_usd": 37.7,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 8.82,
+          "USDJPY": -3.64,
+          "USDCAD": -11.53,
+          "AUDUSD": -9.82,
+          "NZDUSD": 5.75,
+          "USDCNH": -5.45,
+          "Gasoline": -0.65,
+          "GBPUSD": 15.77,
+          "USDCHF": 8.1
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 79,
+        "net_usd": 0.86,
+        "win_rate_pct": 20.3,
+        "profit_factor": 1.01,
+        "max_trade_drawdown_usd": 44.37,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 7.8,
+          "USDJPY": -3.64,
+          "USDCAD": -12.44,
+          "AUDUSD": -11.29,
+          "NZDUSD": 5.69,
+          "USDCNH": -7.44,
+          "Gasoline": -1.69,
+          "GBPUSD": 15.77,
+          "USDCHF": 8.1
+        }
+      },
+      "holdout": {
+        "trades": 74,
+        "net_usd": 26.0,
+        "win_rate_pct": 23.0,
+        "profit_factor": 1.41,
+        "max_trade_drawdown_usd": 16.74,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 2.11,
+          "USDJPY": 11.95,
+          "USDCAD": 4.04,
+          "AUDUSD": -0.07,
+          "NZDUSD": -3.48,
+          "USDCNH": -0.44,
+          "Gasoline": -1.28,
+          "GBPUSD": 5.27,
+          "USDCHF": 7.91
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 75,
+        "net_usd": 22.99,
+        "win_rate_pct": 21.3,
+        "profit_factor": 1.35,
+        "max_trade_drawdown_usd": 19.6,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 2.11,
+          "USDJPY": 11.95,
+          "USDCAD": 4.0,
+          "AUDUSD": -0.07,
+          "NZDUSD": -3.48,
+          "USDCNH": -2.78,
+          "Gasoline": -1.93,
+          "GBPUSD": 5.27,
+          "USDCHF": 7.91
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 20,
+        "bollinger_deviation": 2.0,
+        "rsi_length": 14,
+        "rsi_oversold": 20,
+        "rsi_overbought": 80,
+        "stop_percent": 0.2,
+        "reward_risk": 2.0
+      },
+      "train": {
+        "trades": 23,
+        "net_usd": 18.57,
+        "win_rate_pct": 39.1,
+        "profit_factor": 2.03,
+        "max_trade_drawdown_usd": 10.57,
+        "active_symbols": 8,
+        "by_symbol": {
+          "EURUSD": 8.92,
+          "USDJPY": 5.98,
+          "USDCAD": 0,
+          "AUDUSD": -1.41,
+          "NZDUSD": -1.21,
+          "USDCNH": -2.82,
+          "Gasoline": -0.25,
+          "GBPUSD": -2.78,
+          "USDCHF": 12.14
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 23,
+        "net_usd": 12.15,
+        "win_rate_pct": 34.8,
+        "profit_factor": 1.6,
+        "max_trade_drawdown_usd": 13.76,
+        "active_symbols": 8,
+        "by_symbol": {
+          "EURUSD": 8.92,
+          "USDJPY": 5.98,
+          "USDCAD": 0,
+          "AUDUSD": -1.41,
+          "NZDUSD": -1.2,
+          "USDCNH": -3.16,
+          "Gasoline": -0.31,
+          "GBPUSD": -2.78,
+          "USDCHF": 6.11
+        }
+      },
+      "holdout": {
+        "trades": 25,
+        "net_usd": 18.98,
+        "win_rate_pct": 40.0,
+        "profit_factor": 2.07,
+        "max_trade_drawdown_usd": 8.24,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 7.97,
+          "USDCAD": 4.01,
+          "AUDUSD": -1.41,
+          "NZDUSD": -0.04,
+          "USDCNH": 3.17,
+          "Gasoline": -0.35,
+          "GBPUSD": -0.09,
+          "USDCHF": 7.97
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 26,
+        "net_usd": 16.87,
+        "win_rate_pct": 38.5,
+        "profit_factor": 1.85,
+        "max_trade_drawdown_usd": 10.27,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 7.97,
+          "USDCAD": 4.01,
+          "AUDUSD": -1.41,
+          "NZDUSD": -0.04,
+          "USDCNH": 1.17,
+          "Gasoline": -0.46,
+          "GBPUSD": -0.09,
+          "USDCHF": 7.97
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 10,
+        "bollinger_deviation": 1.5,
+        "rsi_length": 14,
+        "rsi_oversold": 20,
+        "rsi_overbought": 80,
+        "stop_percent": 0.2,
+        "reward_risk": 2.0
+      },
+      "train": {
+        "trades": 24,
+        "net_usd": 20.64,
+        "win_rate_pct": 41.7,
+        "profit_factor": 2.04,
+        "max_trade_drawdown_usd": 8.57,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 8.92,
+          "USDJPY": 5.98,
+          "USDCAD": 4.06,
+          "AUDUSD": -1.41,
+          "NZDUSD": -1.21,
+          "USDCNH": -2.82,
+          "Gasoline": -0.19,
+          "GBPUSD": -2.78,
+          "USDCHF": 10.09
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 24,
+        "net_usd": 14.24,
+        "win_rate_pct": 37.5,
+        "profit_factor": 1.64,
+        "max_trade_drawdown_usd": 13.76,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 8.92,
+          "USDJPY": 5.98,
+          "USDCAD": 4.06,
+          "AUDUSD": -1.41,
+          "NZDUSD": -1.2,
+          "USDCNH": -3.15,
+          "Gasoline": -0.23,
+          "GBPUSD": -2.78,
+          "USDCHF": 4.06
+        }
+      },
+      "holdout": {
+        "trades": 26,
+        "net_usd": 18.92,
+        "win_rate_pct": 38.5,
+        "profit_factor": 2.07,
+        "max_trade_drawdown_usd": 8.36,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 7.97,
+          "USDCAD": 4.01,
+          "AUDUSD": -1.41,
+          "NZDUSD": -0.04,
+          "USDCNH": 3.17,
+          "Gasoline": -0.41,
+          "GBPUSD": -0.09,
+          "USDCHF": 7.97
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 27,
+        "net_usd": 16.79,
+        "win_rate_pct": 37.0,
+        "profit_factor": 1.84,
+        "max_trade_drawdown_usd": 10.43,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 7.97,
+          "USDCAD": 4.01,
+          "AUDUSD": -1.41,
+          "NZDUSD": -0.04,
+          "USDCNH": 1.17,
+          "Gasoline": -0.54,
+          "GBPUSD": -0.09,
+          "USDCHF": 7.97
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 20,
+        "bollinger_deviation": 1.5,
+        "rsi_length": 14,
+        "rsi_oversold": 20,
+        "rsi_overbought": 80,
+        "stop_percent": 0.2,
+        "reward_risk": 2.0
+      },
+      "train": {
+        "trades": 24,
+        "net_usd": 16.52,
+        "win_rate_pct": 37.5,
+        "profit_factor": 1.83,
+        "max_trade_drawdown_usd": 10.57,
+        "active_symbols": 8,
+        "by_symbol": {
+          "EURUSD": 8.92,
+          "USDJPY": 5.98,
+          "USDCAD": 0,
+          "AUDUSD": -1.41,
+          "NZDUSD": -1.21,
+          "USDCNH": -2.82,
+          "Gasoline": -0.25,
+          "GBPUSD": -2.78,
+          "USDCHF": 10.09
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 25,
+        "net_usd": 7.84,
+        "win_rate_pct": 32.0,
+        "profit_factor": 1.32,
+        "max_trade_drawdown_usd": 16.03,
+        "active_symbols": 8,
+        "by_symbol": {
+          "EURUSD": 8.92,
+          "USDJPY": 5.98,
+          "USDCAD": 0,
+          "AUDUSD": -1.41,
+          "NZDUSD": -1.2,
+          "USDCNH": -5.43,
+          "Gasoline": -0.31,
+          "GBPUSD": -2.78,
+          "USDCHF": 4.06
+        }
+      },
+      "holdout": {
+        "trades": 34,
+        "net_usd": 16.49,
+        "win_rate_pct": 29.4,
+        "profit_factor": 1.82,
+        "max_trade_drawdown_usd": 10.74,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 7.97,
+          "USDCAD": 2.0,
+          "AUDUSD": -1.41,
+          "NZDUSD": -0.04,
+          "USDCNH": 3.17,
+          "Gasoline": -0.83,
+          "GBPUSD": -0.09,
+          "USDCHF": 7.97
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 35,
+        "net_usd": 14.24,
+        "win_rate_pct": 28.6,
+        "profit_factor": 1.63,
+        "max_trade_drawdown_usd": 12.9,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 7.97,
+          "USDCAD": 2.0,
+          "AUDUSD": -1.41,
+          "NZDUSD": -0.04,
+          "USDCNH": 1.17,
+          "Gasoline": -1.08,
+          "GBPUSD": -0.09,
+          "USDCHF": 7.97
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 20,
+        "bollinger_deviation": 2.0,
+        "rsi_length": 7,
+        "rsi_oversold": 30,
+        "rsi_overbought": 80,
+        "stop_percent": 0.2,
+        "reward_risk": 3.0
+      },
+      "train": {
+        "trades": 51,
+        "net_usd": 9.0,
+        "win_rate_pct": 25.5,
+        "profit_factor": 1.19,
+        "max_trade_drawdown_usd": 26.07,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 2.11,
+          "USDJPY": -3.99,
+          "USDCAD": -4.07,
+          "AUDUSD": -7.03,
+          "NZDUSD": 3.24,
+          "USDCNH": -4.83,
+          "Gasoline": -0.33,
+          "GBPUSD": 15.77,
+          "USDCHF": 8.13
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 52,
+        "net_usd": 6.11,
+        "win_rate_pct": 21.2,
+        "profit_factor": 1.12,
+        "max_trade_drawdown_usd": 28.09,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 2.16,
+          "USDJPY": -3.99,
+          "USDCAD": -4.07,
+          "AUDUSD": -8.5,
+          "NZDUSD": 3.24,
+          "USDCNH": -5.63,
+          "Gasoline": -1.0,
+          "GBPUSD": 15.77,
+          "USDCHF": 8.13
+        }
+      },
+      "holdout": {
+        "trades": 44,
+        "net_usd": 9.81,
+        "win_rate_pct": 22.7,
+        "profit_factor": 1.21,
+        "max_trade_drawdown_usd": 10.74,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.31,
+          "USDJPY": 7.95,
+          "USDCAD": -4.03,
+          "AUDUSD": -1.42,
+          "NZDUSD": -1.19,
+          "USDCNH": -0.44,
+          "Gasoline": -0.6,
+          "GBPUSD": -0.1,
+          "USDCHF": 11.95
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 44,
+        "net_usd": 9.3,
+        "win_rate_pct": 22.7,
+        "profit_factor": 1.2,
+        "max_trade_drawdown_usd": 12.77,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.31,
+          "USDJPY": 7.95,
+          "USDCAD": -4.03,
+          "AUDUSD": -1.42,
+          "NZDUSD": -1.19,
+          "USDCNH": -0.78,
+          "Gasoline": -0.77,
+          "GBPUSD": -0.1,
+          "USDCHF": 11.95
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 20,
+        "bollinger_deviation": 2.5,
+        "rsi_length": 14,
+        "rsi_oversold": 20,
+        "rsi_overbought": 80,
+        "stop_percent": 0.2,
+        "reward_risk": 3.0
+      },
+      "train": {
+        "trades": 11,
+        "net_usd": 10.91,
+        "win_rate_pct": 27.3,
+        "profit_factor": 2.19,
+        "max_trade_drawdown_usd": 9.13,
+        "active_symbols": 6,
+        "by_symbol": {
+          "EURUSD": 0,
+          "USDJPY": -1.99,
+          "USDCAD": 0,
+          "AUDUSD": 0,
+          "NZDUSD": -2.28,
+          "USDCNH": -2.01,
+          "Gasoline": -0.19,
+          "GBPUSD": 5.22,
+          "USDCHF": 12.16
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 11,
+        "net_usd": 2.83,
+        "win_rate_pct": 18.2,
+        "profit_factor": 1.25,
+        "max_trade_drawdown_usd": 11.2,
+        "active_symbols": 6,
+        "by_symbol": {
+          "EURUSD": 0,
+          "USDJPY": -1.99,
+          "USDCAD": 0,
+          "AUDUSD": 0,
+          "NZDUSD": -2.28,
+          "USDCNH": -2.01,
+          "Gasoline": -0.23,
+          "GBPUSD": 5.22,
+          "USDCHF": 4.12
+        }
+      },
+      "holdout": {
+        "trades": 17,
+        "net_usd": 9.61,
+        "win_rate_pct": 29.4,
+        "profit_factor": 1.62,
+        "max_trade_drawdown_usd": 6.12,
+        "active_symbols": 8,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 0,
+          "USDCAD": -2.01,
+          "AUDUSD": -1.41,
+          "NZDUSD": 1.07,
+          "USDCNH": 3.83,
+          "Gasoline": -0.23,
+          "GBPUSD": -5.39,
+          "USDCHF": 15.99
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 17,
+        "net_usd": 9.2,
+        "win_rate_pct": 29.4,
+        "profit_factor": 1.59,
+        "max_trade_drawdown_usd": 6.12,
+        "active_symbols": 8,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 0,
+          "USDCAD": -2.01,
+          "AUDUSD": -1.41,
+          "NZDUSD": 1.07,
+          "USDCNH": 3.5,
+          "Gasoline": -0.31,
+          "GBPUSD": -5.39,
+          "USDCHF": 16.0
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 20,
+        "bollinger_deviation": 2.0,
+        "rsi_length": 14,
+        "rsi_oversold": 30,
+        "rsi_overbought": 80,
+        "stop_percent": 0.2,
+        "reward_risk": 2.0
+      },
+      "train": {
+        "trades": 35,
+        "net_usd": 4.24,
+        "win_rate_pct": 28.6,
+        "profit_factor": 1.13,
+        "max_trade_drawdown_usd": 18.03,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 13.39,
+          "USDJPY": 3.98,
+          "USDCAD": -6.08,
+          "AUDUSD": -2.81,
+          "NZDUSD": -1.21,
+          "USDCNH": -3.29,
+          "Gasoline": -0.38,
+          "GBPUSD": -5.47,
+          "USDCHF": 6.11
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 35,
+        "net_usd": 3.6,
+        "win_rate_pct": 25.7,
+        "profit_factor": 1.11,
+        "max_trade_drawdown_usd": 17.81,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 13.39,
+          "USDJPY": 3.98,
+          "USDCAD": -6.08,
+          "AUDUSD": -2.81,
+          "NZDUSD": -1.2,
+          "USDCNH": -3.62,
+          "Gasoline": -0.69,
+          "GBPUSD": -5.47,
+          "USDCHF": 6.11
+        }
+      },
+      "holdout": {
+        "trades": 35,
+        "net_usd": 8.66,
+        "win_rate_pct": 34.3,
+        "profit_factor": 1.27,
+        "max_trade_drawdown_usd": 18.96,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 3.98,
+          "USDCAD": 2.0,
+          "AUDUSD": -1.41,
+          "NZDUSD": 4.43,
+          "USDCNH": 1.17,
+          "Gasoline": -0.41,
+          "GBPUSD": -2.76,
+          "USDCHF": 3.9
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 35,
+        "net_usd": 8.52,
+        "win_rate_pct": 34.3,
+        "profit_factor": 1.26,
+        "max_trade_drawdown_usd": 17.01,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 3.98,
+          "USDCAD": 2.0,
+          "AUDUSD": -1.41,
+          "NZDUSD": 4.43,
+          "USDCNH": 1.17,
+          "Gasoline": -0.54,
+          "GBPUSD": -2.76,
+          "USDCHF": 3.9
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 20,
+        "bollinger_deviation": 1.5,
+        "rsi_length": 14,
+        "rsi_oversold": 20,
+        "rsi_overbought": 70,
+        "stop_percent": 0.2,
+        "reward_risk": 3.0
+      },
+      "train": {
+        "trades": 51,
+        "net_usd": 42.66,
+        "win_rate_pct": 31.4,
+        "profit_factor": 2.05,
+        "max_trade_drawdown_usd": 30.84,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 15.6,
+          "USDJPY": 1.91,
+          "USDCAD": 6.99,
+          "AUDUSD": -7.02,
+          "NZDUSD": 2.06,
+          "USDCNH": 4.73,
+          "Gasoline": -0.64,
+          "GBPUSD": 5.13,
+          "USDCHF": 13.89
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 52,
+        "net_usd": 33.62,
+        "win_rate_pct": 28.8,
+        "profit_factor": 1.75,
+        "max_trade_drawdown_usd": 34.89,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 15.6,
+          "USDJPY": 1.9,
+          "USDCAD": 6.12,
+          "AUDUSD": -7.02,
+          "NZDUSD": 2.06,
+          "USDCNH": 4.73,
+          "Gasoline": -0.77,
+          "GBPUSD": 5.13,
+          "USDCHF": 5.86
+        }
+      },
+      "holdout": {
+        "trades": 52,
+        "net_usd": 9.56,
+        "win_rate_pct": 21.2,
+        "profit_factor": 1.2,
+        "max_trade_drawdown_usd": 12.15,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -13.48,
+          "USDJPY": 11.95,
+          "USDCAD": 3.56,
+          "AUDUSD": -0.01,
+          "NZDUSD": 1.07,
+          "USDCNH": 1.83,
+          "Gasoline": -1.09,
+          "GBPUSD": -0.12,
+          "USDCHF": 5.85
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 53,
+        "net_usd": 6.93,
+        "win_rate_pct": 20.8,
+        "profit_factor": 1.14,
+        "max_trade_drawdown_usd": 12.42,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -13.48,
+          "USDJPY": 11.95,
+          "USDCAD": 3.56,
+          "AUDUSD": -0.01,
+          "NZDUSD": 1.07,
+          "USDCNH": -0.5,
+          "Gasoline": -1.39,
+          "GBPUSD": -0.12,
+          "USDCHF": 5.86
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 20,
+        "bollinger_deviation": 2.0,
+        "rsi_length": 14,
+        "rsi_oversold": 20,
+        "rsi_overbought": 80,
+        "stop_percent": 0.2,
+        "reward_risk": 1.5
+      },
+      "train": {
+        "trades": 23,
+        "net_usd": 9.42,
+        "win_rate_pct": 39.1,
+        "profit_factor": 1.52,
+        "max_trade_drawdown_usd": 12.59,
+        "active_symbols": 8,
+        "by_symbol": {
+          "EURUSD": 6.69,
+          "USDJPY": 3.98,
+          "USDCAD": 0,
+          "AUDUSD": -1.41,
+          "NZDUSD": -1.76,
+          "USDCNH": -2.82,
+          "Gasoline": -0.25,
+          "GBPUSD": -4.1,
+          "USDCHF": 9.09
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 23,
+        "net_usd": 4.01,
+        "win_rate_pct": 34.8,
+        "profit_factor": 1.2,
+        "max_trade_drawdown_usd": 15.79,
+        "active_symbols": 8,
+        "by_symbol": {
+          "EURUSD": 6.69,
+          "USDJPY": 3.98,
+          "USDCAD": 0,
+          "AUDUSD": -1.41,
+          "NZDUSD": -1.76,
+          "USDCNH": -3.16,
+          "Gasoline": -0.31,
+          "GBPUSD": -4.1,
+          "USDCHF": 4.07
+        }
+      },
+      "holdout": {
+        "trades": 27,
+        "net_usd": 6.08,
+        "win_rate_pct": 37.0,
+        "profit_factor": 1.28,
+        "max_trade_drawdown_usd": 8.85,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 5.98,
+          "USDCAD": 1.0,
+          "AUDUSD": -1.41,
+          "NZDUSD": -0.6,
+          "USDCNH": 0.17,
+          "Gasoline": -0.35,
+          "GBPUSD": -1.41,
+          "USDCHF": 4.95
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 28,
+        "net_usd": 3.96,
+        "win_rate_pct": 35.7,
+        "profit_factor": 1.17,
+        "max_trade_drawdown_usd": 10.88,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 5.98,
+          "USDCAD": 1.0,
+          "AUDUSD": -1.41,
+          "NZDUSD": -0.6,
+          "USDCNH": -1.83,
+          "Gasoline": -0.46,
+          "GBPUSD": -1.41,
+          "USDCHF": 4.96
+        }
+      }
+    }
+  ],
+  "top_balanced_stress_candidates": [
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 10,
+        "bollinger_deviation": 1.5,
+        "rsi_length": 14,
+        "rsi_oversold": 20,
+        "rsi_overbought": 80,
+        "stop_percent": 0.2,
+        "reward_risk": 2.0
+      },
+      "train": {
+        "trades": 24,
+        "net_usd": 20.64,
+        "win_rate_pct": 41.7,
+        "profit_factor": 2.04,
+        "max_trade_drawdown_usd": 8.57,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 8.92,
+          "USDJPY": 5.98,
+          "USDCAD": 4.06,
+          "AUDUSD": -1.41,
+          "NZDUSD": -1.21,
+          "USDCNH": -2.82,
+          "Gasoline": -0.19,
+          "GBPUSD": -2.78,
+          "USDCHF": 10.09
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 24,
+        "net_usd": 14.24,
+        "win_rate_pct": 37.5,
+        "profit_factor": 1.64,
+        "max_trade_drawdown_usd": 13.76,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 8.92,
+          "USDJPY": 5.98,
+          "USDCAD": 4.06,
+          "AUDUSD": -1.41,
+          "NZDUSD": -1.2,
+          "USDCNH": -3.15,
+          "Gasoline": -0.23,
+          "GBPUSD": -2.78,
+          "USDCHF": 4.06
+        }
+      },
+      "holdout": {
+        "trades": 26,
+        "net_usd": 18.92,
+        "win_rate_pct": 38.5,
+        "profit_factor": 2.07,
+        "max_trade_drawdown_usd": 8.36,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 7.97,
+          "USDCAD": 4.01,
+          "AUDUSD": -1.41,
+          "NZDUSD": -0.04,
+          "USDCNH": 3.17,
+          "Gasoline": -0.41,
+          "GBPUSD": -0.09,
+          "USDCHF": 7.97
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 27,
+        "net_usd": 16.79,
+        "win_rate_pct": 37.0,
+        "profit_factor": 1.84,
+        "max_trade_drawdown_usd": 10.43,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 7.97,
+          "USDCAD": 4.01,
+          "AUDUSD": -1.41,
+          "NZDUSD": -0.04,
+          "USDCNH": 1.17,
+          "Gasoline": -0.54,
+          "GBPUSD": -0.09,
+          "USDCHF": 7.97
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 20,
+        "bollinger_deviation": 2.0,
+        "rsi_length": 14,
+        "rsi_oversold": 20,
+        "rsi_overbought": 80,
+        "stop_percent": 0.2,
+        "reward_risk": 2.0
+      },
+      "train": {
+        "trades": 23,
+        "net_usd": 18.57,
+        "win_rate_pct": 39.1,
+        "profit_factor": 2.03,
+        "max_trade_drawdown_usd": 10.57,
+        "active_symbols": 8,
+        "by_symbol": {
+          "EURUSD": 8.92,
+          "USDJPY": 5.98,
+          "USDCAD": 0,
+          "AUDUSD": -1.41,
+          "NZDUSD": -1.21,
+          "USDCNH": -2.82,
+          "Gasoline": -0.25,
+          "GBPUSD": -2.78,
+          "USDCHF": 12.14
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 23,
+        "net_usd": 12.15,
+        "win_rate_pct": 34.8,
+        "profit_factor": 1.6,
+        "max_trade_drawdown_usd": 13.76,
+        "active_symbols": 8,
+        "by_symbol": {
+          "EURUSD": 8.92,
+          "USDJPY": 5.98,
+          "USDCAD": 0,
+          "AUDUSD": -1.41,
+          "NZDUSD": -1.2,
+          "USDCNH": -3.16,
+          "Gasoline": -0.31,
+          "GBPUSD": -2.78,
+          "USDCHF": 6.11
+        }
+      },
+      "holdout": {
+        "trades": 25,
+        "net_usd": 18.98,
+        "win_rate_pct": 40.0,
+        "profit_factor": 2.07,
+        "max_trade_drawdown_usd": 8.24,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 7.97,
+          "USDCAD": 4.01,
+          "AUDUSD": -1.41,
+          "NZDUSD": -0.04,
+          "USDCNH": 3.17,
+          "Gasoline": -0.35,
+          "GBPUSD": -0.09,
+          "USDCHF": 7.97
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 26,
+        "net_usd": 16.87,
+        "win_rate_pct": 38.5,
+        "profit_factor": 1.85,
+        "max_trade_drawdown_usd": 10.27,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 7.97,
+          "USDCAD": 4.01,
+          "AUDUSD": -1.41,
+          "NZDUSD": -0.04,
+          "USDCNH": 1.17,
+          "Gasoline": -0.46,
+          "GBPUSD": -0.09,
+          "USDCHF": 7.97
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 20,
+        "bollinger_deviation": 1.5,
+        "rsi_length": 14,
+        "rsi_oversold": 20,
+        "rsi_overbought": 80,
+        "stop_percent": 0.2,
+        "reward_risk": 2.0
+      },
+      "train": {
+        "trades": 24,
+        "net_usd": 16.52,
+        "win_rate_pct": 37.5,
+        "profit_factor": 1.83,
+        "max_trade_drawdown_usd": 10.57,
+        "active_symbols": 8,
+        "by_symbol": {
+          "EURUSD": 8.92,
+          "USDJPY": 5.98,
+          "USDCAD": 0,
+          "AUDUSD": -1.41,
+          "NZDUSD": -1.21,
+          "USDCNH": -2.82,
+          "Gasoline": -0.25,
+          "GBPUSD": -2.78,
+          "USDCHF": 10.09
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 25,
+        "net_usd": 7.84,
+        "win_rate_pct": 32.0,
+        "profit_factor": 1.32,
+        "max_trade_drawdown_usd": 16.03,
+        "active_symbols": 8,
+        "by_symbol": {
+          "EURUSD": 8.92,
+          "USDJPY": 5.98,
+          "USDCAD": 0,
+          "AUDUSD": -1.41,
+          "NZDUSD": -1.2,
+          "USDCNH": -5.43,
+          "Gasoline": -0.31,
+          "GBPUSD": -2.78,
+          "USDCHF": 4.06
+        }
+      },
+      "holdout": {
+        "trades": 34,
+        "net_usd": 16.49,
+        "win_rate_pct": 29.4,
+        "profit_factor": 1.82,
+        "max_trade_drawdown_usd": 10.74,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 7.97,
+          "USDCAD": 2.0,
+          "AUDUSD": -1.41,
+          "NZDUSD": -0.04,
+          "USDCNH": 3.17,
+          "Gasoline": -0.83,
+          "GBPUSD": -0.09,
+          "USDCHF": 7.97
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 35,
+        "net_usd": 14.24,
+        "win_rate_pct": 28.6,
+        "profit_factor": 1.63,
+        "max_trade_drawdown_usd": 12.9,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 7.97,
+          "USDCAD": 2.0,
+          "AUDUSD": -1.41,
+          "NZDUSD": -0.04,
+          "USDCNH": 1.17,
+          "Gasoline": -1.08,
+          "GBPUSD": -0.09,
+          "USDCHF": 7.97
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 20,
+        "bollinger_deviation": 1.5,
+        "rsi_length": 14,
+        "rsi_oversold": 20,
+        "rsi_overbought": 70,
+        "stop_percent": 0.2,
+        "reward_risk": 3.0
+      },
+      "train": {
+        "trades": 51,
+        "net_usd": 42.66,
+        "win_rate_pct": 31.4,
+        "profit_factor": 2.05,
+        "max_trade_drawdown_usd": 30.84,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 15.6,
+          "USDJPY": 1.91,
+          "USDCAD": 6.99,
+          "AUDUSD": -7.02,
+          "NZDUSD": 2.06,
+          "USDCNH": 4.73,
+          "Gasoline": -0.64,
+          "GBPUSD": 5.13,
+          "USDCHF": 13.89
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 52,
+        "net_usd": 33.62,
+        "win_rate_pct": 28.8,
+        "profit_factor": 1.75,
+        "max_trade_drawdown_usd": 34.89,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 15.6,
+          "USDJPY": 1.9,
+          "USDCAD": 6.12,
+          "AUDUSD": -7.02,
+          "NZDUSD": 2.06,
+          "USDCNH": 4.73,
+          "Gasoline": -0.77,
+          "GBPUSD": 5.13,
+          "USDCHF": 5.86
+        }
+      },
+      "holdout": {
+        "trades": 52,
+        "net_usd": 9.56,
+        "win_rate_pct": 21.2,
+        "profit_factor": 1.2,
+        "max_trade_drawdown_usd": 12.15,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -13.48,
+          "USDJPY": 11.95,
+          "USDCAD": 3.56,
+          "AUDUSD": -0.01,
+          "NZDUSD": 1.07,
+          "USDCNH": 1.83,
+          "Gasoline": -1.09,
+          "GBPUSD": -0.12,
+          "USDCHF": 5.85
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 53,
+        "net_usd": 6.93,
+        "win_rate_pct": 20.8,
+        "profit_factor": 1.14,
+        "max_trade_drawdown_usd": 12.42,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -13.48,
+          "USDJPY": 11.95,
+          "USDCAD": 3.56,
+          "AUDUSD": -0.01,
+          "NZDUSD": 1.07,
+          "USDCNH": -0.5,
+          "Gasoline": -1.39,
+          "GBPUSD": -0.12,
+          "USDCHF": 5.86
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 20,
+        "bollinger_deviation": 2.0,
+        "rsi_length": 7,
+        "rsi_oversold": 30,
+        "rsi_overbought": 80,
+        "stop_percent": 0.2,
+        "reward_risk": 3.0
+      },
+      "train": {
+        "trades": 51,
+        "net_usd": 9.0,
+        "win_rate_pct": 25.5,
+        "profit_factor": 1.19,
+        "max_trade_drawdown_usd": 26.07,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 2.11,
+          "USDJPY": -3.99,
+          "USDCAD": -4.07,
+          "AUDUSD": -7.03,
+          "NZDUSD": 3.24,
+          "USDCNH": -4.83,
+          "Gasoline": -0.33,
+          "GBPUSD": 15.77,
+          "USDCHF": 8.13
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 52,
+        "net_usd": 6.11,
+        "win_rate_pct": 21.2,
+        "profit_factor": 1.12,
+        "max_trade_drawdown_usd": 28.09,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 2.16,
+          "USDJPY": -3.99,
+          "USDCAD": -4.07,
+          "AUDUSD": -8.5,
+          "NZDUSD": 3.24,
+          "USDCNH": -5.63,
+          "Gasoline": -1.0,
+          "GBPUSD": 15.77,
+          "USDCHF": 8.13
+        }
+      },
+      "holdout": {
+        "trades": 44,
+        "net_usd": 9.81,
+        "win_rate_pct": 22.7,
+        "profit_factor": 1.21,
+        "max_trade_drawdown_usd": 10.74,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.31,
+          "USDJPY": 7.95,
+          "USDCAD": -4.03,
+          "AUDUSD": -1.42,
+          "NZDUSD": -1.19,
+          "USDCNH": -0.44,
+          "Gasoline": -0.6,
+          "GBPUSD": -0.1,
+          "USDCHF": 11.95
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 44,
+        "net_usd": 9.3,
+        "win_rate_pct": 22.7,
+        "profit_factor": 1.2,
+        "max_trade_drawdown_usd": 12.77,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.31,
+          "USDJPY": 7.95,
+          "USDCAD": -4.03,
+          "AUDUSD": -1.42,
+          "NZDUSD": -1.19,
+          "USDCNH": -0.78,
+          "Gasoline": -0.77,
+          "GBPUSD": -0.1,
+          "USDCHF": 11.95
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 20,
+        "bollinger_deviation": 2.0,
+        "rsi_length": 14,
+        "rsi_oversold": 20,
+        "rsi_overbought": 80,
+        "stop_percent": 0.2,
+        "reward_risk": 1.5
+      },
+      "train": {
+        "trades": 23,
+        "net_usd": 9.42,
+        "win_rate_pct": 39.1,
+        "profit_factor": 1.52,
+        "max_trade_drawdown_usd": 12.59,
+        "active_symbols": 8,
+        "by_symbol": {
+          "EURUSD": 6.69,
+          "USDJPY": 3.98,
+          "USDCAD": 0,
+          "AUDUSD": -1.41,
+          "NZDUSD": -1.76,
+          "USDCNH": -2.82,
+          "Gasoline": -0.25,
+          "GBPUSD": -4.1,
+          "USDCHF": 9.09
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 23,
+        "net_usd": 4.01,
+        "win_rate_pct": 34.8,
+        "profit_factor": 1.2,
+        "max_trade_drawdown_usd": 15.79,
+        "active_symbols": 8,
+        "by_symbol": {
+          "EURUSD": 6.69,
+          "USDJPY": 3.98,
+          "USDCAD": 0,
+          "AUDUSD": -1.41,
+          "NZDUSD": -1.76,
+          "USDCNH": -3.16,
+          "Gasoline": -0.31,
+          "GBPUSD": -4.1,
+          "USDCHF": 4.07
+        }
+      },
+      "holdout": {
+        "trades": 27,
+        "net_usd": 6.08,
+        "win_rate_pct": 37.0,
+        "profit_factor": 1.28,
+        "max_trade_drawdown_usd": 8.85,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 5.98,
+          "USDCAD": 1.0,
+          "AUDUSD": -1.41,
+          "NZDUSD": -0.6,
+          "USDCNH": 0.17,
+          "Gasoline": -0.35,
+          "GBPUSD": -1.41,
+          "USDCHF": 4.95
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 28,
+        "net_usd": 3.96,
+        "win_rate_pct": 35.7,
+        "profit_factor": 1.17,
+        "max_trade_drawdown_usd": 10.88,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 5.98,
+          "USDCAD": 1.0,
+          "AUDUSD": -1.41,
+          "NZDUSD": -0.6,
+          "USDCNH": -1.83,
+          "Gasoline": -0.46,
+          "GBPUSD": -1.41,
+          "USDCHF": 4.96
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 10,
+        "bollinger_deviation": 1.5,
+        "rsi_length": 14,
+        "rsi_oversold": 20,
+        "rsi_overbought": 80,
+        "stop_percent": 0.2,
+        "reward_risk": 1.5
+      },
+      "train": {
+        "trades": 24,
+        "net_usd": 10.48,
+        "win_rate_pct": 41.7,
+        "profit_factor": 1.53,
+        "max_trade_drawdown_usd": 10.58,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 6.69,
+          "USDJPY": 3.98,
+          "USDCAD": 3.04,
+          "AUDUSD": -1.41,
+          "NZDUSD": -1.76,
+          "USDCNH": -2.82,
+          "Gasoline": -0.19,
+          "GBPUSD": -4.1,
+          "USDCHF": 7.05
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 24,
+        "net_usd": 5.08,
+        "win_rate_pct": 37.5,
+        "profit_factor": 1.23,
+        "max_trade_drawdown_usd": 15.79,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 6.69,
+          "USDJPY": 3.98,
+          "USDCAD": 3.04,
+          "AUDUSD": -1.41,
+          "NZDUSD": -1.76,
+          "USDCNH": -3.15,
+          "Gasoline": -0.23,
+          "GBPUSD": -4.1,
+          "USDCHF": 2.02
+        }
+      },
+      "holdout": {
+        "trades": 28,
+        "net_usd": 6.02,
+        "win_rate_pct": 35.7,
+        "profit_factor": 1.28,
+        "max_trade_drawdown_usd": 8.96,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 5.98,
+          "USDCAD": 1.0,
+          "AUDUSD": -1.41,
+          "NZDUSD": -0.6,
+          "USDCNH": 0.17,
+          "Gasoline": -0.41,
+          "GBPUSD": -1.41,
+          "USDCHF": 4.95
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 29,
+        "net_usd": 3.89,
+        "win_rate_pct": 34.5,
+        "profit_factor": 1.16,
+        "max_trade_drawdown_usd": 11.03,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 5.98,
+          "USDCAD": 1.0,
+          "AUDUSD": -1.41,
+          "NZDUSD": -0.6,
+          "USDCNH": -1.83,
+          "Gasoline": -0.54,
+          "GBPUSD": -1.41,
+          "USDCHF": 4.96
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 20,
+        "bollinger_deviation": 2.0,
+        "rsi_length": 14,
+        "rsi_oversold": 30,
+        "rsi_overbought": 80,
+        "stop_percent": 0.2,
+        "reward_risk": 2.0
+      },
+      "train": {
+        "trades": 35,
+        "net_usd": 4.24,
+        "win_rate_pct": 28.6,
+        "profit_factor": 1.13,
+        "max_trade_drawdown_usd": 18.03,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 13.39,
+          "USDJPY": 3.98,
+          "USDCAD": -6.08,
+          "AUDUSD": -2.81,
+          "NZDUSD": -1.21,
+          "USDCNH": -3.29,
+          "Gasoline": -0.38,
+          "GBPUSD": -5.47,
+          "USDCHF": 6.11
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 35,
+        "net_usd": 3.6,
+        "win_rate_pct": 25.7,
+        "profit_factor": 1.11,
+        "max_trade_drawdown_usd": 17.81,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 13.39,
+          "USDJPY": 3.98,
+          "USDCAD": -6.08,
+          "AUDUSD": -2.81,
+          "NZDUSD": -1.2,
+          "USDCNH": -3.62,
+          "Gasoline": -0.69,
+          "GBPUSD": -5.47,
+          "USDCHF": 6.11
+        }
+      },
+      "holdout": {
+        "trades": 35,
+        "net_usd": 8.66,
+        "win_rate_pct": 34.3,
+        "profit_factor": 1.27,
+        "max_trade_drawdown_usd": 18.96,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 3.98,
+          "USDCAD": 2.0,
+          "AUDUSD": -1.41,
+          "NZDUSD": 4.43,
+          "USDCNH": 1.17,
+          "Gasoline": -0.41,
+          "GBPUSD": -2.76,
+          "USDCHF": 3.9
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 35,
+        "net_usd": 8.52,
+        "win_rate_pct": 34.3,
+        "profit_factor": 1.26,
+        "max_trade_drawdown_usd": 17.01,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.26,
+          "USDJPY": 3.98,
+          "USDCAD": 2.0,
+          "AUDUSD": -1.41,
+          "NZDUSD": 4.43,
+          "USDCNH": 1.17,
+          "Gasoline": -0.54,
+          "GBPUSD": -2.76,
+          "USDCHF": 3.9
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 10,
+        "bollinger_deviation": 1.5,
+        "rsi_length": 14,
+        "rsi_oversold": 20,
+        "rsi_overbought": 70,
+        "stop_percent": 0.2,
+        "reward_risk": 3.0
+      },
+      "train": {
+        "trades": 50,
+        "net_usd": 22.84,
+        "win_rate_pct": 30.0,
+        "profit_factor": 1.46,
+        "max_trade_drawdown_usd": 36.22,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 11.1,
+          "USDJPY": -3.58,
+          "USDCAD": 6.96,
+          "AUDUSD": -7.02,
+          "NZDUSD": 2.06,
+          "USDCNH": -2.82,
+          "Gasoline": -0.44,
+          "GBPUSD": 2.46,
+          "USDCHF": 14.12
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 52,
+        "net_usd": 11.49,
+        "win_rate_pct": 26.9,
+        "profit_factor": 1.2,
+        "max_trade_drawdown_usd": 42.45,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 11.1,
+          "USDJPY": -3.58,
+          "USDCAD": 6.09,
+          "AUDUSD": -7.02,
+          "NZDUSD": 2.06,
+          "USDCNH": -3.15,
+          "Gasoline": -0.54,
+          "GBPUSD": 2.46,
+          "USDCHF": 4.06
+        }
+      },
+      "holdout": {
+        "trades": 42,
+        "net_usd": 6.05,
+        "win_rate_pct": 23.8,
+        "profit_factor": 1.14,
+        "max_trade_drawdown_usd": 13.03,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -13.48,
+          "USDJPY": 5.94,
+          "USDCAD": 5.56,
+          "AUDUSD": -0.01,
+          "NZDUSD": 1.07,
+          "USDCNH": 1.83,
+          "Gasoline": -0.6,
+          "GBPUSD": -0.12,
+          "USDCHF": 5.85
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 43,
+        "net_usd": 3.55,
+        "win_rate_pct": 23.3,
+        "profit_factor": 1.08,
+        "max_trade_drawdown_usd": 13.19,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -13.48,
+          "USDJPY": 5.94,
+          "USDCAD": 5.56,
+          "AUDUSD": -0.01,
+          "NZDUSD": 1.07,
+          "USDCNH": -0.5,
+          "Gasoline": -0.77,
+          "GBPUSD": -0.12,
+          "USDCHF": 5.86
+        }
+      }
+    },
+    {
+      "parameters": {
+        "timeframe": "H1",
+        "bollinger_length": 20,
+        "bollinger_deviation": 1.5,
+        "rsi_length": 7,
+        "rsi_oversold": 30,
+        "rsi_overbought": 80,
+        "stop_percent": 0.2,
+        "reward_risk": 2.0
+      },
+      "train": {
+        "trades": 89,
+        "net_usd": 17.94,
+        "win_rate_pct": 33.7,
+        "profit_factor": 1.25,
+        "max_trade_drawdown_usd": 25.68,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 16.83,
+          "USDJPY": 2.35,
+          "USDCAD": -11.53,
+          "AUDUSD": -8.17,
+          "NZDUSD": 8.9,
+          "USDCNH": -5.45,
+          "Gasoline": -0.84,
+          "GBPUSD": 7.82,
+          "USDCHF": 8.03
+        }
+      },
+      "train_1_5x_spread": {
+        "trades": 92,
+        "net_usd": 12.67,
+        "win_rate_pct": 29.3,
+        "profit_factor": 1.16,
+        "max_trade_drawdown_usd": 27.27,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": 16.78,
+          "USDJPY": 2.35,
+          "USDCAD": -12.44,
+          "AUDUSD": -9.64,
+          "NZDUSD": 8.9,
+          "USDCNH": -7.44,
+          "Gasoline": -1.69,
+          "GBPUSD": 7.82,
+          "USDCHF": 8.03
+        }
+      },
+      "holdout": {
+        "trades": 80,
+        "net_usd": 9.96,
+        "win_rate_pct": 27.5,
+        "profit_factor": 1.15,
+        "max_trade_drawdown_usd": 16.25,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.35,
+          "USDJPY": 5.96,
+          "USDCAD": 5.97,
+          "AUDUSD": -2.88,
+          "NZDUSD": 1.01,
+          "USDCNH": 0.47,
+          "Gasoline": -1.34,
+          "GBPUSD": -2.77,
+          "USDCHF": 5.89
+        }
+      },
+      "holdout_1_5x_spread": {
+        "trades": 82,
+        "net_usd": 3.48,
+        "win_rate_pct": 24.4,
+        "profit_factor": 1.05,
+        "max_trade_drawdown_usd": 19.88,
+        "active_symbols": 9,
+        "by_symbol": {
+          "EURUSD": -2.35,
+          "USDJPY": 5.96,
+          "USDCAD": 5.97,
+          "AUDUSD": -4.28,
+          "NZDUSD": 1.01,
+          "USDCNH": -4.02,
+          "Gasoline": -1.93,
+          "GBPUSD": -2.77,
+          "USDCHF": 5.89
+        }
+      }
+    }
+  ],
+  "limitations": [
+    "Trying many candidates and then examining the same holdout introduces selection bias; holdout-ranked winners are exploratory, not validation.",
+    "The hourly snapshot has only 400 bars per symbol, so results are based on short histories and modest trade counts.",
+    "OHLC bars cannot determine intrabar order when stop and target are both crossed, so the simulator assumes stop first.",
+    "Historical spread by bar, commissions, swaps, latency, account position limits, and broker rejections are not fully simulated."
+  ]
+}

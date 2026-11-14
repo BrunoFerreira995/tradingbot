@@ -1,0 +1,9 @@
+{
+  "lookback": 252,
+  "volatilityPeriod": 60,
+  "minimumScore": 0.5,
+  "stopAtr": 4,
+  "rewardRisk": 6,
+  "annualRiskBudget": 0.1,
+  "maximumGrossLeverage": 2
+}

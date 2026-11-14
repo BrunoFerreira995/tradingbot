@@ -161,6 +161,18 @@ function sellingSetup(): number[] {
 }
 
 describe('evaluateMeanReversion', () => {
+  test('uses the researched BB/RSI defaults', () => {
+    expect(defaultMeanReversionConfig).toMatchObject({
+      bollingerLength: 20,
+      bollingerMultiplier: 2,
+      rsiLength: 14,
+      rsiOversold: 20,
+      rsiOverbought: 80,
+      stopLossPercent: 0.2,
+      takeProfitPercent: 0.4,
+    });
+  });
+
   test('stays silent while the indicators are still warming up', () => {
     expect(evaluateMeanReversion(bars([1, 2, 3, 4, 5]), config, 3)).toBeNull();
   });
@@ -198,8 +210,8 @@ describe('evaluateMeanReversion', () => {
 
   test('converts the stop percentages into price distances', () => {
     const decision = evaluateMeanReversion(bars(buyingSetup()), config, 2000);
-    expect(decision?.stopDistance).toBeCloseTo(20, 8);
-    expect(decision?.takeProfitDistance).toBeCloseTo(30, 8);
+    expect(decision?.stopDistance).toBeCloseTo(4, 8);
+    expect(decision?.takeProfitDistance).toBeCloseTo(8, 8);
   });
 
   test('ignores the forming bar when deciding', () => {

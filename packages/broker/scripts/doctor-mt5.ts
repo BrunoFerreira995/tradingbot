@@ -57,14 +57,6 @@ if (!descriptor) {
     descriptor.protocol === 'aurum-file-queue/1',
     `${descriptor.protocol} | build ${descriptor.build} | login ${descriptor.login} | ${descriptor.server}`,
   );
-  const wanted = process.env.MT5_LIVE_ACK;
-  if (wanted && String(descriptor.login) !== wanted)
-    check(
-      'account ack',
-      false,
-      `terminal is ${descriptor.login}, MT5_LIVE_ACK is ${wanted}`,
-    );
-  else if (wanted) check('account ack', true, `matches MT5_LIVE_ACK=${wanted}`);
 }
 
 const heartbeat = await bridge.heartbeat();
@@ -88,6 +80,12 @@ if (!heartbeat) {
     heartbeat.connected,
     `login ${heartbeat.login} on ${heartbeat.server}`,
   );
+  if (heartbeat.tradeMode === 2) {
+    const wanted = process.env.MT5_LIVE_ACK;
+    check('account ack', wanted === String(heartbeat.login),
+      wanted === String(heartbeat.login) ? 'real account acknowledged' : `real account ${heartbeat.login} needs matching MT5_LIVE_ACK`,
+      'Set MT5_LIVE_ACK to the exact real-account login before trading');
+  }
   check(
     'trade allowed',
     heartbeat.tradeAllowed,

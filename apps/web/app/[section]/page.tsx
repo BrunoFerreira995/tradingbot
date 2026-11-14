@@ -3,6 +3,7 @@ import { Dashboard } from '../../components/dashboard';
 const sections = new Set([
   'dashboard',
   'trading',
+  'cycles',
   'signals',
   'orders',
   'positions',

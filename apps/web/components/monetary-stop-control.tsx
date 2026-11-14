@@ -5,10 +5,12 @@ export function MonetaryStopControl({
   amount,
   currency,
   connected,
+  needsConfig,
 }: {
   amount?: number | null;
   currency: string;
   connected: boolean;
+  needsConfig?: boolean;
 }) {
   const [draft, setDraft] = useState(
     amount == null ? '' : String(amount).replace('.', ','),
@@ -89,11 +91,16 @@ export function MonetaryStopControl({
       </label>
       <p id="monetary-stop-help" className="muted my-2 text-xs">
         Risco estimado até o SL, sem comissão, swap ou slippage. Aceita 0,269.
-        Se o lote ou o stop mínimo do broker impedir esse valor, a nova entrada
-        será rejeitada. Aplica-se também a todas as posições abertas da conta.
-        Stops mais protetores são preservados. Se o limite for atingido ou o
-        broker impedir o ajuste, a posição será encerrada.
+        Se o spread atual mais um tick exigir um stop maior que o valor
+        configurado, a entrada é rejeitada para não abrir uma posição que seria
+        encerrada imediatamente pelo próprio spread. A entrada também é
+        rejeitada se o valor não cobrir um tick executável ou exceder a
+        distância máxima.
+        Aplica-se também a todas as posições abertas da conta. Stops mais
+        protetores são preservados. Se o limite for atingido ou o broker
+        impedir o ajuste, a posição será encerrada.
       </p>
+      {needsConfig && <p role="alert" className="red mb-2 text-xs">Há um limite monetário salvo para outra moeda. Configure o limite em {currency} ou escolha “Usar stop da estratégia” para esta conta; novas entradas ficam bloqueadas até lá.</p>}
       <div className="flex flex-wrap gap-2">
         <input
           id="monetary-stop"
@@ -113,7 +120,7 @@ export function MonetaryStopControl({
         <button type="submit" disabled={busy || !connected} className="btn">
           {busy ? 'Salvando…' : 'Salvar stop'}
         </button>
-        {amount != null && (
+        {(amount != null || needsConfig) && (
           <button
             type="button"
             disabled={busy}

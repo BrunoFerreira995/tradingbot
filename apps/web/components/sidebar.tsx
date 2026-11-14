@@ -7,6 +7,7 @@ import {
   FileText,
   Gauge,
   LayoutDashboard,
+  Repeat,
   Settings,
   Shield,
   SlidersHorizontal,
@@ -15,6 +16,7 @@ import {
 const links = [
   { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
   { href: '/trading', label: 'Trading', icon: ArrowLeftRight },
+  { href: '/cycles', label: 'Ciclos', icon: Repeat },
   { href: '/trades', label: 'Trades', icon: BarChart3 },
   { href: '/strategies', label: 'Strategies', icon: SlidersHorizontal },
   { href: '/risk', label: 'Risk Control', icon: Shield },

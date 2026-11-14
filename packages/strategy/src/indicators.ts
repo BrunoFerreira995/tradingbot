@@ -49,6 +49,33 @@ export function sma(
   return out;
 }
 
+/** Wilder ATR. The first value is the arithmetic mean of TR[0..period-1];
+ * TR[0] is high-low because there is no previous close. Later values use
+ * (previous ATR * (period - 1) + current TR) / period. */
+export function atr(
+  bars: readonly { h: number; l: number; c: number }[],
+  period: number,
+): Array<number | null> {
+  const out: Array<number | null> = Array(bars.length).fill(null);
+  if (!Number.isInteger(period) || period < 1) return out;
+  let seed = 0;
+  for (let i = 0; i < bars.length; i++) {
+    const bar = bars[i]!;
+    const previous = bars[i - 1];
+    if (![bar.h, bar.l, bar.c].every(Number.isFinite) || bar.h < bar.l)
+      return out;
+    const tr = Math.max(
+      bar.h - bar.l,
+      previous ? Math.abs(bar.h - previous.c) : 0,
+      previous ? Math.abs(bar.l - previous.c) : 0,
+    );
+    if (i < period) seed += tr;
+    if (i === period - 1) out[i] = seed / period;
+    else if (i >= period) out[i] = (out[i - 1]! * (period - 1) + tr) / period;
+  }
+  return out;
+}
+
 /**
  * Population standard deviation, as MetaTrader's `StdDev`.
  *

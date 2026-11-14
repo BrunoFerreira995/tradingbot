@@ -439,6 +439,17 @@ describe('MT5Bridge', () => {
 });
 
 describe('MT5BrokerAdapter', () => {
+  test('revalidates account mode before sending an order after an account switch', async () => {
+    await terminal.publish({ symbols: { XAUUSD }, account: {} });
+    const bridge = new MT5Bridge({ directory, commandTimeoutMs: 1000, pollIntervalMs: 2 });
+    const adapter = new MT5BrokerAdapter({ bridge, symbols: ['XAUUSD'], startupTimeoutMs: 2000,
+      validateHeartbeat: (beat) => { if (beat.tradeMode === 2) throw new Error('real account not acknowledged'); },
+    });
+    await adapter.connect();
+    await terminal.publish({ tradeMode: 2, symbols: { XAUUSD }, account: {} });
+    await expect(adapter.placeMarketOrder({ clientOrderId: 'switch', symbol: 'XAUUSD', side: 'BUY', lots: 0.01 })).rejects.toThrow('not acknowledged');
+    expect(terminal.commands().some((command) => command.op === 'place')).toBe(false);
+  });
   test('fingerprint is stable, collision-free for near ids, and fits a comment', () => {
     const mark = fingerprint('gold-scalping-v1-sig-1-XAUUSD-BUY');
     expect(mark).toHaveLength(24);

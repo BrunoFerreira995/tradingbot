@@ -30,6 +30,9 @@ export const signalSchema = z
     lots: z.number().positive().finite().optional(),
     stopLoss: z.number().positive().finite().optional(),
     takeProfit: z.number().positive().finite().optional(),
+    /** Strategy entry guards expressed in the symbol's price units. */
+    maximumEntrySpread: z.number().positive().finite().optional(),
+    minimumEntryStopDistance: z.number().positive().finite().optional(),
     price: z
       .union([
         z.number().positive().finite(),

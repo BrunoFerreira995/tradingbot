@@ -25,11 +25,26 @@ export interface RiskSettings {
   requireStopLoss: boolean;
   stopRiskAmount?: number | null;
   stopRiskCurrency?: string | null;
+  stopRiskByCurrency?: Record<string, number | null>;
   minimumStopDistance: number;
   maximumStopDistance: number;
   positionPolicy:
     'ONE_POSITION_PER_SYMBOL' | 'ALLOW_MULTIPLE_POSITIONS' | 'REVERSE_POSITION';
 }
+
+/** `undefined` means another currency has a monetary cap but this account has
+ * none configured; `null` explicitly selects the strategy's own stop. */
+export function monetaryStopForCurrency(
+  settings: Pick<RiskSettings, 'stopRiskAmount' | 'stopRiskCurrency' | 'stopRiskByCurrency'>,
+  currency: string,
+): number | null | undefined {
+  if (Object.prototype.hasOwnProperty.call(settings.stopRiskByCurrency ?? {}, currency))
+    return settings.stopRiskByCurrency![currency];
+  if (settings.stopRiskAmount == null) return null;
+  return settings.stopRiskCurrency === currency ? settings.stopRiskAmount : undefined;
+}
+const DEFAULT_RISK_REWARD_RATIO = 3;
+
 export class RiskManager {
   private calculator = new LotSizeCalculator();
   evaluate(input: {
@@ -96,6 +111,9 @@ export class RiskManager {
     }
     if (price.spread > symbol.maxSpread)
       return reject('Spread exceeds broker limit');
+    const liveSpread = Math.max(0, price.spread, price.ask - price.bid);
+    if (signal.maximumEntrySpread !== undefined && liveSpread > signal.maximumEntrySpread + 1e-12)
+      return reject(`Entry spread ${liveSpread.toFixed(6)} exceeds strategy limit ${signal.maximumEntrySpread.toFixed(6)}`);
     if (
       dailyPnl <= -s.maximumDailyLoss ||
       (strategy?.maxDailyLoss !== undefined &&
@@ -136,24 +154,31 @@ export class RiskManager {
         `Maximum open positions exceeded (${ordinaryCount} open, limit ${s.maximumOpenPositions})`,
       );
     const requested = signal.stopLoss ?? symbol.defaultStopLoss;
-    if (s.requireStopLoss && !signal.stopLoss && s.stopRiskAmount == null)
+    const configuredMonetaryStop = monetaryStopForCurrency(s, account.currency);
+    if (configuredMonetaryStop === undefined)
+      return reject(`Monetary stop for account currency ${account.currency} is not configured`);
+    if (s.requireStopLoss && !signal.stopLoss && configuredMonetaryStop === null)
       return reject('Stop loss required');
     // A configured floor is only meaningful next to the broker's own. The
     // broker floor is per instrument: expressed as an absolute price amount it
     // is smaller than a percent of price for every sub-1.00 pair, so comparing
     // a percent-of-price stop against a fixed 0.01 rejects USDCHF and NZDUSD on
     // every signal no matter how they are configured.
-    const floor = Math.max(s.minimumStopDistance, symbol.stopsLevel);
+    const floor = Math.max(
+      s.minimumStopDistance,
+      symbol.stopsLevel,
+      liveSpread + symbol.tickSize,
+    );
     // Too tight is widened to the floor rather than rejected: the intent of a
     // percent-of-price stop survives, and the terminal would reject it anyway.
     // Too wide is a genuine risk decision and stays a rejection, because
     // widening it silently would move the stop further from price.
-    if (requested > s.maximumStopDistance)
+    if (configuredMonetaryStop === null && requested > s.maximumStopDistance)
       return reject(
         `Stop distance ${requested.toFixed(5)} above maximum ${s.maximumStopDistance}`,
       );
     let distance = Math.max(requested, floor);
-    if (distance > s.maximumStopDistance)
+    if (configuredMonetaryStop === null && distance > s.maximumStopDistance)
       return reject(
         `Stop distance ${distance.toFixed(5)} above maximum ${s.maximumStopDistance} after applying broker minimum ${symbol.stopsLevel}`,
       );
@@ -174,13 +199,9 @@ export class RiskManager {
       return reject(error instanceof Error ? error.message : 'Invalid lot');
     }
     if (lots < s.minimumLotSize) return reject('Lot below minimum');
-    if (s.stopRiskAmount != null) {
-      if (!Number.isFinite(s.stopRiskAmount) || s.stopRiskAmount <= 0)
+    if (configuredMonetaryStop !== null) {
+      if (!Number.isFinite(configuredMonetaryStop) || configuredMonetaryStop <= 0)
         return reject('Invalid monetary stop amount');
-      if (!s.stopRiskCurrency || s.stopRiskCurrency !== account.currency)
-        return reject(
-          `Monetary stop currency must match account currency ${account.currency}`,
-        );
       const lossTickValue = symbol.tickValueLoss ?? symbol.tickValue;
       if (
         !Number.isFinite(lossTickValue) ||
@@ -194,16 +215,35 @@ export class RiskManager {
       // Round inward to an executable tick so the estimated stop exposure stays
       // within the selected amount. Never widen a monetary stop above its cap.
       const ticks = Math.floor(
-        s.stopRiskAmount / (lossTickValue * lots) + 1e-10,
+        configuredMonetaryStop / (lossTickValue * lots) + 1e-10,
       );
       distance = ticks * symbol.tickSize;
-      if (!ticks || distance + 1e-12 < floor)
+      // MetaTrader OrderCheck validates the actual broker minimum using live
+      // prices. Cached stop floors must not reject an otherwise valid order.
+      if (!ticks)
         return reject(
-          `Monetary stop ${s.stopRiskAmount} ${account.currency} is below the minimum for ${signal.symbol} at ${lots} lots`,
+          `Monetary stop ${configuredMonetaryStop} ${account.currency} is below one executable tick for ${signal.symbol} at ${lots} lots`,
+        );
+      // A stop inside the live spread is rejected by MT5 as INVALID_STOPS,
+      // and widening it would silently exceed the configured monetary risk.
+      // The monetary stop enforcement would then close the position on the
+      // next tick at that larger loss, so block the entry instead.
+      const spreadFloor =
+        (Math.round(liveSpread / symbol.tickSize) + 1) * symbol.tickSize;
+      if (distance + 1e-12 < spreadFloor)
+        return reject(
+          `Monetary stop ${configuredMonetaryStop} ${account.currency} cannot cover the live spread on ${signal.symbol} (${liveSpread.toFixed(5)}) at ${lots} lots`,
         );
       if (distance > s.maximumStopDistance)
         return reject('Monetary stop distance exceeds configured maximum');
     }
+    if (
+      signal.minimumEntryStopDistance !== undefined &&
+      distance + 1e-12 < signal.minimumEntryStopDistance
+    )
+      return reject(
+        `Stop distance ${distance.toFixed(6)} is below strategy minimum ${signal.minimumEntryStopDistance.toFixed(6)}`,
+      );
 
     // Margin is checked after sizing through the terminal's OrderCheck.
     // Contract notional multiplied by marginRate is not broker margin.
@@ -211,7 +251,8 @@ export class RiskManager {
     // Multiplying mixed-symbol positions by this symbol's contract size would
     // invent an exposure amount and reject valid orders before the terminal.
     const entry = signal.action === 'BUY' ? price.ask : price.bid;
-    const takeProfitDistance = signal.takeProfit ?? symbol.defaultTakeProfit;
+    const takeProfitDistance =
+      signal.takeProfit ?? distance * DEFAULT_RISK_REWARD_RATIO;
     return {
       approved: true,
       lots,

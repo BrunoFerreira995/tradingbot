@@ -1,9 +1,13 @@
 import type { Timeframe } from '@trade/shared';
+import type { MarketForcesReading, ForceShockStrategyReading, DiversifiedTrendReading, DiversifiedTrendConfig } from '@trade/strategy';
 
 export const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 /** What the strategy runner is doing on one watched pair. */
 export interface SymbolState {
+  diversifiedTrend?: DiversifiedTrendReading;
+  forceShock?: ForceShockStrategyReading;
+  marketForces?: MarketForcesReading;
   status: 'IDLE' | 'WAITING_BAR' | 'SIGNAL' | 'NO_SETUP' | 'BLOCKED';
   lastBarAt: string | null;
   secondsToNextBar: number | null;
@@ -11,6 +15,13 @@ export interface SymbolState {
   rsi?: number;
   upper?: number;
   lower?: number;
+  fastSMA?: number;
+  slowSMA?: number;
+  atr?: number;
+  trend?: string;
+  macroTrend?: string;
+  macroTimeframe?: Timeframe;
+  stopLoss?: number;
   /** RSI points still needed to reach the extreme that triggers a setup. */
   rsiToTrigger?: number;
   /** Share of band width still to travel before the bar touches a band. */
@@ -20,6 +31,7 @@ export interface SymbolState {
 }
 
 export interface StrategyState {
+  trendConfig?: DiversifiedTrendConfig;
   strategy: string | null;
   status: SymbolState['status'] | 'DISABLED';
   timeframe: Timeframe;
@@ -28,6 +40,7 @@ export interface StrategyState {
   lastCheckAt: string | null;
   detail?: string;
   symbolStates: Record<string, SymbolState>;
+  configs?: Record<string, import('@trade/strategy').SmaMicroTrendConfig>;
 }
 
 export interface DashboardData {
@@ -58,6 +71,7 @@ export interface DashboardData {
     autoTradingEnabled: boolean;
     closeOnOppositeSignal?: boolean;
     emergencyStop: boolean;
+    invertIncomingSignals: boolean;
     maximumLotSize: number;
     maximumOpenPositions: number;
     reservedPositionSymbols?: string[];
@@ -67,6 +81,7 @@ export interface DashboardData {
     allowedSymbols: string[];
     requireStopLoss: boolean;
     marketSessions?: {
+      weekdays?: number[];
       name: string;
       timezone: string;
       start: string;
@@ -75,6 +90,7 @@ export interface DashboardData {
     }[];
     stopRiskAmount?: number | null;
     stopRiskCurrency?: string | null;
+    stopRiskNeedsConfig?: boolean;
   };
   signals: Array<Record<string, unknown>>;
   orders: Array<Record<string, unknown>>;

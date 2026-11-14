@@ -17,6 +17,8 @@ export async function PATCH(request: NextRequest) {
     );
   const body = (await request.json().catch(() => null)) as {
     timeframe?: unknown;
+    symbol?: unknown;
+    config?: unknown;
   } | null;
   const { timeframe } = body ?? {};
   if (typeof timeframe !== 'string' || !isTimeframe(timeframe))
@@ -29,7 +31,7 @@ export async function PATCH(request: NextRequest) {
     {
       method: 'PATCH',
       headers: { 'content-type': 'application/json', 'x-admin-key': key },
-      body: JSON.stringify({ timeframe }),
+      body: JSON.stringify({ timeframe, ...(body?.config !== undefined ? { symbol: body.symbol, config: body.config } : {}) }),
     },
   );
   return NextResponse.json(await response.json(), { status: response.status });

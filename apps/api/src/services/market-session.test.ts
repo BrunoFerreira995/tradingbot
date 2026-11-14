@@ -3,6 +3,7 @@ import {
   marketSession as classify,
   validateMarketWindows,
   sessionEntryAllowed,
+  defaultMarketWindows,
 } from './market-session';
 
 const legacyWindows = [
@@ -17,6 +18,36 @@ const legacyWindows = [
 ];
 const marketSession = (at: string, windows = legacyWindows) =>
   classify(at, windows);
+
+test('Sunday evening entries continue through Monday morning in overnight sessions', () => {
+  const windows = defaultMarketWindows.map((w) => ({
+    ...w,
+    enabled: w.name === 'ASIA',
+  }));
+  expect(sessionEntryAllowed('SELL', '2026-10-26T00:00:05Z', windows)).toBe(
+    true,
+  );
+  expect(sessionEntryAllowed('SELL', '2026-10-26T03:09:04Z', windows)).toBe(
+    true,
+  );
+  expect(sessionEntryAllowed('SELL', '2026-10-26T07:13:06Z', windows)).toBe(
+    true,
+  );
+  expect(sessionEntryAllowed('SELL', '2026-10-26T09:00:00Z', windows)).toBe(
+    false,
+  );
+  expect(classify('2026-10-25T21:00:00Z', defaultMarketWindows)).toBe('SYDNEY');
+  expect(classify('2026-10-25T00:00:00Z', defaultMarketWindows)).toBe(
+    'OFF_SESSION',
+  );
+  expect(
+    sessionEntryAllowed(
+      'SELL',
+      '2026-10-26T07:13:06Z',
+      windows.map((w) => ({ ...w, enabled: false })),
+    ),
+  ).toBe(false);
+});
 
 test('Brasilia defaults include Sydney, overnight sessions and fixed UTC offset', () => {
   expect(classify('2026-10-23T21:00:00Z')).toBe('SYDNEY');
