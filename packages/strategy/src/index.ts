@@ -9,6 +9,7 @@ export {
 } from './indicators';
 export {
   defaultMeanReversionConfig,
+  fallbackMeanReversionConfig,
   evaluateMeanReversion,
   lastClosedBarTime,
   type MeanReversionConfig,
@@ -17,6 +18,7 @@ export {
 export * from './sma-micro-trend';
 export * from './sma-backtest';
 export * from './dow-theory';
+export * from './candle-patterns';
 export * from './market-forces';
 export * from './force-shock';
 export * from './diversified-trend';

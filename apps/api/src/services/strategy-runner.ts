@@ -7,6 +7,7 @@ import {
   atr,
   bollingerBands,
   defaultMeanReversionConfig,
+  fallbackMeanReversionConfig,
   evaluateMeanReversion,
   lastClosedBarTime,
   rsi,
@@ -31,6 +32,10 @@ import {
   TREND_FOREX_SYMBOLS,
   type DiversifiedTrendConfig,
   type DiversifiedTrendReading,
+  candlePatternsSchema,
+  defaultCandlePatternsConfig,
+  evaluateCandlePatterns,
+  type CandlePatternsConfig,
 } from '@trade/strategy';
 import { audit, emit } from './events';
 import { getSettings } from './settings';
@@ -65,6 +70,7 @@ export interface StrategyRunnerOptions {
   dowConfig?: DowTheoryConfig;
   shockConfig?: Partial<ForceShockConfig>;
   trendConfig?: DiversifiedTrendConfig;
+  candleConfig?: CandlePatternsConfig;
   getMaximumLotSize?: () => Promise<number>;
   /** Live risk allowlist; disabled symbols must not stop enabled symbols. */
   getAllowedSymbols?: () => Promise<string[]>;
@@ -91,6 +97,7 @@ export interface StrategyEvaluationReport {
   slowSMA?: number;
   atr?: number;
   trend?: string;
+  patterns?: string[];
   stopLoss?: number;
   reason?: string;
 }
@@ -125,6 +132,7 @@ export interface SymbolState {
   slowSMA?: number;
   atr?: number;
   trend?: string;
+  patterns?: string[];
   macroTrend?: string;
   macroTimeframe?: Timeframe;
   stopLoss?: number;
@@ -242,6 +250,10 @@ export class StrategyRunner {
       if (options.timeframe !== 'D1') throw new Error('Diversified trend requires D1');
       diversifiedTrendSchema.parse(options.trendConfig ?? defaultDiversifiedTrendConfig);
     }
+    if (options.strategyName === 'candle-patterns-v1')
+      candlePatternsSchema.parse(
+        options.candleConfig ?? defaultCandlePatternsConfig,
+      );
     this.timeframe = options.timeframe;
     this.snapshot = {
       status: 'IDLE',
@@ -270,6 +282,10 @@ export class StrategyRunner {
 
   get smaConfig(): SmaMicroTrendConfig {
     return this.options.smaConfig ?? defaultSmaMicroTrendConfig;
+  }
+
+  get candleConfig(): CandlePatternsConfig {
+    return this.options.candleConfig ?? defaultCandlePatternsConfig;
   }
 
   get state(): RunnerSnapshot {
@@ -460,7 +476,7 @@ export class StrategyRunner {
    * XAUUSD on one comparable scale.
    */
   private levels(rates: ReadonlyArray<Rate>): Partial<SymbolState> {
-    const config = { ...defaultMeanReversionConfig, ...this.options.config };
+    const config = { ...fallbackMeanReversionConfig, ...this.options.config };
     const closes = rates.map((rate) => rate.c);
     const bands = bollingerBands(
       closes,
@@ -587,12 +603,14 @@ export class StrategyRunner {
               ? { close: rates.at(-2)?.c, trend: this.trendReadings.get(symbol)?.side ?? 'NEUTRAL' }
             : ['market_forces', 'market_forces_shock'].includes(this.options.strategyName)
               ? { close: rates.at(-2)?.c, trend: this.marketForces.get(symbol)?.direction }
-            : this.levels(rates)),
+              : this.options.strategyName === 'candle-patterns-v1'
+                ? this.candleLevels(rates)
+                : this.levels(rates)),
       });
       return { status: 'WAITING_BAR', detail: `primed at bar ${iso(barTime)}` };
     }
     if (barTime === lastBarTime) {
-      if (['sma_micro_trend', 'dow_theory', 'market_forces', 'market_forces_shock', 'diversified_trend'].includes(this.options.strategyName)) {
+      if (['sma_micro_trend', 'dow_theory', 'market_forces', 'market_forces_shock', 'diversified_trend', 'candle-patterns-v1'].includes(this.options.strategyName)) {
         this.record(symbol, { ...this.symbolStates.get(symbol), status: 'WAITING_BAR', lastBarAt: iso(barTime), secondsToNextBar } as SymbolState);
         return { status: 'WAITING_BAR' };
       }
@@ -626,12 +644,14 @@ export class StrategyRunner {
       return this.evaluateForcesSymbol(symbol, timeframe, rates, barTime, secondsToNextBar);
     if (this.options.strategyName === 'diversified_trend')
       return this.evaluateTrendSymbol(symbol, timeframe, barTime, secondsToNextBar);
+    if (this.options.strategyName === 'candle-patterns-v1')
+      return this.evaluateCandleSymbol(symbol, timeframe, rates, barTime, secondsToNextBar);
     // Entry conditions depend on closed bars, not on the quote. Obtain the
     // price only for actual setups and then size protective distances from mid.
     const decision = evaluateMeanReversion(
       rates,
       {
-        ...defaultMeanReversionConfig,
+        ...fallbackMeanReversionConfig,
         ...this.options.config,
         symbol,
         timeframe,
@@ -805,6 +825,105 @@ export class StrategyRunner {
     await this.reporter.evaluated({ strategy: this.options.strategyName, symbol, timeframe, outcome: result.status.toLowerCase(),
       barTime: iso(barTime), side: reading.side, reason: result.status === 'REJECTED' ? result.reason : signal.signalReason });
     return finish(result.status === 'EXECUTED' ? 'SIGNAL' : 'BLOCKED', detail, reading.side);
+  }
+
+  private candleLevels(rates: ReadonlyArray<Rate>): Partial<SymbolState> {
+    const reading = evaluateCandlePatterns(rates, this.candleConfig);
+    return {
+      close: reading.close ?? undefined,
+      fastSMA: reading.fastSMA ?? undefined,
+      slowSMA: reading.slowSMA ?? undefined,
+      atr: reading.atr ?? undefined,
+      trend: reading.trend,
+      patterns: reading.patterns,
+      ...(reading.signal ? { side: reading.signal } : {}),
+      ...(reading.stopDistance !== null
+        ? { stopLoss: reading.stopDistance }
+        : {}),
+    };
+  }
+
+  /**
+   * Classic candlestick patterns on closed bars.
+   *
+   * The reading already applies the trend/alignment and pattern filters, so a
+   * missing signal is a normal `NO_SETUP` with the reason preserved for the
+   * dashboard. Stops and targets are distances from the reference price, the
+   * same contract the mean-reversion path uses.
+   */
+  private async evaluateCandleSymbol(
+    symbol: string,
+    timeframe: Timeframe,
+    rates: ReadonlyArray<Rate>,
+    barTime: number,
+    secondsToNextBar: number,
+  ): Promise<Outcome> {
+    const config = this.candleConfig;
+    const reading = evaluateCandlePatterns(rates, config);
+    const levels = this.candleLevels(rates);
+    const finish = (status: RunnerStatus, detail: string): Outcome => {
+      this.lastBarTimes.set(symbol, barTime);
+      this.record(symbol, {
+        status,
+        lastBarAt: iso(barTime),
+        secondsToNextBar,
+        detail,
+        ...levels,
+      });
+      return { status, detail };
+    };
+    if (!reading.ready)
+      return finish('NO_SETUP', reading.reason);
+    if (!reading.signal)
+      return finish('NO_SETUP', reading.reason);
+    if (reading.atr === null || !(reading.atr > 0))
+      return finish('BLOCKED', 'ATR inválido para dimensionar o stop de candle');
+
+    const price = await this.broker.getPrice(symbol);
+    if (timeframe !== this.timeframe) return { status: 'WAITING_BAR' };
+    const signal = this.buildSignal(
+      symbol,
+      reading.signal,
+      barTime,
+      {
+        stopDistance: reading.atr * config.atrStopMultiplier,
+        takeProfitDistance:
+          reading.atr * config.atrStopMultiplier * config.rewardRisk,
+      },
+      config.lots,
+    );
+    signal.signalReason = `${reading.signal} on closed ${timeframe} bar ${iso(barTime)}; patterns=${reading.patterns.join(',')}; trend=${reading.trend}; fastSMA=${reading.fastSMA}; slowSMA=${reading.slowSMA}; ATR=${reading.atr}; alignment=${config.alignment}`;
+    const result = await this.engine.process(signal, {
+      requestId: `strategy:${signal.signalId}`,
+      ip: 'strategy-runner',
+      receivedAt: Date.now(),
+    });
+    this.lastBarTimes.set(symbol, barTime);
+    this.record(symbol, {
+      status: result.status === 'EXECUTED' ? 'SIGNAL' : 'BLOCKED',
+      lastBarAt: iso(barTime),
+      secondsToNextBar,
+      detail: `${reading.signal} ${result.status.toLowerCase()}${result.status === 'REJECTED' ? `: ${result.reason}` : ''}`,
+      ...levels,
+    });
+    await this.reporter.evaluated({
+      strategy: this.options.strategyName,
+      symbol,
+      timeframe,
+      outcome: result.status.toLowerCase(),
+      barTime: iso(barTime),
+      side: reading.signal,
+      close: reading.close ?? undefined,
+      trend: reading.trend,
+      patterns: reading.patterns,
+      stopLoss: reading.atr * config.atrStopMultiplier,
+      reason:
+        result.status === 'REJECTED' ? result.reason : signal.signalReason,
+    });
+    return {
+      status: result.status === 'EXECUTED' ? 'SIGNAL' : 'BLOCKED',
+      detail: `${reading.signal} ${result.status.toLowerCase()}`,
+    };
   }
 
   private smaLevels(rates: ReadonlyArray<Rate>, symbol: string): Partial<SymbolState> {
@@ -1021,6 +1140,7 @@ export class StrategyRunner {
     side: 'BUY' | 'SELL',
     barTime: number,
     stops: { stopDistance: number; takeProfitDistance: number },
+    lots = this.options.config?.lots ?? defaultMeanReversionConfig.lots,
   ): TradingSignal {
     const { strategyName } = this.options;
     return {
@@ -1031,7 +1151,7 @@ export class StrategyRunner {
       symbol,
       action: side,
       orderType: 'MARKET',
-      lots: this.options.config?.lots ?? defaultMeanReversionConfig.lots,
+      lots,
       stopLoss: stops.stopDistance,
       takeProfit: stops.takeProfitDistance,
       timeframe: this.timeframe,
@@ -1153,6 +1273,8 @@ export async function ensureStrategy(
             ? 'Dow Theory swing-structure breakout with swing-based stop and fixed reward/risk target; no profitability claim.'
           : strategyName === 'diversified_trend'
             ? 'Daily time-series momentum on major Forex pairs with inverse-volatility entry sizing and capped per-leg budgets.'
+          : strategyName === 'candle-patterns-v1'
+            ? 'Classic candlestick patterns (engulfing, hammer, shooting star, doji, harami, inside bar, marubozu) with SMA alignment and ATR stop; no profitability claim.'
           : strategyName === 'market_forces_shock'
             ? 'Market forces with causal opposing-price shock guard and three-bar cooldown; 2 ATR stop and 4 ATR target.'
           : strategyName === 'market_forces'

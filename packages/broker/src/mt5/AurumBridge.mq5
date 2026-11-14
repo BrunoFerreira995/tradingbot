@@ -655,11 +655,25 @@ ENUM_TIMEFRAMES ParsePeriod(const string text)
 //| newest-first ordering is reversed into oldest-first, matching     |
 //| what every technical indicator expects.                           |
 //+------------------------------------------------------------------+
+void EmitBar(string &bars, const MqlRates &bar)
+  {
+   if(bars != "") bars += ",";
+   bars += "{\"t\":" + Int((long)bar.time)
+         + ",\"o\":" + Num(bar.open)
+         + ",\"h\":" + Num(bar.high)
+         + ",\"l\":" + Num(bar.low)
+         + ",\"c\":" + Num(bar.close)
+         + ",\"v\":" + Num((double)bar.tick_volume)
+         + "}";
+  }
+
 string OpRates(const string json)
   {
    const string symbol = Str(json, "symbol");
    const string periodText = Str(json, "period", "M30");
    int count = (int)Dbl(json, "count", 100);
+   const long from = (long)Dbl(json, "from", 0);
+   const long to = (long)Dbl(json, "to", 0);
    if(StringLen(symbol) == 0) return Reject("symbol required");
    if(count <= 0) count = 100;
    if(count > MAX_RATES) count = MAX_RATES;
@@ -668,21 +682,34 @@ string OpRates(const string json)
    MqlRates rates[];
    ArraySetAsSeries(rates, true);
    const ENUM_TIMEFRAMES period = ParsePeriod(periodText);
-   if(CopyRates(symbol, period, 0, count, rates) < 1)
+   // A from/to pair requests an explicit window, which can reach back past the
+   // newest bars. Without it the request keeps the original newest-count mode.
+   const bool rangeRequest = from > 0 && to >= from;
+   const int copied = rangeRequest
+      ? CopyRates(symbol, period, (datetime)from, (datetime)to, rates)
+      : CopyRates(symbol, period, 0, count, rates);
+   if(copied < 1)
       return Reject("no bars available for " + symbol + " " + periodText);
 
    const int total = ArraySize(rates);
+   // A long range can exceed the reply cap, so sample it evenly. The oldest and
+   // newest bars are always kept, which preserves the trade window edges.
+   int step = 1;
+   if(total > MAX_RATES) step = (total + MAX_RATES - 1) / MAX_RATES;
+   // The date-range overload can answer chronologically instead of series-first,
+   // so detect the ordering instead of trusting the array flag alone.
+   const bool seriesFirst = total < 2 || rates[0].time >= rates[total - 1].time;
    string bars = "";
-   for(int i = total - 1; i >= 0; i--)
+   int emitted = -1;
+   if(seriesFirst)
      {
-      if(bars != "") bars += ",";
-      bars += "{\"t\":" + Int((long)rates[i].time)
-            + ",\"o\":" + Num(rates[i].open)
-            + ",\"h\":" + Num(rates[i].high)
-            + ",\"l\":" + Num(rates[i].low)
-            + ",\"c\":" + Num(rates[i].close)
-            + ",\"v\":" + Num((double)rates[i].tick_volume)
-            + "}";
+      for(int i = total - 1; i >= 0; i -= step) { EmitBar(bars, rates[i]); emitted = i; }
+      if(emitted != 0) EmitBar(bars, rates[0]);
+     }
+   else
+     {
+      for(int i = 0; i < total; i += step) { EmitBar(bars, rates[i]); emitted = i; }
+      if(emitted != total - 1) EmitBar(bars, rates[total - 1]);
      }
    return "{\"ok\":true,\"data\":{\"symbol\":" + Esc(symbol)
           + ",\"period\":" + Esc(periodText)

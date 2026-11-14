@@ -54,6 +54,22 @@ export const defaultMeanReversionConfig: Omit<
   enableShort: true,
 };
 
+/**
+ * Fallback selected from the project research, not a validated edge. It is the
+ * H1 candidate with positive training, holdout and both 1.5x-spread stress runs
+ * (BB 10/1.5, RSI 14 at 20/80, 0.2% stop, 2R target). The sample is short and
+ * has selection bias, so this stays a fallback: do not promote it to live
+ * trading without an independent later sample.
+ */
+export const fallbackMeanReversionConfig: Omit<
+  MeanReversionConfig,
+  'symbol' | 'timeframe'
+> = {
+  ...defaultMeanReversionConfig,
+  bollingerLength: 10,
+  bollingerMultiplier: 1.5,
+};
+
 export interface StrategyDecision {
   side: Side;
   close: number;

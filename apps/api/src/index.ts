@@ -1,7 +1,7 @@
 import { Elysia, t } from 'elysia';
 import { db, schema, sql } from '@trade/database';
 import { desc, eq, sql as dsql } from 'drizzle-orm';
-import { atr, backtestSmaMicroTrend, defaultSmaMicroTrendConfig, evaluateSmaMicroTrend, macroTrendAt, resolveMacroTimeframe, sma, smaMicroTrendSchema } from '@trade/strategy';
+import { atr, backtestSmaMicroTrend, candlePatternsSchema, defaultSmaMicroTrendConfig, evaluateSmaMicroTrend, macroTrendAt, resolveMacroTimeframe, sma, smaMicroTrendSchema } from '@trade/strategy';
 import { diversifiedTrendSchema, TREND_FOREX_SYMBOLS } from '@trade/strategy';
 import { MT5BrokerAdapter } from '@trade/broker';
 import type { Timeframe } from '@trade/shared';
@@ -14,6 +14,7 @@ import { getSettings, updateSettings } from './services/settings';
 import { getRecentSignals } from './services/recent-signals';
 import { getTradeStats } from './services/trade-stats';
 import { getPerformance } from './services/performance';
+import { getTradeCharts } from './services/trade-charts';
 import {
   startBotSession,
   recordBotSessionParameters,
@@ -593,6 +594,43 @@ const app = new Elysia({ serve: { maxRequestBodySize: 16 * 1024 } })
       symbols: watchedSymbols,
     };
   })
+  .get('/api/trade-charts', async ({ query, request, set }) => {
+    if (
+      !adminKey ||
+      !safeEqual(request.headers.get('x-admin-key') ?? '', adminKey)
+    ) {
+      set.status = 403;
+      return { error: 'Admin key required' };
+    }
+    const requested = Number(query?.limit ?? 10);
+    const limit = Number.isFinite(requested)
+      ? Math.min(Math.max(Math.trunc(requested), 1), 10)
+      : 10;
+    const requestedTimeframe = query?.timeframe;
+    if (requestedTimeframe !== undefined && !isTimeframe(requestedTimeframe)) {
+      set.status = 400;
+      return { error: `Unknown timeframe: ${requestedTimeframe}` };
+    }
+    const [account, positions] = await Promise.all([
+      broker.getAccount().catch(() => null),
+      broker.getPositions().catch(() => []),
+    ]);
+    if (!account) {
+      set.status = 503;
+      return { trades: [], detail: 'Broker account is unavailable' };
+    }
+    return getTradeCharts({
+      broker,
+      account,
+      positions,
+      connected: broker.connected,
+      limit,
+      timeframe:
+        requestedTimeframe !== undefined && isTimeframe(requestedTimeframe)
+          ? requestedTimeframe
+          : undefined,
+    });
+  })
   .get('/api/logs', async () =>
     db
       .select()
@@ -850,7 +888,14 @@ const runnerStrategy = process.env.STRATEGY_RUNNER ?? '';
 let runner: StrategyRunner | undefined;
 let runnerStarted = false;
 if (runnerStrategy) {
-  const requested = process.env.STRATEGY_TIMEFRAME ?? (runnerStrategy === 'diversified_trend' ? 'D1' : 'M30');
+  const requested =
+    process.env.STRATEGY_TIMEFRAME ??
+    (runnerStrategy === 'diversified_trend'
+      ? 'D1'
+      : runnerStrategy === 'meanrev-bb-rsi-v1' ||
+          runnerStrategy === 'candle-patterns-v1'
+        ? 'H1'
+        : 'M30');
   if (!isTimeframe(requested))
     throw new Error(
       `Unknown STRATEGY_TIMEFRAME "${requested}". Expected one of: ${TIMEFRAMES.join(', ')}.`,
@@ -863,6 +908,9 @@ if (runnerStrategy) {
     timeframe,
     ...(runnerStrategy === 'diversified_trend' ? {
       trendConfig: diversifiedTrendSchema.parse(process.env.TREND_CONFIG_JSON ? JSON.parse(process.env.TREND_CONFIG_JSON) : {}),
+    } : {}),
+    ...(runnerStrategy === 'candle-patterns-v1' ? {
+      candleConfig: candlePatternsSchema.parse(process.env.CANDLE_CONFIG_JSON ? JSON.parse(process.env.CANDLE_CONFIG_JSON) : {}),
     } : {}),
     getAllowedSymbols: async () => (await getSettings()).allowedSymbols,
     ...(process.env.STRATEGY_POLL_MS

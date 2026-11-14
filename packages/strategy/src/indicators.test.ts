@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { at, bollingerBands, rsi, sma, stdDev } from './indicators';
 import {
   defaultMeanReversionConfig,
+  fallbackMeanReversionConfig,
   evaluateMeanReversion,
   lastClosedBarTime,
   type MeanReversionConfig,
@@ -165,6 +166,18 @@ describe('evaluateMeanReversion', () => {
     expect(defaultMeanReversionConfig).toMatchObject({
       bollingerLength: 20,
       bollingerMultiplier: 2,
+      rsiLength: 14,
+      rsiOversold: 20,
+      rsiOverbought: 80,
+      stopLossPercent: 0.2,
+      takeProfitPercent: 0.4,
+    });
+  });
+
+  test('keeps the researched fallback as BB 10/1.5 on top of the defaults', () => {
+    expect(fallbackMeanReversionConfig).toMatchObject({
+      bollingerLength: 10,
+      bollingerMultiplier: 1.5,
       rsiLength: 14,
       rsiOversold: 20,
       rsiOverbought: 80,

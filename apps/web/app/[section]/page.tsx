@@ -8,6 +8,7 @@ const sections = new Set([
   'orders',
   'positions',
   'trades',
+  'trade-charts',
   'strategies',
   'risk',
   'broker',

@@ -30,6 +30,17 @@ export interface BrokerAdapter {
    * an MT5-specific extension.
    */
   getRates(symbol: string, period: Timeframe, count: number): Promise<Rate[]>;
+  /**
+   * OHLC history for a timestamp range, oldest first. Optional because only
+   * adapters backed by a terminal with historical storage can reach past the
+   * newest bars; callers must fall back to `getRates` when it is absent.
+   */
+  getRatesRange?(
+    symbol: string,
+    period: Timeframe,
+    from: number,
+    to: number,
+  ): Promise<Rate[]>;
   getPositions(): Promise<Position[]>;
   getOrders(): Promise<Order[]>;
   /** Refresh read-only terminal snapshots before making a trading decision. */

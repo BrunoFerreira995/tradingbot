@@ -89,6 +89,10 @@ export interface BridgeCommand {
   symbols?: string;
   period?: Timeframe;
   count?: number;
+  /** Epoch seconds, inclusive start of a time-range history request. */
+  from?: number;
+  /** Epoch seconds, inclusive end of a time-range history request. */
+  to?: number;
 }
 
 /**
@@ -474,6 +478,31 @@ export class MT5Bridge {
       timeoutMs,
     );
     return reply.data?.rates ?? [];
+  }
+
+  /**
+   * OHLC history for an explicit time range, oldest first. Unlike `getRates`,
+   * this reaches back past the newest bars, so callers reviewing old trades can
+   * still get a full window around the entry and exit.
+   */
+  async getRatesRange(
+    symbol: string,
+    period: Timeframe,
+    from: number,
+    to: number,
+    timeoutMs = 8000,
+  ): Promise<Rate[]> {
+    const start = Math.floor(Math.min(from, to));
+    const end = Math.floor(Math.max(from, to));
+    if (!Number.isFinite(start) || !Number.isFinite(end))
+      throw new Error('rates range requires finite timestamps');
+    const reply = await this.run(
+      { op: 'rates', symbol, period, from: start, to: end },
+      timeoutMs,
+    );
+    // The MQL5 date-range overload is allowed to answer either way round; the
+    // rest of the app relies on oldest-first ordering.
+    return [...(reply.data?.rates ?? [])].sort((a, b) => a.t - b.t);
   }
 
   /**

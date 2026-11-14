@@ -312,6 +312,35 @@ describe('MT5Bridge', () => {
     expect(rates.at(-1)).toEqual({ t: 102, o: 3, h: 4, l: 2, c: 3, v: 30 });
   });
 
+  test('requests an explicit timestamp range for older trades', async () => {
+    const bridge = new MT5Bridge({ directory, pollIntervalMs: 2 });
+    terminal.respondWith((command) => {
+      expect(command).toMatchObject({
+        op: 'rates',
+        symbol: 'XAUUSD',
+        period: 'M5',
+        from: 1700000000,
+        to: 1700003600,
+      });
+      return {
+        ok: true,
+        data: {
+          symbol: 'XAUUSD',
+          period: 'M5',
+          rates: [{ t: 1700000100, o: 1, h: 2, l: 0, c: 1, v: 10 }],
+        },
+      };
+    });
+
+    const rates = await bridge.getRatesRange(
+      'XAUUSD',
+      'M5',
+      1700000000,
+      1700003600,
+    );
+    expect(rates.map((rate) => rate.t)).toEqual([1700000100]);
+  });
+
   test('surfaces the reason instead of an empty series when history is missing', async () => {
     const bridge = new MT5Bridge({ directory, pollIntervalMs: 2 });
     terminal.respondWith(() => ({

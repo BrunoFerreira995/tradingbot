@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import { readdir, readFile } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import type { AccountInfo } from '@trade/shared';
-import { defaultMeanReversionConfig, diversifiedTrendSchema } from '@trade/strategy';
+import { fallbackMeanReversionConfig, diversifiedTrendSchema } from '@trade/strategy';
 import { getSettings } from './settings';
 
 export const botSessionId = crypto.randomUUID();
@@ -95,10 +95,16 @@ export async function startBotSession(
         'XAUUSD'
       ).split(','),
       strategy: process.env.STRATEGY_RUNNER ?? null,
-      timeframe: process.env.STRATEGY_TIMEFRAME ?? (process.env.STRATEGY_RUNNER === 'diversified_trend' ? 'D1' : 'M30'),
+      timeframe:
+        process.env.STRATEGY_TIMEFRAME ??
+        (process.env.STRATEGY_RUNNER === 'diversified_trend'
+          ? 'D1'
+          : process.env.STRATEGY_RUNNER === 'meanrev-bb-rsi-v1'
+            ? 'H1'
+            : 'M30'),
       strategyConfig: process.env.STRATEGY_RUNNER === 'diversified_trend'
         ? diversifiedTrendSchema.parse(process.env.TREND_CONFIG_JSON ? JSON.parse(process.env.TREND_CONFIG_JSON) : {})
-        : defaultMeanReversionConfig,
+        : fallbackMeanReversionConfig,
       riskSettings: settings,
       marketSessions: settings.marketSessions,
       excursionSampleIntervalMs: 5000,

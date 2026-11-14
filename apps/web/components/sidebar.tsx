@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import {
   ArrowLeftRight,
   BarChart3,
+  ChartCandlestick,
   FileText,
   Gauge,
   LayoutDashboard,
@@ -18,6 +19,7 @@ const links = [
   { href: '/trading', label: 'Trading', icon: ArrowLeftRight },
   { href: '/cycles', label: 'Ciclos', icon: Repeat },
   { href: '/trades', label: 'Trades', icon: BarChart3 },
+  { href: '/trade-charts', label: 'Gráficos', icon: ChartCandlestick },
   { href: '/strategies', label: 'Strategies', icon: SlidersHorizontal },
   { href: '/risk', label: 'Risk Control', icon: Shield },
   { href: '/broker', label: 'Broker', icon: Wallet },

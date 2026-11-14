@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 const allowed = new Set([
   'dashboard',
+  'trade-charts',
   'trades/export',
   'bot-sessions',
   'bot-sessions/export',
@@ -24,7 +25,7 @@ export async function GET(
       { status: 503 },
     );
   const response = await fetch(
-    `${process.env.API_INTERNAL_URL ?? 'http://localhost:3001'}/api/${path}`,
+    `${process.env.API_INTERNAL_URL ?? 'http://localhost:3001'}/api/${path}${_request.nextUrl.search}`,
     {
       headers: { 'x-admin-key': key },
       cache: 'no-store',

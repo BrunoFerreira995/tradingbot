@@ -223,6 +223,15 @@ export class MT5BrokerAdapter implements BrokerAdapter {
     return this.bridge.getRates(symbol, period, count);
   }
 
+  getRatesRange(
+    symbol: string,
+    period: Timeframe,
+    from: number,
+    to: number,
+  ): Promise<Rate[]> {
+    return this.bridge.getRatesRange(symbol, period, from, to);
+  }
+
   async refreshState(): Promise<void> {
     await this.requireLive();
     await this.bridge.refreshState();

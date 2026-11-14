@@ -219,10 +219,13 @@ on MN1. Lower timeframes evaluate more often on less history.
 when the last closed candle touches the lower Bollinger band with oversold RSI,
 sell on the mirrored setup. Three things make it safe to run unattended:
 
-The configured BB/RSI setup uses H1, Bollinger length 20 with multiplier 2,
-RSI(14) thresholds 20/80, a 0.2% stop, and a 0.4% take-profit (2R). The
-timeframe is selected by `STRATEGY_TIMEFRAME`; if unset, the API defaults to
-M30.
+The project fallback uses H1, Bollinger length 10 with multiplier 1.5, RSI(14)
+thresholds 20/80, a 0.2% stop, and a 0.4% take-profit (2R). This is the candidate
+that was positive in training, holdout and both 1.5x-spread stress runs, but the
+sample is short and selected from a grid: treat it as a fallback, not a validated
+edge. The timeframe is selected by `STRATEGY_TIMEFRAME`; if unset, the API
+defaults to H1 for `meanrev-bb-rsi-v1` (M30 for the other runners). The original
+EA defaults remain available as `defaultMeanReversionConfig` (BB 20/2.0).
 
 Compare this fixed BB/RSI setup across M30, H1, and H4 with
 `bun run research:meanrev-timeframes`. H4 is aggregated from complete hourly

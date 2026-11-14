@@ -6,6 +6,7 @@ import { useDashboard } from '../hooks/use-dashboard';
 import { MonetaryStopControl } from './monetary-stop-control';
 import { ExportTrades } from './export-trades';
 import { PerformancePanel } from './performance-panel';
+import { TradeCharts } from './trade-charts';
 import { date, money, num, type DashboardData } from '../lib/api';
 function Badge({
   active,
@@ -1072,9 +1073,11 @@ export function Dashboard({ section }: { section: string }) {
       ? 'Trading overview'
       : section === 'cycles'
         ? 'Ciclos'
-        : isTrading
-          ? 'Trading'
-          : section[0]!.toUpperCase() + section.slice(1);
+        : section === 'trade-charts'
+          ? 'Gráficos de trades'
+          : isTrading
+            ? 'Trading'
+            : section[0]!.toUpperCase() + section.slice(1);
   return (
     <>
       <Header
@@ -1084,7 +1087,9 @@ export function Dashboard({ section }: { section: string }) {
             ? 'Your paper trading operation at a glance.'
             : section === 'cycles'
               ? 'Projeção de capital composto por ciclo.'
-              : isTrading
+              : section === 'trade-charts'
+                ? 'Entrada, stop e alvo nos últimos 10 trades fechados.'
+                : isTrading
                 ? 'Signals, orders and positions in one workspace.'
                 : `Monitor ${section} and execution status.`
         }
@@ -1097,6 +1102,8 @@ export function Dashboard({ section }: { section: string }) {
           balance={data.account.balance}
           currency={data.account.currency}
         />
+      ) : section === 'trade-charts' ? (
+        <TradeCharts />
       ) : section === 'strategies' ? (
         <div className="space-y-5">
           <StrategyPanel data={data} />
