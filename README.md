@@ -204,6 +204,13 @@ deadlock against a service that kept running.
    `AurumBridge` from Navigator -> Expert Advisors -> Services. It must be added
    as a **Service**; a chart attachment or a one-shot script run exits
    immediately and leaves a stale heartbeat.
+
+   <img src="docs/screenshots/08-mt5-navigator.png" width="520" alt="MetaTrader 5 Navigator com AurumBridge em Services">
+
+   Confirme que `AurumBridge` aparece dentro de **Services** no Navigator
+   (como na imagem). Se ele aparecer em Expert Advisors ou Scripts, remova e
+   adicione novamente como serviço.
+
 3. Set the watched symbols and, for Docker, mount the terminal's common folder
    into the API container:
 
