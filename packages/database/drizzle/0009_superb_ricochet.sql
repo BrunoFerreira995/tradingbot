@@ -1,0 +1,1 @@
+ALTER TABLE "risk_settings" ADD COLUMN "stop_risk_by_symbol" jsonb DEFAULT '{}'::jsonb NOT NULL;

@@ -574,6 +574,7 @@ const app = new Elysia({ serve: { maxRequestBodySize: 16 * 1024 } })
         ...settings,
         stopRiskAmount: monetaryStopForCurrency(settings, account.currency) ?? null,
         stopRiskCurrency: account.currency,
+        stopRiskBySymbol: settings.stopRiskBySymbol?.[account.currency] ?? {},
         stopRiskNeedsConfig: monetaryStopForCurrency(settings, account.currency) === undefined,
       },
       signals,
@@ -775,10 +776,10 @@ const app = new Elysia({ serve: { maxRequestBodySize: 16 * 1024 } })
         return { error: 'Admin key required' };
       }
       let monetaryAccount: Awaited<ReturnType<typeof broker.getAccount>> | null = null;
-      if (body.stopRiskAmount !== undefined) {
+      if (body.stopRiskAmount !== undefined || body.stopRiskBySymbol !== undefined) {
         const account = await broker.getAccount().catch(() => null);
         monetaryAccount = account;
-        if (!account || (body.stopRiskAmount !== null && body.stopRiskCurrency !== account.currency)) {
+        if (!account || (body.stopRiskAmount !== null && body.stopRiskAmount !== undefined && body.stopRiskCurrency !== account.currency)) {
           set.status = 400;
           return {
             error: account
@@ -786,6 +787,10 @@ const app = new Elysia({ serve: { maxRequestBodySize: 16 * 1024 } })
               : 'Conecte o MT5 para configurar o stop monetário.',
           };
         }
+      }
+      if (body.stopRiskBySymbol && Object.keys(body.stopRiskBySymbol).length > 50) {
+        set.status = 400;
+        return { error: 'Use no máximo 50 símbolos no stop monetário.' };
       }
       if (
         body.marketSessions &&
@@ -798,10 +803,15 @@ const app = new Elysia({ serve: { maxRequestBodySize: 16 * 1024 } })
             'Informe as quatro sessões com abertura diferente do fechamento.',
         };
       }
-      const updated = await updateSettings({ ...body,
-        ...(body.stopRiskAmount === null && monetaryAccount ? { stopRiskCurrency: monetaryAccount.currency } : {}),
+      const updated = await updateSettings({
+        ...body,
+        ...(monetaryAccount &&
+        (body.stopRiskAmount !== undefined || body.stopRiskBySymbol !== undefined)
+          ? { stopRiskCurrency: monetaryAccount.currency }
+          : {}),
       });
-      if (body.stopRiskAmount != null) await enforceMonetaryStops();
+      if (body.stopRiskAmount != null || body.stopRiskBySymbol !== undefined)
+        await enforceMonetaryStops();
       await recordBotSessionParameters('risk_settings', { ...updated });
       if (body.allowedSymbols !== undefined && runner) {
         const readiness = await ensureStrategy(runnerStrategy, watchedSymbols);
@@ -830,6 +840,7 @@ const app = new Elysia({ serve: { maxRequestBodySize: 16 * 1024 } })
         ...updated,
         stopRiskAmount: monetaryStopForCurrency(updated, monetaryAccount.currency) ?? null,
         stopRiskCurrency: monetaryAccount.currency,
+        stopRiskBySymbol: updated.stopRiskBySymbol?.[monetaryAccount.currency] ?? {},
         stopRiskNeedsConfig: monetaryStopForCurrency(updated, monetaryAccount.currency) === undefined,
       } : updated;
     },
@@ -861,6 +872,15 @@ const app = new Elysia({ serve: { maxRequestBodySize: 16 * 1024 } })
         ),
         stopRiskCurrency: t.Optional(
           t.Union([t.String({ minLength: 1, maxLength: 12 }), t.Null()]),
+        ),
+        stopRiskBySymbol: t.Optional(
+          t.Record(
+            t.String({ minLength: 1, maxLength: 50 }),
+            t.Union([
+              t.Number({ exclusiveMinimum: 0, maximum: 999999999 }),
+              t.Null(),
+            ]),
+          ),
         ),
         maximumDailyTrades: t.Optional(
           t.Integer({ minimum: 0, maximum: 2147483647 }),

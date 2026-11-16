@@ -13,7 +13,7 @@ import {
   OrderManager,
   PositionManager,
   RiskManager,
-  monetaryStopForCurrency,
+  monetaryStopForSymbol,
   resolveOppositeSignal,
 } from '@trade/trading';
 import { audit, emit } from './events';
@@ -62,10 +62,14 @@ export class TradingEngine {
       if (!this.broker.connected) return;
       await this.broker.refreshState?.();
       const account = await this.broker.getAccount();
-      const amount = monetaryStopForCurrency(settings, account.currency);
-      if (amount == null) return;
       for (const position of await this.broker.getPositions()) {
         try {
+          const amount = monetaryStopForSymbol(
+            settings,
+            account.currency,
+            position.symbol,
+          );
+          if (amount == null) continue;
           const symbol = await this.broker.getSymbol(position.symbol);
           const price = await this.broker.getPrice(position.symbol);
           const action = monetaryStopAction(position, symbol, price, amount);
@@ -439,7 +443,11 @@ export class TradingEngine {
       const entryQuote = await this.broker.getPrice(signal.symbol);
       const requestedEntryPrice =
         side === 'BUY' ? entryQuote.ask : entryQuote.bid;
-      const entrySpread = Math.max(0, entryQuote.spread, entryQuote.ask - entryQuote.bid);
+      const entrySpread = Math.max(
+        0,
+        entryQuote.spread,
+        entryQuote.ask - entryQuote.bid,
+      );
       if (
         signal.maximumEntrySpread !== undefined &&
         entrySpread > signal.maximumEntrySpread + 1e-12
@@ -450,10 +458,24 @@ export class TradingEngine {
           .where(eq(schema.orders.id, order.id));
         const reason = `Entry spread ${entrySpread.toFixed(6)} exceeds strategy limit ${signal.maximumEntrySpread.toFixed(6)}`;
         await setStatus('REJECTED', { reason });
-        return { status: 'REJECTED' as SignalStatus, signalId: signal.signalId, reason };
+        return {
+          status: 'REJECTED' as SignalStatus,
+          signalId: signal.signalId,
+          reason,
+        };
       }
-      if (monetaryStopForCurrency(latestSettings, account.currency) !==
-          monetaryStopForCurrency(settings, account.currency)) {
+      const signalMonetaryStop = monetaryStopForSymbol(
+        settings,
+        account.currency,
+        signal.symbol,
+      );
+      if (
+        monetaryStopForSymbol(
+          latestSettings,
+          account.currency,
+          signal.symbol,
+        ) !== signalMonetaryStop
+      ) {
         await db
           .update(schema.orders)
           .set({ status: 'CANCELLED', updatedAt: new Date() })
@@ -466,7 +488,7 @@ export class TradingEngine {
           reason,
         };
       }
-      if (monetaryStopForCurrency(settings, account.currency) != null) {
+      if (signalMonetaryStop != null) {
         decision.stopLoss =
           requestedEntryPrice +
           (side === 'BUY' ? -decision.stopDistance! : decision.stopDistance!);

@@ -26,6 +26,7 @@ export interface RiskSettings {
   stopRiskAmount?: number | null;
   stopRiskCurrency?: string | null;
   stopRiskByCurrency?: Record<string, number | null>;
+  stopRiskBySymbol?: Record<string, Record<string, number | null>>;
   minimumStopDistance: number;
   maximumStopDistance: number;
   positionPolicy:
@@ -35,13 +36,43 @@ export interface RiskSettings {
 /** `undefined` means another currency has a monetary cap but this account has
  * none configured; `null` explicitly selects the strategy's own stop. */
 export function monetaryStopForCurrency(
-  settings: Pick<RiskSettings, 'stopRiskAmount' | 'stopRiskCurrency' | 'stopRiskByCurrency'>,
+  settings: Pick<
+    RiskSettings,
+    'stopRiskAmount' | 'stopRiskCurrency' | 'stopRiskByCurrency'
+  >,
   currency: string,
 ): number | null | undefined {
-  if (Object.prototype.hasOwnProperty.call(settings.stopRiskByCurrency ?? {}, currency))
+  if (
+    Object.prototype.hasOwnProperty.call(
+      settings.stopRiskByCurrency ?? {},
+      currency,
+    )
+  )
     return settings.stopRiskByCurrency![currency];
   if (settings.stopRiskAmount == null) return null;
-  return settings.stopRiskCurrency === currency ? settings.stopRiskAmount : undefined;
+  return settings.stopRiskCurrency === currency
+    ? settings.stopRiskAmount
+    : undefined;
+}
+
+/** Per-symbol amount overrides the currency-wide monetary stop. An explicit
+ * null keeps the strategy stop for that symbol; a missing entry falls back to
+ * the currency default. */
+export function monetaryStopForSymbol(
+  settings: Pick<
+    RiskSettings,
+    | 'stopRiskAmount'
+    | 'stopRiskCurrency'
+    | 'stopRiskByCurrency'
+    | 'stopRiskBySymbol'
+  >,
+  currency: string,
+  symbol: string,
+): number | null | undefined {
+  const bySymbol = settings.stopRiskBySymbol?.[currency];
+  if (bySymbol && Object.prototype.hasOwnProperty.call(bySymbol, symbol))
+    return bySymbol[symbol];
+  return monetaryStopForCurrency(settings, currency);
 }
 const DEFAULT_RISK_REWARD_RATIO = 3;
 
@@ -112,8 +143,13 @@ export class RiskManager {
     if (price.spread > symbol.maxSpread)
       return reject('Spread exceeds broker limit');
     const liveSpread = Math.max(0, price.spread, price.ask - price.bid);
-    if (signal.maximumEntrySpread !== undefined && liveSpread > signal.maximumEntrySpread + 1e-12)
-      return reject(`Entry spread ${liveSpread.toFixed(6)} exceeds strategy limit ${signal.maximumEntrySpread.toFixed(6)}`);
+    if (
+      signal.maximumEntrySpread !== undefined &&
+      liveSpread > signal.maximumEntrySpread + 1e-12
+    )
+      return reject(
+        `Entry spread ${liveSpread.toFixed(6)} exceeds strategy limit ${signal.maximumEntrySpread.toFixed(6)}`,
+      );
     if (
       dailyPnl <= -s.maximumDailyLoss ||
       (strategy?.maxDailyLoss !== undefined &&
@@ -154,10 +190,20 @@ export class RiskManager {
         `Maximum open positions exceeded (${ordinaryCount} open, limit ${s.maximumOpenPositions})`,
       );
     const requested = signal.stopLoss ?? symbol.defaultStopLoss;
-    const configuredMonetaryStop = monetaryStopForCurrency(s, account.currency);
+    const configuredMonetaryStop = monetaryStopForSymbol(
+      s,
+      account.currency,
+      signal.symbol,
+    );
     if (configuredMonetaryStop === undefined)
-      return reject(`Monetary stop for account currency ${account.currency} is not configured`);
-    if (s.requireStopLoss && !signal.stopLoss && configuredMonetaryStop === null)
+      return reject(
+        `Monetary stop for account currency ${account.currency} is not configured`,
+      );
+    if (
+      s.requireStopLoss &&
+      !signal.stopLoss &&
+      configuredMonetaryStop === null
+    )
       return reject('Stop loss required');
     // A configured floor is only meaningful next to the broker's own. The
     // broker floor is per instrument: expressed as an absolute price amount it
@@ -200,7 +246,10 @@ export class RiskManager {
     }
     if (lots < s.minimumLotSize) return reject('Lot below minimum');
     if (configuredMonetaryStop !== null) {
-      if (!Number.isFinite(configuredMonetaryStop) || configuredMonetaryStop <= 0)
+      if (
+        !Number.isFinite(configuredMonetaryStop) ||
+        configuredMonetaryStop <= 0
+      )
         return reject('Invalid monetary stop amount');
       const lossTickValue = symbol.tickValueLoss ?? symbol.tickValue;
       if (

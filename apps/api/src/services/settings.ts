@@ -65,6 +65,7 @@ export async function getSettings(): Promise<
       row.stopRiskAmount === null ? null : Number(row.stopRiskAmount),
     stopRiskCurrency: row.stopRiskCurrency,
     stopRiskByCurrency: row.stopRiskByCurrency ?? {},
+    stopRiskBySymbol: row.stopRiskBySymbol ?? {},
     minimumStopDistance: Number(row.minimumStopDistance ?? 0.01),
     maximumStopDistance: Number(row.maximumStopDistance ?? 1000),
     positionPolicy: row.positionPolicy as RiskSettings['positionPolicy'],
@@ -83,17 +84,31 @@ export async function updateSettings(
       | 'stopRiskAmount'
       | 'stopRiskCurrency'
     >
-  > & { marketSessions?: MarketWindow[]; invertIncomingSignals?: boolean },
+  > & {
+    marketSessions?: MarketWindow[];
+    invertIncomingSignals?: boolean;
+    stopRiskBySymbol?: Record<string, number | null>;
+  },
 ) {
   if (patch.marketSessions !== undefined)
     validateMarketWindows(patch.marketSessions);
   const current = await getSettings();
   const byCurrency = { ...current.stopRiskByCurrency };
-  if (current.stopRiskAmount != null && current.stopRiskCurrency &&
-      !Object.prototype.hasOwnProperty.call(byCurrency, current.stopRiskCurrency))
+  if (
+    current.stopRiskAmount != null &&
+    current.stopRiskCurrency &&
+    !Object.prototype.hasOwnProperty.call(byCurrency, current.stopRiskCurrency)
+  )
     byCurrency[current.stopRiskCurrency] = current.stopRiskAmount;
   if (patch.stopRiskAmount !== undefined && patch.stopRiskCurrency)
     byCurrency[patch.stopRiskCurrency] = patch.stopRiskAmount;
+  const bySymbol = { ...(current.stopRiskBySymbol ?? {}) };
+  if (patch.stopRiskBySymbol !== undefined) {
+    const currency = patch.stopRiskCurrency ?? current.stopRiskCurrency;
+    if (!currency)
+      throw new Error('Monetary stop currency required for symbol overrides');
+    bySymbol[currency] = { ...patch.stopRiskBySymbol };
+  }
   await db
     .update(schema.riskSettings)
     .set({
@@ -105,6 +120,7 @@ export async function updateSettings(
             ? null
             : String(patch.stopRiskAmount),
       stopRiskByCurrency: byCurrency,
+      stopRiskBySymbol: bySymbol,
       updatedAt: new Date(),
     })
     .where(eq(schema.riskSettings.id, current.id));

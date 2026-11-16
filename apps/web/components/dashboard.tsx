@@ -436,6 +436,8 @@ function Risk({ data }: { data: DashboardData }) {
           currency={data.account.currency}
           connected={data.brokerConnected}
           needsConfig={s.stopRiskNeedsConfig}
+          symbols={s.allowedSymbols}
+          symbolAmounts={s.stopRiskBySymbol}
         />
         <DailyTradeLimitControl
           limit={s.maximumDailyTrades}

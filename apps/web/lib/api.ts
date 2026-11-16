@@ -1,5 +1,10 @@
 import type { Timeframe } from '@trade/shared';
-import type { MarketForcesReading, ForceShockStrategyReading, DiversifiedTrendReading, DiversifiedTrendConfig } from '@trade/strategy';
+import type {
+  MarketForcesReading,
+  ForceShockStrategyReading,
+  DiversifiedTrendReading,
+  DiversifiedTrendConfig,
+} from '@trade/strategy';
 
 export const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
@@ -90,6 +95,7 @@ export interface DashboardData {
     }[];
     stopRiskAmount?: number | null;
     stopRiskCurrency?: string | null;
+    stopRiskBySymbol?: Record<string, number | null>;
     stopRiskNeedsConfig?: boolean;
   };
   signals: Array<Record<string, unknown>>;

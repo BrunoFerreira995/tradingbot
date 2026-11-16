@@ -9,15 +9,15 @@ Bot de trading auto-hospedado para **MetaTrader 5**, com painel web em portuguê
 ## O que faz
 
 - **Sinais** de estratégias embutidas ou de um webhook do TradingView.
-- **Risk engine** com lote máximo, perda diária, limite de posições, stop obrigatório, sessões Forex, stop monetário e símbolos permitidos.
+- **Risk engine** com lote máximo, perda diária, limite de posições, stop obrigatório, sessões Forex, stop monetário por operação e por símbolo e símbolos permitidos.
 - **Execução no MT5** com `OrderCheck`, confirmação de posição, idempotência e auditoria.
 - **Painel em tempo real** com saldo, equity, P&L, posições, trades, gráficos e drawdown.
 - **Proteções**: Auto trading desligado por padrão, emergency stop e confirmação explícita para conta real.
 
 ## Telas
 
-| Trading | Risk Control |
-| --- | --- |
+| Trading                                                                                                             | Risk Control                                                                                                                       |
+| ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | <a href="docs/screenshots/02-trading.png"><img src="docs/screenshots/02-trading.png" width="420" alt="Trading"></a> | <a href="docs/screenshots/06-risk-control.png"><img src="docs/screenshots/06-risk-control.png" width="420" alt="Risk Control"></a> |
 
 Veja todas as telas e o tour completo em [docs/reference.md](docs/reference.md).
@@ -27,6 +27,12 @@ Veja todas as telas e o tour completo em [docs/reference.md](docs/reference.md).
 Resultado líquido dos melhores candidatos por estratégia, com treino, holdout e um cenário de estresse com 1,5x o spread:
 
 ![Backtest por estratégia](docs/screenshots/09-backtest-strategies.svg)
+
+**Resumo:**
+
+- **Melhor retorno total: MeanRev BB+RSI no M30** — US$ 37,77 no backtest de timeframes (treino + holdout) e US$ 36,70 no melhor candidato por treino.
+- **Melhor holdout isolado: BB+RSI no H1** — US$ 27,47, contra US$ 5,18 do M30.
+- O M30 concentra o ganho no treino (US$ 32,59) e cai no holdout; o H1 faz o contrário.
 
 > Os resultados vêm de simulações de pesquisa com snapshots históricos, não de execução real no MT5. As amostras são pequenas e o holdout não deve ser reutilizado para escolher parâmetros. Não são garantia de resultado futuro.
 
@@ -129,26 +135,26 @@ Para rodar tudo com Docker, use `docker compose up --build` com as variáveis do
 
 ## Estrutura
 
-| Caminho | Responsabilidade |
-| --- | --- |
-| `apps/api` | Webhook, API, auditoria, SSE e orquestração. |
-| `apps/web` | Dashboard Next.js. |
-| `packages/trading` | Lote, risco, política de posições e envio de ordens. |
-| `packages/strategy` | Indicadores e estratégias em TypeScript. |
-| `packages/broker` | Adaptador da ponte MT5. |
-| `packages/database` | Schema Drizzle e migrações SQL. |
+| Caminho             | Responsabilidade                                     |
+| ------------------- | ---------------------------------------------------- |
+| `apps/api`          | Webhook, API, auditoria, SSE e orquestração.         |
+| `apps/web`          | Dashboard Next.js.                                   |
+| `packages/trading`  | Lote, risco, política de posições e envio de ordens. |
+| `packages/strategy` | Indicadores e estratégias em TypeScript.             |
+| `packages/broker`   | Adaptador da ponte MT5.                              |
+| `packages/database` | Schema Drizzle e migrações SQL.                      |
 
 ## Comandos úteis
 
-| Comando | O que faz |
-| --- | --- |
-| `bun dev` | Sobe API e dashboard em modo desenvolvimento. |
-| `bun typecheck` | Verifica tipos de API e web. |
-| `bun lint` | Roda o ESLint. |
-| `bun test` | Roda os testes. |
-| `bun run build` | Build de produção. |
-| `bun run mt5:doctor` | Diagnostica a ponte MT5 sem enviar ordens. |
-| `bun run mt5:install` | Compila e instala o `AurumBridge`. |
+| Comando                       | O que faz                                      |
+| ----------------------------- | ---------------------------------------------- |
+| `bun dev`                     | Sobe API e dashboard em modo desenvolvimento.  |
+| `bun typecheck`               | Verifica tipos de API e web.                   |
+| `bun lint`                    | Roda o ESLint.                                 |
+| `bun test`                    | Roda os testes.                                |
+| `bun run build`               | Build de produção.                             |
+| `bun run mt5:doctor`          | Diagnostica a ponte MT5 sem enviar ordens.     |
+| `bun run mt5:install`         | Compila e instala o `AurumBridge`.             |
 | `bun run research:strategies` | Backtests de pesquisa, sem conectar ao broker. |
 
 ## Documentação

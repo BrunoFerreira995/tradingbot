@@ -7,7 +7,12 @@ import type {
   SymbolInfo,
   TradingSignal,
 } from '@trade/shared';
-import { RiskManager, monetaryStopForCurrency, type RiskSettings } from './risk-manager';
+import {
+  RiskManager,
+  monetaryStopForCurrency,
+  monetaryStopForSymbol,
+  type RiskSettings,
+} from './risk-manager';
 import { OrderManager } from './order-manager';
 import { PositionManager } from './position-manager';
 
@@ -98,17 +103,31 @@ const evaluate = (
 
 describe('risk gates', () => {
   test('rejects entry spread above the strategy limit', () => {
-    expect(evaluate({ signal: { ...signal, maximumEntrySpread: 0.2 } }).reason)
-      .toContain('exceeds strategy limit');
-    expect(evaluate({ signal: { ...signal, maximumEntrySpread: 0.3 } }).approved)
-      .toBe(true);
+    expect(
+      evaluate({ signal: { ...signal, maximumEntrySpread: 0.2 } }).reason,
+    ).toContain('exceeds strategy limit');
+    expect(
+      evaluate({ signal: { ...signal, maximumEntrySpread: 0.3 } }).approved,
+    ).toBe(true);
   });
   test('rejects a monetary stop below the strategy volatility floor without widening it', () => {
-    const monetary = { ...settings, stopRiskAmount: 1, stopRiskCurrency: 'USD' };
-    expect(evaluate({ signal: { ...signal, minimumEntryStopDistance: 2 }, settings: monetary }).reason)
-      .toContain('below strategy minimum');
-    expect(evaluate({ signal: { ...signal, minimumEntryStopDistance: 0.5 }, settings: monetary }).approved)
-      .toBe(true);
+    const monetary = {
+      ...settings,
+      stopRiskAmount: 1,
+      stopRiskCurrency: 'USD',
+    };
+    expect(
+      evaluate({
+        signal: { ...signal, minimumEntryStopDistance: 2 },
+        settings: monetary,
+      }).reason,
+    ).toContain('below strategy minimum');
+    expect(
+      evaluate({
+        signal: { ...signal, minimumEntryStopDistance: 0.5 },
+        settings: monetary,
+      }).approved,
+    ).toBe(true);
   });
   test('reserves one BTCUSD position even when ordinary capacity is exceeded', () => {
     const ordinary: Position = {
@@ -456,11 +475,50 @@ describe('in-memory broker execution', () => {
 
 describe('monetary stop', () => {
   test('keeps limits separate by account currency and blocks an unconfigured account', () => {
-    const settings = { stopRiskAmount: 0.269, stopRiskCurrency: 'GBP', stopRiskByCurrency: { GBP: 0.269, USD: 3 } };
+    const settings = {
+      stopRiskAmount: 0.269,
+      stopRiskCurrency: 'GBP',
+      stopRiskByCurrency: { GBP: 0.269, USD: 3 },
+    };
     expect(monetaryStopForCurrency(settings, 'GBP')).toBe(0.269);
     expect(monetaryStopForCurrency(settings, 'USD')).toBe(3);
     expect(monetaryStopForCurrency(settings, 'EUR')).toBeUndefined();
-    expect(monetaryStopForCurrency({ ...settings, stopRiskByCurrency: { ...settings.stopRiskByCurrency, EUR: null } }, 'EUR')).toBeNull();
+    expect(
+      monetaryStopForCurrency(
+        {
+          ...settings,
+          stopRiskByCurrency: { ...settings.stopRiskByCurrency, EUR: null },
+        },
+        'EUR',
+      ),
+    ).toBeNull();
+  });
+  test('uses per-symbol overrides before the currency default', () => {
+    const settings = {
+      stopRiskAmount: 1,
+      stopRiskCurrency: 'USD',
+      stopRiskByCurrency: { USD: 1 },
+      stopRiskBySymbol: { USD: { XAUUSD: 2, EURUSD: null } },
+    };
+    expect(monetaryStopForSymbol(settings, 'USD', 'XAUUSD')).toBe(2);
+    expect(monetaryStopForSymbol(settings, 'USD', 'EURUSD')).toBeNull();
+    expect(monetaryStopForSymbol(settings, 'USD', 'GBPUSD')).toBe(1);
+    expect(monetaryStopForSymbol(settings, 'EUR', 'GBPUSD')).toBeUndefined();
+  });
+  test('sizes the stop from the symbol override instead of the currency default', () => {
+    const tightPrice = { ...price, ask: price.bid + 0.001, spread: 0.001 };
+    const decision = evaluate({
+      price: tightPrice,
+      settings: {
+        ...settings,
+        stopRiskAmount: 1,
+        stopRiskCurrency: 'USD',
+        stopRiskBySymbol: { USD: { XAUUSD: 2 } },
+      },
+      symbol: { ...symbol, tickValueLoss: 2 },
+    });
+    expect(decision.approved).toBe(true);
+    expect(decision.stopDistance).toBeCloseTo(1, 10);
   });
   test('accepts a GBP budget of 0.269 and rounds the stop inward to broker ticks for both sides', () => {
     const tightPrice = { ...price, ask: price.bid + 0.001, spread: 0.001 };

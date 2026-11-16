@@ -46,7 +46,10 @@ export const strategies = pgTable('strategies', {
   name: varchar('name', { length: 100 }).notNull().unique(),
   description: text('description'),
   /** Per-symbol/timeframe strategy settings, keyed as SYMBOL:TIMEFRAME. */
-  config: jsonb('config').$type<Record<string, unknown>>().default({}).notNull(),
+  config: jsonb('config')
+    .$type<Record<string, unknown>>()
+    .default({})
+    .notNull(),
   enabled: boolean('enabled').default(true).notNull(),
   allowedSymbols: jsonb('allowed_symbols')
     .$type<string[]>()
@@ -194,6 +197,10 @@ export const riskSettings = pgTable('risk_settings', {
   stopRiskCurrency: varchar('stop_risk_currency', { length: 12 }),
   stopRiskByCurrency: jsonb('stop_risk_by_currency')
     .$type<Record<string, number | null>>()
+    .default({})
+    .notNull(),
+  stopRiskBySymbol: jsonb('stop_risk_by_symbol')
+    .$type<Record<string, Record<string, number | null>>>()
     .default({})
     .notNull(),
   minimumStopDistance: money('minimum_stop_distance'),
