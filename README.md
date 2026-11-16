@@ -61,6 +61,30 @@ Relatórios completos: [estratégias clássicas](docs/reference.md#research-only
 
 </details>
 
+## Roadmap: rede neural
+
+Objetivo: usar uma rede neural como **camada de apoio à decisão**. O modelo produz um score/probabilidade; a estratégia, o risk engine e a confirmação do MT5 continuam sendo a autoridade final. A rede nunca envia ordens diretamente.
+
+| Fase | Entrega | Critério para avançar |
+| --- | --- | --- |
+| 0. Baseline | Congelar os backtests atuais, custos, janelas de treino/holdout e métricas de referência | O pipeline atual reproduz os mesmos resultados com os mesmos dados |
+| 1. Dataset | Features versionadas, alvo explícito, split temporal sem vazamento e snapshot dos candles usados | Dataset reproduzível, com hash e relatório de qualidade |
+| 2. Treino offline | Treino em Python (PyTorch/scikit-learn), validação walk-forward e comparação com o baseline | O modelo supera o baseline no holdout em métricas escolhidas antes do treino |
+| 3. Empacotamento | Exportação para ONNX e serviço de inferência isolado, com timeout e versão do modelo | Inferência determinística, testada e sem acesso à rede de ordens |
+| 4. Shadow mode | O strategy runner consulta o modelo, mas o score não altera a execução; features e previsões ficam auditadas | Período em demo sem erros, latência aceitável e comportamento explicável |
+| 5. Gate de risco | Uso opcional como filtro/confirmação, com threshold, fallback para a regra atual, limite de confiança e kill switch | Aprovação manual após comparação paper vs. baseline |
+| 6. Monitoramento | Detecção de drift, métricas por símbolo, registry de modelos e retreino periódico | Processo de promoção e rollback documentado |
+
+**Decisões iniciais recomendadas**
+
+- Começar com um problema pequeno e mensurável: prever direção ou retorno futuro de um único símbolo/timeframe, não automação ponta a ponta.
+- Separar treino (Python) de execução (API TypeScript); carregar apenas o artefato exportado no runtime.
+- Manter o modelo atrás de uma flag, desligado por padrão, e sempre com fallback para a estratégia atual.
+- Registrar por previsão: versão do modelo, features de entrada, score, threshold e resultado posterior.
+- Não versionar pesos no Git; usar artefato imutável com hash e metadados de treino.
+
+**Fora do escopo inicial:** reinforcement learning, execução direta pelo modelo, retreino online e substituição do risk engine.
+
 ## Requisitos
 
 - Bun 1.3+
