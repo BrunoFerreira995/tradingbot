@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="580" viewBox="0 0 960 580" role="img" aria-label="Diversified Trend — período de teste">
+<rect width="960" height="580" fill="#ffffff"/>
+<text x="84" y="42" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif" font-size="24" font-weight="700" fill="#0f172a">Diversified Trend — período de teste</text>
+<text x="84" y="68" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif" font-size="13" fill="#64748b">Estratégia não aprovada na validação · cenário base e estresse · resultado líquido em USD no teste</text>
+<rect x="84" y="86" width="12" height="12" rx="2" fill="#2563eb"/>
+<text x="102" y="97" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12" fill="#0f172a">Base</text>
+<rect x="156" y="86" width="12" height="12" rx="2" fill="#16a34a"/>
+<text x="174" y="97" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12" fill="#0f172a">Estresse</text>
+<line x1="84" y1="454.0" x2="924" y2="454.0" stroke="#e2e8f0" stroke-width="1"/>
+<text x="72" y="458.0" text-anchor="end" font-family="ui-monospace,monospace" font-size="11" fill="#64748b">-$2.500,00</text>
+<line x1="84" y1="399.7" x2="924" y2="399.7" stroke="#e2e8f0" stroke-width="1"/>
+<text x="72" y="403.7" text-anchor="end" font-family="ui-monospace,monospace" font-size="11" fill="#64748b">-$2.000,00</text>
+<line x1="84" y1="345.3" x2="924" y2="345.3" stroke="#e2e8f0" stroke-width="1"/>
+<text x="72" y="349.3" text-anchor="end" font-family="ui-monospace,monospace" font-size="11" fill="#64748b">-$1.500,00</text>
+<line x1="84" y1="291.0" x2="924" y2="291.0" stroke="#e2e8f0" stroke-width="1"/>
+<text x="72" y="295.0" text-anchor="end" font-family="ui-monospace,monospace" font-size="11" fill="#64748b">-$1.000,00</text>
+<line x1="84" y1="236.7" x2="924" y2="236.7" stroke="#e2e8f0" stroke-width="1"/>
+<text x="72" y="240.7" text-anchor="end" font-family="ui-monospace,monospace" font-size="11" fill="#64748b">-$500,00</text>
+<line x1="84" y1="182.3" x2="924" y2="182.3" stroke="#e2e8f0" stroke-width="1"/>
+<text x="72" y="186.3" text-anchor="end" font-family="ui-monospace,monospace" font-size="11" fill="#64748b">$0,00</text>
+<line x1="84" y1="128.0" x2="924" y2="128.0" stroke="#e2e8f0" stroke-width="1"/>
+<text x="72" y="132.0" text-anchor="end" font-family="ui-monospace,monospace" font-size="11" fill="#64748b">$500,00</text>
+<line x1="84" y1="182.3" x2="924" y2="182.3" stroke="#0f172a" stroke-width="1.4"/>
+<rect x="162.0" y="182.3" width="58.0" height="42.3" rx="3" fill="#2563eb" fill-opacity="0.9"/>
+<text x="191.0" y="239.6" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" font-weight="600" fill="#0f172a">-$388,90</text>
+<rect x="228.0" y="182.3" width="58.0" height="73.6" rx="3" fill="#16a34a" fill-opacity="0.9"/>
+<text x="257.0" y="271.0" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" font-weight="600" fill="#0f172a">-$677,59</text>
+<text x="224.0" y="488.0" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13" font-weight="600" fill="#0f172a">Portfólio selecionado</text>
+<text x="224.0" y="506.0" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" fill="#64748b">n=202</text>
+<rect x="442.0" y="182.3" width="58.0" height="133.4" rx="3" fill="#2563eb" fill-opacity="0.9"/>
+<text x="471.0" y="330.7" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" font-weight="600" fill="#0f172a">-$1.227,44</text>
+<rect x="508.0" y="182.3" width="58.0" height="186.7" rx="3" fill="#16a34a" fill-opacity="0.9"/>
+<text x="537.0" y="384.1" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" font-weight="600" fill="#0f172a">-$1.718,42</text>
+<text x="504.0" y="488.0" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13" font-weight="600" fill="#0f172a">Portfólio padrão</text>
+<text x="504.0" y="506.0" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" fill="#64748b">n=310</text>
+<rect x="722.0" y="182.3" width="58.0" height="171.9" rx="3" fill="#2563eb" fill-opacity="0.9"/>
+<text x="751.0" y="369.3" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" font-weight="600" fill="#0f172a">-$1.582,27</text>
+<rect x="788.0" y="182.3" width="58.0" height="205.1" rx="3" fill="#16a34a" fill-opacity="0.9"/>
+<text x="817.0" y="402.4" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" font-weight="600" fill="#0f172a">-$1.887,18</text>
+<text x="784.0" y="488.0" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13" font-weight="600" fill="#0f172a">GBPUSD selecionado</text>
+<text x="784.0" y="506.0" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" fill="#64748b">n=28</text>
+<text x="84" y="562" font-family="ui-sans-serif,system-ui,sans-serif" font-size="10" fill="#64748b">Resultados históricos de pesquisa. Não são garantia de resultado futuro.</text>
+</svg>

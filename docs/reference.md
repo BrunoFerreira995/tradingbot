@@ -1,0 +1,521 @@
+# Aurum Terminal
+
+> Referência técnica completa. Para o guia rápido, volte ao [README](../README.md).
+
+**Em resumo:** um bot de trading auto-hospedado com painel web em português. Ele recebe sinais (de uma estratégia embutida ou de um webhook do TradingView), aplica limites de risco e envia as ordens para o MetaTrader 5. Não existe broker simulado: o MT5 é a única fonte de preços, conta, posições e execução.
+
+Architecture: MetaTrader 5 terminal → MQL5 service bridge → Elysia API → PostgreSQL → risk engine → real-time Next.js dashboard. Bun/TypeScript monorepo. A TradingView webhook can still inject a signal that someone else decided on. See [Pepperstone / MT5](#pepperstone--mt5).
+
+The bot decides, the terminal executes. Nothing is attached to a chart and no Expert Advisor runs on a symbol; the only MQL5 code is the bridge service, and all strategy logic lives in `packages/strategy`.
+
+## Tour rápido
+
+O dashboard é um terminal web em português com sete áreas de trabalho. Todas as telas abaixo são de uma conta **demo** conectada ao MetaTrader 5, com mercado real. Clique em qualquer imagem para abrir o print completo.
+
+| Tela | O que você acompanha |
+| --- | --- |
+| <a href="screenshots/01-overview.png"><img src="screenshots/01-overview.png" width="360" alt="Overview"></a> | **Overview** — saldo, equity, margem livre, P&L diário e aberto, win rate, resultado líquido por período, drawdown, gráfico de saldo/equity, cotação ao vivo do símbolo principal, último sinal do TradingView e sinais recentes. É a primeira tela depois do login. |
+| <a href="screenshots/02-trading.png"><img src="screenshots/02-trading.png" width="360" alt="Trading"></a> | **Trading** — o *strategy runner* avalia cada par no fechamento da vela: RSI, distância até o gatilho, distância da banda, fechamento, próxima vela e status (`WAITING_BAR`, `SIGNAL`, `BLOCKED`). Abaixo, leitura de direção/atrito por símbolo e abas de Signals, Orders e Positions. |
+| <a href="screenshots/03-ciclos.png"><img src="screenshots/03-ciclos.png" width="360" alt="Ciclos"></a> | **Ciclos** — projeta capital composto a partir de parâmetros (capital inicial, lucro e stop por 0,01 lote, número de ciclos). Destaca em qual ciclo o saldo atual da conta está e permite restaurar os padrões. |
+| <a href="screenshots/04-trades.png"><img src="screenshots/04-trades.png" width="360" alt="Trades"></a> | **Trades** — estatísticas da conta, gráfico de saldo/equity, posições abertas e histórico de trades fechados com lado, lote, entrada, saída e P&L. Exporta trades e sessões do bot em CSV. |
+| <a href="screenshots/05-graficos.png"><img src="screenshots/05-graficos.png" width="360" alt="Gráficos de trades"></a> | **Gráficos** — os últimos 10 trades fechados em candles, com entrada, stop, alvo e saída marcados. O timeframe pode ser automático (o do trade) ou trocado manualmente para inspecionar o contexto da decisão. |
+| <a href="screenshots/06-risk-control.png"><img src="screenshots/06-risk-control.png" width="360" alt="Risk Control"></a> | **Risk Control** — liga/desliga auto trading, aciona o emergency stop, inverte sinais, define lote máximo, posições, perda diária, política de posição, stop obrigatório, horários das sessões Forex, stop monetário por operação, limite diário de trades e símbolos permitidos. |
+| <a href="screenshots/07-broker.png"><img src="screenshots/07-broker.png" width="360" alt="Broker"></a> | **Broker** — estado da ponte com o MetaTrader 5: provider, modo (demo/real), conexão, login da conta, saldo e equity. Se algo não executa, comece por aqui e por `/health`. |
+
+Fluxo típico de uso:
+
+1. Abra **Broker** e confirme `Connected` e a conta correta.
+2. Em **Risk Control**, revise símbolos permitidos, lote máximo, perda diária e sessões. Deixe *Auto trading* desligado até validar os sinais.
+3. Em **Trading**, confira se o *strategy runner* está avaliando os pares (não pode ficar `BLOCKED`).
+4. Acompanhe entradas e rejeições em **Trading → Signals/Orders/Positions** e o resultado em **Trades** e **Overview**.
+5. Só então habilite *Auto trading*. O botão **EMERGENCY STOP** bloqueia novas ordens imediatamente, mas não fecha posições existentes.
+
+## Start locally
+
+Requirements: Bun 1.3+ and PostgreSQL 16. Docker is optional. Copy `.env.example` to `.env` only if you do not already have a configured `.env`, and set long random values for `TRADINGVIEW_WEBHOOK_SECRET`, `ADMIN_API_KEY`, and `DASHBOARD_PASSWORD`. `AUTO_TRADING_ENABLED=false` is the safe default; enable it in the dashboard after testing.
+
+### macOS without Docker
+
+Install PostgreSQL with Homebrew and start the local service:
+
+```sh
+brew install postgresql@16
+brew services start postgresql@16
+export PATH="$(brew --prefix postgresql@16)/bin:$PATH"
+pg_isready -h localhost -p 5432
+```
+
+Create the role and database once. These match the local `DATABASE_URL` in `.env.example`; skip creation if they already exist:
+
+```sh
+psql -d postgres -c "CREATE ROLE trader WITH LOGIN PASSWORD 'trader';"
+createdb -O trader tradingbot
+```
+
+Set `DATABASE_URL=postgres://trader:trader@localhost:5432/tradingbot` in `.env`. Install dependencies, apply migrations, and start both apps from the repository root:
+
+```sh
+bun install
+bun db:migrate
+bun dev
+```
+
+The development scripts explicitly load the repository-root `.env` for both apps. If `DASHBOARD_USER` and `DASHBOARD_PASSWORD` are set, the browser asks for those credentials in development too.
+
+For an initial inspection with the indicator strategy disabled and a demo account required:
+
+```sh
+TRADING_MODE=paper AUTO_TRADING_ENABLED=false STRATEGY_RUNNER= bun dev
+```
+
+Risk settings already stored in PostgreSQL take precedence over `AUTO_TRADING_ENABLED`; check Auto Trading in the dashboard before enabling the strategy. The application can run while MetaTrader is disconnected, but account data, prices and execution require the `AurumBridge` service described below. `paper` uses a real demo terminal; it does not simulate market data.
+
+To run the apps in separate terminals (both from the repository root):
+
+```sh
+# Terminal 1: API
+TRADING_MODE=paper AUTO_TRADING_ENABLED=false STRATEGY_RUNNER= bun --filter '@trade/api' dev
+# Terminal 2: dashboard
+bun --filter '@trade/web' dev
+```
+
+Stop the apps with Ctrl+C. To stop the local database, run `brew services stop postgresql@16`.
+
+### Login local do painel
+
+Acesse http://localhost:3002 e use as credenciais locais configuradas no `.env`:
+
+- Login: `admin`
+- Senha: consulte `DASHBOARD_PASSWORD` no arquivo local `.env`.
+
+### Optional Docker setup
+
+```sh
+bun install
+docker compose up -d postgres
+bun db:migrate
+bun dev
+```
+STRATEGY_RUNNER=market_forces bun --filter '@trade/api' dev
+Local development opens the dashboard at `http://localhost:3002`; set `WEB_ORIGIN=http://localhost:3002` in `.env`. The API is at `http://localhost:3001/health`, and the webhook accepts POST at `http://localhost:3001/api/webhooks/tradingview`. In production the dashboard uses HTTP Basic authentication. Run `bun typecheck`, `bun lint`, `bun test`, and `bun run build` before deployment.
+
+For an all-container run, set the required variables in `.env` and run `docker compose up --build`. The API container runs migrations at startup. The web container proxies dashboard data and SSE through `API_INTERNAL_URL`, keeping the admin key on the server.
+
+If ports 3000 or 3001 are occupied, set `WEB_PORT=3100`, `API_PORT=3101`, and `WEB_ORIGIN=http://localhost:3100` in `.env` before starting Compose. The dashboard proxies data and SSE requests to the API internally.
+
+## TradingView
+
+See [tradingview.md](tradingview.md) for webhook JSON and a Pine Script example. A webhook can authenticate with the JSON `secret`, `X-Webhook-Secret`, or timestamped HMAC headers. It must contain a unique `signalId`. Test locally:
+
+```sh
+curl -X POST http://localhost:3001/api/webhooks/tradingview -H 'content-type: application/json' -d '{"secret":"YOUR_SECRET","strategy":"gold-scalping-v1","signalId":"manual-001","symbol":"XAUUSD","action":"BUY","orderType":"MARKET","lots":0.01,"stopLoss":25,"takeProfit":50}'
+```
+
+In development, `POST /api/test/signal` accepts `{ "action": "BUY" }`, `{ "action": "SELL" }`, or `{ "action": "CLOSE" }`. It is unavailable in production. TradingView must be able to reach a public HTTPS endpoint; localhost is only for local tests.
+
+## Architecture and controls
+
+- `apps/api`: webhook security, API, audit, SSE, and orchestration. Each signal is inserted with a unique `signal_id`. PostgreSQL advisory locking serializes work by account across API instances.
+- `packages/trading`: lot sizing, risk limits, position policy, and order submission. Broker market orders are never retried blindly after timeout.
+- `packages/strategy`: indicator maths (Bollinger, RSI, ATR) and the strategies built on it. Host-side and unit-tested, so there is one implementation of each rather than one in MQL5 and one in TypeScript.
+- `packages/broker`: the MetaTrader 5 bridge adapter (real market data and order routing) plus an isolated cTrader placeholder. The in-memory double used by tests lives behind `@trade/broker/testing`; the application imports real brokers only and has no mock provider to fall back to.
+- `packages/database`: Drizzle schema and SQL migrations. Migration seeds `gold-scalping-v1`.
+- `apps/web`: responsive dark terminal with signals, orders, positions, trades, risk, broker, strategies, and audit views.
+
+`AUTO_TRADING_ENABLED=false` registers but rejects signals. `EMERGENCY_STOP=true` blocks new orders. It does not close positions. `EMERGENCY_CLOSE_POSITIONS` is reserved for a separate confirmed workflow and has no automatic action. Risk settings are stored in PostgreSQL after first initialization and are editable from the dashboard; the defaults seed only once. The default maximum lot is 0.01 and the default policy is one position per symbol. The provider is MetaTrader 5 and nothing else: contract specifications, account, positions and orders all come from the terminal.
+
+`TRADING_MODE=auto` detects demo/contest or real from the terminal heartbeat and reports the detected mode in `/health` and the dashboard. Switching accounts does not require changing this setting. A real account still requires `MT5_LIVE_ACK` to equal its login; the broker rechecks this before every terminal operation, including order submission. `paper` and `live` remain available as strict policies for deployments that must refuse the other account type. The existing auto-trading, emergency-stop and risk settings still govern whether any order may be sent.
+
+Before opening an order, the API asks the terminal to run `OrderCheck` with the sized lot and protective prices. Margin, projected equity, free margin and rejection codes come from MetaTrader; contract notional is never used as a substitute for margin. The configured margin usage limit still applies to the terminal's projection. Missing or invalid check data blocks submission. After updating the bridge, run `bun run mt5:install` and restart the `AurumBridge` service in MT5. `OrderCheck` validates without sending an order; a successful check does not guarantee that the subsequent execution will succeed.
+
+Broker volume and exposure restrictions also come from MetaTrader `OrderCheck` and the execution response, including `TRADE_RETCODE_LIMIT_VOLUME` (10034). The API no longer computes a combined exposure using one symbol's contract size for every position. The legacy `maximumExposure` database field is retained for compatibility but no longer blocks orders. Local lot, position, daily-loss and margin-usage limits remain separate bot policies.
+
+Signal execution is queued per account across symbols. Before evaluating risk, the API refreshes account and positions from MetaTrader under the account lock. Position rejections include the open count and configured limit; the Signals tab and latest signal card display rejection reasons and their source. Broker execution rejections are recorded as REJECTED, while transport or confirmation failures are FAILED. Historical rejections are not automatically replayed.
+
+The API boots even when the terminal is unreachable: it reports the broker as disconnected, keeps retrying every `MT5_RECONNECT_MS`, and starts serving the moment the AurumBridge service publishes a heartbeat. MetaTrader is the source of truth for account, positions and orders, so nothing is rehydrated from PostgreSQL. Run one API instance: the PostgreSQL lock serializes each account across processes.
+
+The admin key is server-only and required for dashboard data and settings mutations. The dashboard proxies these requests and uses HTTP Basic authentication in production. Put the API behind HTTPS and restrict public access to the webhook and health endpoints. Never put broker credentials, the webhook secret, or the admin key in `NEXT_PUBLIC_` variables.
+
+## Operational notes
+
+Live trading data uses the authenticated `/api/open-pnl/stream` SSE endpoint, proxied through `/api/data/open-pnl/stream`. The API checks terminal account, position and price snapshots every 10 ms and sends changed values without querying PostgreSQL. Account balance, equity, free margin, open positions, current prices and Open P&L update together. The bridge currently publishes snapshots approximately every 600 ms, so a 10 ms check interval does not guarantee a new market value every 10 ms.
+
+The full dashboard still fetches signals, orders, closed trades, strategies and settings every 15 seconds and on signal/order events. The continuous stream refreshes live account and position data between those fetches. Stream requests keep the admin key on the server and require the configured dashboard login.
+
+The `/trades` page displays both open trades from MT5 and recorded closed trades. Its initial authenticated GET to `/api/data/dashboard` loads the positions and closed-trade history; the live stream then updates open-trade prices and P&L. Open rows include the MT5 ticket and OPEN status. An empty closed-trades table does not hide active positions.
+
+Use **Export all trades (CSV)** to download open positions and all closed positions reconstructed from the available terminal snapshot (not just the latest 50 table rows). The CSV includes `session_id`, `strategy_id`, `opened_at`, `close_reason`, `timeframe`, `signal_reason`, `signal_confidence`, `spread_at_entry`, `commission`, `swap`, `initial_sl`, `initial_tp`, `risk_amount`, `balance_at_entry`, `equity_at_entry`, `max_favorable_excursion`, `max_adverse_excursion`, `execution_latency_ms`, and `slippage`. Unknown historical data stays blank. The bridge snapshot is limited to 50,000 deals; netting reversals and positions without complete entry/exit legs cannot be reconstructed as closed trades.
+
+Bot entry context is persisted in the signal payload, scoped to the MT5 account and server. `session_id` identifies an API process session; `strategy_id` is the stored strategy UUID. Confidence is optional, between 0 and 1; the built-in strategy supplies an entry reason without inventing a confidence score. Spread and slippage are price differences; positive slippage is adverse, negative is favorable. Execution latency is broker submission-to-confirmation time in milliseconds. Risk is estimated from the confirmed execution price to the initial stop, using filled order sizing and the loss-side tick value in account currency (generic tick value only when the loss-side value is absent), excluding costs. Risk is blank without a usable stop or tick specification. Spread is the ask-minus-bid quote refreshed immediately before submission. Balance and equity are pre-order snapshots. Excursions are positive gross amounts in account currency, sampled every five seconds from terminal floating profit plus any realized partial exits, excluding commission, swap and fees; older bridges fall back to captured tick values. Fully closed positions include a final observed gross result once complete terminal deal history is published. Maxima survive API restarts in the stored entry context and never decrease. `excursion_observed_from` and `excursion_observed_until` delimit observations; they do not imply continuous coverage. Sampling can miss intra-sample peaks, and terminal/API downtime leaves gaps, so MFE/MAE are observed lower bounds rather than tick-perfect lifetime extrema. Commission and swap use the terminal deal values, and `close_reason` uses the MT5 deal reason (for example SL, TP or EXPERT). For the critical fields, the opening strategy UUID is retained even when a different strategy closes the position, and initial SL/TP are taken from entry data rather than the current or final stops. An explicit zero means no protection at entry; a blank means unavailable data. Confirmed bot closures record SIGNAL, OPPOSITE_SIGNAL or POSITION_POLICY. A closing webhook can supply `closeReason: "TIMEOUT"` (or MANUAL/SIGNAL); a broker request timeout does not imply a position closed. There is no automatic time-based exit policy. Terminal SL/TP reasons take precedence over bot reasons; a terminal EXPERT reason can be refined by the recorded bot reason. Install the updated bridge with `bun run mt5:install` and restart the AurumBridge service to publish deal reasons, initial SL/TP, entry order IDs and stable position identifiers.
+
+Bot sessions and market sessions are distinct. `bot_session_id` identifies each API process execution (`session_id` remains a compatibility alias). **Export bot sessions (CSV)** downloads the start timestamp, confirmed end timestamp/reason, code version, initial parameters, parameter changes, account/server/currency, initial balance/equity, last known balance and confirmed end balance. The version comes from `CODE_VERSION` when supplied or a SHA-256 fingerprint of the runtime source/bundle. Startup snapshots include strategy defaults, symbols, timeframe and effective risk settings; settings/timeframe changes made through the API are timestamped separately. Session heartbeats update every 30 seconds. After an abrupt crash, the end timestamp and balance remain unknown; a heartbeat older than 90 seconds is labeled `INTERRUPTED_END_UNKNOWN`, never assigned a fictional shutdown time. If MT5 is disconnected at startup, initial account values are filled on first connection and represent that first observed account snapshot.
+
+`market_session` labels the entry time with the active configured local windows, preserving overlaps such as `LONDON+NEW_YORK`. Defaults are weekdays, Asia/Tokyo 09:00–18:00, Europe/London 08:00–17:00 and America/New_York 08:00–17:00; these are analysis windows, not broker hours or exchange holiday calendars. IANA timezone rules handle UK/US daylight saving independently, including weeks when their transitions differ. Set `MARKET_SESSIONS` to a JSON array of `{ "name": "LONDON", "timezone": "Europe/London", "start": "08:00", "end": "17:00", "weekdays": [1,2,3,4,5] }` definitions (Sunday=0; overnight windows are supported). New trades retain the classification captured at entry; historical trades without one are classified with current definitions. Market definitions are included in the bot-session parameter snapshot.
+
+
+
+- `/health`, `/ready`, and `/metrics` expose health and counts. `/api/events/stream` streams signal and order events to the dashboard.
+- Audit entries store category, request ID, IP, event, and safe metadata. Raw payloads in `trading_signals` exclude `secret`.
+- If a market order times out, inspect `clientOrderId`, broker order ID, and current positions before manual retry. The API does not automatically repeat it.
+- Docker daemon unavailable: start Docker Desktop, then rerun `docker compose up -d postgres`.
+- PostgreSQL connection refused: check `DATABASE_URL` and container health; run `bun db:migrate`.
+- No orders executing: check Auto Trading, Emergency Stop, strategy enabled state, stop loss, lot cap, and `/api/logs`.
+- `MetaTrader: AutoTrading disabled by client (retcode 10027)`: enable Algo Trading and the service's trading permission in MT5. Dashboard Auto Trading and terminal Algo Trading are separate controls.
+- `unknown op 'check_order'`: the running service is an older build. Run `bun run mt5:install`, then stop and start `AurumBridge` in the terminal.
+- A signal marked `REJECTED` was not executed. Inspect its reason in `/api/logs`; terminal preflight results appear as `BROKER / order_checked` with source `MetaTrader.OrderCheck`. The bot's configured margin usage cap can still reject a terminal-approved check.
+- Terminal running but the API says disconnected: the API waits for `aurum-heartbeat.json`, so the `AurumBridge` service must be started. Check `bun run mt5:doctor` first.
+- Connection checks read the heartbeat without resending the watch list while connected. The watch list is sent on connection or reconnection, bridge commands are queued in sequence, and overlapping reconnection checks share one pending check. A brief missing snapshot uses its last valid value; a heartbeat older than 15 seconds still reports disconnected.
+- Service responds to `ping` but every `rates` call times out: the service answered with a payload the bot could not parse. The client now says so directly (`wrote a reply that is not valid JSON`) instead of reporting a timeout against a healthy-looking terminal.
+
+## Pepperstone / MT5
+
+How a real MetaTrader 5 terminal is driven from a Bun/TypeScript app.
+
+### Why a bridge runs inside the terminal
+
+The official `MetaTrader5` Python package is Windows-only, and the macOS build of
+MT5 runs under a bundled Wine prefix, so it cannot be driven from Bun directly.
+Instead an MQL5 Service runs inside the terminal and owns every MT5 call
+(`OrderSend`, `SymbolInfoDouble`, `PositionsGet`); the Bun adapter only exchanges
+files with it. MQL5 cannot host an HTTP server, cannot create directories, and
+cannot list them, so the two halves exchange flat files in the terminal's common
+folder (`Terminal\Common\Files`):
+
+| Path                   | Direction      | Purpose                                         |
+| ---------------------- | -------------- | ----------------------------------------------- |
+| `aurum-heartbeat.json` | service -> bot | liveness, login, server, build, trade mode      |
+| `aurum-account.json`   | service -> bot | balance, equity, margin                         |
+| `aurum-symbols.json`   | service -> bot | `SymbolInfo` + `MarketPrice` per watched symbol |
+| `aurum-positions.json` | service -> bot | open positions with ticket ids                  |
+| `aurum-orders.json`    | service -> bot | working orders                                  |
+| `aurum-cmd-<n>.json`   | bot -> service | one command per queue slot                      |
+| `aurum-res-<n>.json`   | service -> bot | one reply per queue slot                        |
+
+Reads are push-based and cost nothing; only order placement, closing and
+modifying consume the queue. Sequence numbers are owned by the terminal: the
+service refuses to replay anything at or below its high-water mark, so a command
+is executed at most once even if the API dies mid-flight. The client resumes
+above that mark rather than restarting the count, so a restarted API does not
+deadlock against a service that kept running.
+
+### Setup
+
+1. `bun run mt5:install` compiles `AurumBridge.mq5` with the MetaEditor bundled
+   in the MT5 app and deploys it to `MQL5/Services`.
+2. In the terminal: log in, enable Algo Trading under Tools -> Options, then add
+   `AurumBridge` from Navigator -> Expert Advisors -> Services. It must be added
+   as a **Service**; a chart attachment or a one-shot script run exits
+   immediately and leaves a stale heartbeat.
+
+   <img src="screenshots/08-mt5-navigator.png" width="520" alt="MetaTrader 5 Navigator com AurumBridge em Services">
+
+   Confirme que `AurumBridge` aparece dentro de **Services** no Navigator
+   (como na imagem). Se ele aparecer em Expert Advisors ou Scripts, remova e
+   adicione novamente como serviço.
+
+3. Set the watched symbols and, for Docker, mount the terminal's common folder
+   into the API container:
+
+```bash
+export MT5_HOST_BRIDGE_DIR="$HOME/Library/Application Support/net.metaquotes.wine.metatrader5/drive_c/users/user/AppData/Roaming/MetaQuotes/Terminal/Common/Files"
+docker compose -f docker-compose.yml -f docker-compose.mt5.yml up -d
+```
+
+`/health` reports the connected login and server. The API does not wait for the
+terminal at boot: it starts, reports `broker: disconnected`, and lights up as soon
+as the service publishes a heartbeat.
+
+### Strategies in the bot
+
+Signals normally arrive from a webhook, which assumes something else already
+decided to trade. For a strategy that decides for itself, `STRATEGY_RUNNER` runs
+it inside the API:
+
+```bash
+STRATEGY_RUNNER=meanrev-bb-rsi-v1   # or sma_micro_trend / dow_theory; off when unset
+STRATEGY_TIMEFRAME=H1
+STRATEGY_POLL_MS=5000
+```
+
+All nine MT5 timeframes are supported and verified against a live terminal: `M1`,
+`M5`, `M15`, `M30`, `H1`, `H4`, `D1`, `W1`, `MN1`. `STRATEGY_TIMEFRAME` is
+validated at boot, so a typo fails immediately with the accepted list instead of
+reaching the service: an unrecognised value falls back to `PERIOD_CURRENT` there,
+which would make the strategy evaluate against whatever timeframe a chart happened
+to carry and look like it was working.
+
+Note what a timeframe means for `history` (default 120 bars). The window is what
+the indicators see, so 120 bars is 2 hours on M1, 61 hours on M30, and 120 months
+on MN1. Lower timeframes evaluate more often on less history.
+
+`meanrev-bb-rsi-v1` is the bot-side port of `MeanReversion_BB_RSI_MT5.mq5`: buy
+when the last closed candle touches the lower Bollinger band with oversold RSI,
+sell on the mirrored setup. Three things make it safe to run unattended:
+
+The configured BB/RSI setup uses H1, Bollinger length 20 with multiplier 2,
+RSI(14) thresholds 20/80, a 0.2% stop, and a 0.4% take-profit (2R). The
+timeframe is selected by `STRATEGY_TIMEFRAME`; if unset, the API defaults to
+M30.
+
+Compare this fixed BB/RSI setup across M30, H1, and H4 with
+`bun run research:meanrev-timeframes`. H4 is aggregated from complete hourly
+candles in the available H1 snapshot, so its sample is limited.
+
+Search the existing BB/RSI parameter grid specifically on H1 with
+`bun run research:meanrev-h1`. It ranks candidates by training results and
+reports holdout results separately; selecting from many candidates makes the
+holdout exploratory, not an independent validation.
+
+- **Bars come from the terminal.** The runner reads OHLC through the service
+  (`op: rates`) because the terminal owns the bars, and computes indicators
+  host-side so there is one implementation of each under test. `StdDev` is the
+  population deviation and `rsi` is Wilder's smoothing, matching MetaTrader
+  exactly; the values would otherwise drift from the EA this replaces.
+- **One decision per closed bar.** The runner acts on the bar at offset 1 and
+  never on the forming one, and primes on its first tick so a restart cannot
+  replay the bar it already traded.
+- **The risk engine still has the last word.** The runner emits an ordinary
+  `TradingSignal`, so lot sizing, spread checks, daily loss caps and the audit
+  trail apply unchanged. `GET /api/strategy` reports what the runner is doing.
+
+#### Research-only backtests
+
+Run `bun run research:strategies` to search parameters for SMA Micro Trend, Dow
+Theory and Bollinger/RSI using the checked-in historical snapshots. The command
+does not connect to the broker or change trading settings; it writes a dated
+JSON report under `reports/`. Each implemented strategy uses a chronological
+60/40 train/holdout split, observed median spreads, adverse tick slippage and
+an additional 1.5x-spread holdout scenario. Parameter searches rank on training
+results; holdout results are reported for inspection and must not be repeatedly
+used to select a winner.
+
+`gold-scalping-v1` is reported as an integration example only: the repository
+does not contain a production signal algorithm or verified contract-value
+history for a separate gold-strategy optimization. These short snapshot
+backtests are research estimates, not evidence of future profitability.
+
+#### Choosing a timeframe at runtime
+
+`PATCH /api/strategy` changes the timeframe without a restart:
+
+```bash
+curl -X PATCH localhost:3001/api/strategy -H "x-admin-key: $ADMIN_API_KEY" \
+  -H 'content-type: application/json' -d '{"timeframe":"H1"}'
+```
+
+An unrecognised value is refused with the accepted list. Changing it clears the
+per-symbol last-bar map: those values are timestamps belonging to the old
+timeframe, so keeping them would compare a new M5 bar against an old M30 one and
+stall the symbol until the clock produced that exact timestamp again. The first
+pass after a switch re-primes instead of acting, exactly as a restart does, and
+signal ids carry the active timeframe so a switch cannot replay a bar.
+
+The dashboard groups Signals, Orders and Positions under one Trading navigation entry at `/trading`, with tabs for each list. Existing `/signals`, `/positions` and `/orders` links open the same workspace with the corresponding tab selected. The strategy control appears above the tabs,
+where `GET /api/strategy` returns per-pair state: last bar, RSI, how far the pair
+is from the RSI extreme and from the band, and a countdown to the next bar. This
+exists because the signals table alone cannot distinguish a quiet strategy from
+a broken one — a mean-reversion setup that needs a band touch and an RSI extreme
+is absent from most bars of most hours, so an empty table is the normal state.
+
+Two requirements are easy to miss and fail late, so the runner refuses to start
+without them: the strategy must exist in `strategies`, and every symbol must be in
+`risk_settings.allowedSymbols`. Broker symbols carry suffixes, so allowlist the
+real one:
+
+```bash
+curl -X PATCH localhost:3001/api/settings -H "x-admin-key: $ADMIN_API_KEY" \
+  -H 'content-type: application/json' -d '{"allowedSymbols":["XAUUSD.a"]}'
+```
+
+#### Watching several symbols
+
+`MT5_SYMBOLS` is the watch list: the service publishes quotes for every symbol in
+it and the runner evaluates each one. `MT5_PRIMARY_SYMBOL` is only the symbol the
+dashboard leads with, and is always included in the list.
+
+```bash
+MT5_SYMBOLS=XAUUSD,EURUSD,GBPUSD,USDJPY,USDCHF,USDCAD,AUDUSD,NZDUSD,USDCNH,USDSEK,BTCUSD,Gasoline
+```
+
+Bitcoin uses the broker symbol `BTCUSD`, confirmed through MetaTrader quotes and bars. Include it in the risk allowlist before restarting the API; it then appears alongside Forex and gold in the Strategy runner.
+
+Gasoline uses the broker ticker `Gasoline`, confirmed through the MT5 bridge symbol search. Symbol case is preserved in `MT5_SYMBOLS`, signals and risk settings. Enable `Gasoline` in Allowed symbols to evaluate it; `gasoline` and `GASOLINE` are different codes. Disabled symbols are skipped without stopping other enabled symbols.
+
+`RESERVED_POSITION_SYMBOLS=BTCUSD` permits one BTCUSD position outside `maximumOpenPositions`, which applies to non-reserved symbols. A second BTCUSD position is rejected under every position policy. This reservation only changes the position-count gate: lot, stop, daily-loss, daily-trade, margin and MetaTrader checks still apply. Risk Control displays the reserved symbol. Restart the API after changing this environment setting.
+
+The strategy row carries its own allowlist that the risk manager checks per
+signal, so the runner widens it to match enabled symbols on boot and when
+Allowed symbols changes. Disabled watched symbols are shown as BLOCKED and
+skipped; the other enabled symbols continue. At least one watched symbol must
+be enabled for the runner to start.
+
+Symbols are independent. Each keeps its own last acted bar, so one symbol's tick
+never advances another's, and a symbol whose bars fail to arrive does not stop the
+rest from being evaluated. The reported status is the most consequential outcome of
+the pass, with one deliberate exception: `BLOCKED` outranks `SIGNAL`, so the
+dashboard cannot show a healthy run while a symbol it claims to watch is
+unreachable. Repeated identical failures are audited once per symbol rather than
+once per poll.
+
+Use `op: find_symbols` (or the doctor's suggestion line) rather than guessing a
+name. This command lists selected Market Watch symbols, not the entire broker
+catalogue. The locally verified watch list contains nine Forex pairs plus
+`XAUUSD`; other instruments may need to be selected in MT5 first. Updating
+`MT5_SYMBOLS` does not change the persisted Allowed symbols setting: add the
+same symbols under Risk in the dashboard before restarting the runner.
+
+The runner needs a live terminal: it pulls real bars with `op: rates` and stays
+`BLOCKED` with `broker disconnected` until the AurumBridge service is running, so
+nothing is ever evaluated against synthetic data.
+
+### Diagnostics
+
+`bun run mt5:doctor` checks the whole chain without sending an order: it
+resolves the bridge directory, reads the descriptor and heartbeat, verifies the
+connected login against `MT5_LIVE_ACK` for real accounts, confirms every symbol in `MT5_SYMBOLS` is
+in the service watch list, and round-trips a single ping through the command
+queue. Every failure prints the fix, and a symbol the account does not carry comes
+back as a concrete suggestion rather than a guess:
+
+```
+FAIL  trade allowed  order sending will be rejected
+      account holder Bruno Ferreira Pedraca (USD, demo)
+FAIL  watch list     not watched: EURUSD
+      did you mean: EURUSD
+      - trade allowed: Tools > Options > Expert Advisors > uncheck "Disable automated trading"
+```
+
+A clean run prints `bridge is ready` and exits 0.
+
+#### The four bridge bugs worth knowing
+
+Each of these presented as "the strategy never fires", and none was visible from
+the API side. They are recorded because the symptom was identical every time:
+
+- **The service compiled as a Script.** `#property service` was missing, so it ran
+  once per Start and exited, leaving a stale heartbeat that looked alive.
+- **The service exited on its own.** MQL5 delivers only `OnStart` to a service —
+  no `OnTimer`, no `OnTick`, no `OnStop` — so returning from `OnStart` ends it. The
+  loop has to live inside `OnStart`.
+- **The watch list was silently empty.** `{"op":"symbols","symbols":"XAUUSD"}`
+  contains `"symbols"` twice; the JSON reader matched the value of `op` instead of
+  the key and returned an empty string, so the service watched nothing and answered
+  `{"ok":true,"data":{"watching":0}}`. A key match only counts when a colon
+  follows it.
+- **`rates` replied with invalid JSON.** The MQL5 `Esc()` helper already adds the
+  surrounding quotes, and the reply added a second pair, producing
+  `{"symbol":""EURUSD""}`. The client's `JSON.parse` failed and it retried until
+  the timeout, so a service answering in 200 ms looked like a dead terminal.
+
+The last one is why the client now reports an unparseable reply instead of
+timing out. When a command is slow, check whether the service is answering at all
+before assuming it is stuck.
+
+### Idempotency and safety
+
+`clientOrderId` can be up to 300 characters but an MT5 order comment holds 31,
+so the adapter sends `sha256(clientOrderId)` truncated to 24 characters and
+caches the terminal's answer per `clientOrderId`. A repeated signal for the same
+id returns the original fill instead of opening a second position, which is the
+contract `packages/trading` already relies on.
+
+Broker rejections come back as `status: 'REJECTED'` with a reason rather than as
+an exception, so an invalid lot step or a stop inside the broker's stop level is
+recorded as a business outcome instead of a failed signal.
+
+Lot size and tick value come from the broker. The terminal's `OrderCheck`
+supplies projected margin, equity, free margin, rejection code and comment;
+the API does not estimate margin using contract notional or `marginRate`.
+`defaultStopLoss` uses the recent 20-bar M30 range and falls back to `0`.
+Spread, slippage and stop distances retain the symbol's price precision,
+preventing Forex limits from being rounded to zero.
+
+`MT5_MAGIC` tags every order the bot sends so it can tell its own positions from
+a manual trade in the same account.
+
+### Verified demo execution
+
+On 2026-10-09, a test signal completed the signal -> risk validation ->
+MetaTrader OrderCheck -> OrderSend -> position confirmation flow on a demo
+account. The confirmed position was BUY XAUUSD, 0.01 lot, ticket `400591320`,
+entry `4189.25`, stop loss `4164.10`, and take profit `4239.10`. These are
+historical test results, not the current position state. Closing and persisting
+that trade was not verified in this session.
+
+The current checks passed: `bun typecheck`, `bun lint`, 138 tests from
+`bun test`, and bridge compilation with zero errors and zero warnings.
+The Open P&L stream was also verified through the authenticated dashboard
+proxy (HTTP 200), with unauthenticated direct API requests refused (HTTP 403).
+
+### Known gaps
+
+**Bar timestamps and countdown use broker server time.** `CopyRates` timestamps
+are not normalised to UTC. On the demo verified on 2026-10-09, displayed bars
+were approximately three hours ahead of the host clock and the M1 countdown
+showed roughly 10,800 seconds. The runner still compares successive bar
+identifiers, but the displayed time and countdown need timezone correction.
+
+**Closed-trade profit may still be estimated.** `persistClose` uses terminal
+profit when supplied; otherwise it estimates with the symbol tick size and tick
+value. The estimate does not account for commission or swap. It no longer uses
+a hardcoded XAUUSD contract size.
+
+**Closed-trade ticket visibility is incomplete.** Open positions and the open
+trades table display MT5 tickets, and orders show broker IDs. Closed trades
+still have no dedicated broker-ticket column.
+
+**Open P&L source cadence remains approximately 600 ms.** The API checks every
+10 ms, but the file bridge determines when fresh values become available.
+Account, price, positions and aggregate Open P&L use this fast stream; signals,
+orders, trades and settings keep their normal refresh cadence.
+
+Stops below the configured or broker minimum are widened to that floor by the
+risk manager, rather than rejected solely for being below it. Stops exceeding
+the configured maximum remain rejected. Forex spread limits now retain symbol
+precision, and margin validation uses terminal OrderCheck results.
+
+### Still out of scope
+
+No limit or stop-entry orders (the adapter is market-only), no trailing stops,
+and no partial-fill reconciliation beyond the returned position ticket. Run
+against a demo account first: `TRADING_MODE=paper` and `AUTO_TRADING_ENABLED=false`
+register and record signals without sending any.
+
+### Win rate
+
+Overview, Trading and Trades display the realized win rate: profitable closed trades divided by all closed trades, including break-even trades. When the updated bridge history is available, statistics use fully closed MetaTrader positions, including entry and exit costs, across the published history; the table lists the latest 50 rows. Otherwise, statistics use the persisted bot trade history. With no closed trades, the card shows a dash and waits for closed trades rather than reporting a misleading 0%. Open P&L does not count as a win. The updated bridge includes terminal closures (manual, SL and TP) in its read-only history snapshot. This reporting path does not backfill the legacy PostgreSQL `trades` table.
+
+
+### Capital and performance dashboard
+
+Overview and Trades show balance/equity charts, separate cash flows, daily/monthly/cumulative net results, cash-flow-adjusted return, drawdown, margin and stop risk. Currency comes from the terminal account. `REPORT_TIMEZONE` defaults to `America/Sao_Paulo` and determines reporting days/months and displayed timestamps.
+
+After updating:
+
+```bash
+bun run db:migrate
+bun run mt5:install
+# Restart AurumBridge in the MT5 Navigator > Services.
+bun dev
+# Open http://localhost:3002/dashboard or /trades.
+```
+
+The bridge publishes `aurum-history.json` every 15 seconds, with up to 50,000 deals, the account/server identity, current open position identifiers and profit/commission/swap/fee fields. Reporting uses [MetaTrader deal properties](https://www.mql5.com/en/docs/constants/tradingconstants/dealproperties). Positive/negative BALANCE deals are shown as deposits/withdrawals; CREDIT, CORRECTION and BONUS are separate adjustments. A broker may use balance operations for other purposes, so these labels represent the terminal classification. Charges, commission, interest and other non-cash-flow deal results contribute to net result. Net daily results include costs charged on entry and partial realized exits, while win rate counts only fully closed positions. Netting reversals are excluded from win-rate grouping because individual legs require separate allocation.
+
+The API saves one fresh capital observation per minute, scoped by server, account and currency, including when no page is open. Balance history can be reconstructed from deals. Historical equity is available only from collected observations, with gaps when the API/terminal is offline. Charts send at most 600 points; statistics and drawdown use all collected points. Drawdown subtracts intervening external flows before comparing equity with its prior high, and is limited to the observation period and sampling frequency.
+
+Cash-flow-adjusted return uses [Modified Dietz](https://www.gipsstandards.org/standards/gips-standards-for-firms/gips-standards-handbook-for-firms/), an estimate over the observation period, not exact time-weighted performance. Return and drawdown stay unavailable without complete history. Missing history, partial history and stale data are visible in the panel; a lack of history is never shown as a zero profit. The terminal timestamp conversion uses its current server-to-UTC offset; older deals spanning a broker DST change may require historical timezone correction.
+
+Exposure shows margin committed and lots per symbol instead of summing unlike contract notionals. Stop risk estimates the loss from current price to stop using the terminal's loss tick value in account currency. Missing stops or tick values produce unavailable risk; slippage, gaps and future costs are outside this estimate. Full reporting refreshes through dashboard GET every 15 seconds; live account/position/P&L updates retain their existing stream.
+
+### Close on opposite signal
+
+`CLOSE_ON_OPPOSITE_SIGNAL=true` turns BUY into CLOSE_SHORT when that symbol has a SELL position, and SELL into CLOSE_LONG when it has a BUY position. Only the opposite positions of the incoming symbol are closed. The signal does not open a replacement position; a later entry signal may open one. This also applies to the reserved BTCUSD slot. Emergency stop, auto-trading, symbol allowlists and strategy enablement still apply; entry-only position/daily limits do not block the close. The API refreshes terminal positions after OrderSend and only records a successful close when the position disappears. Risk Control shows whether this behavior is enabled.
+
+
+### Monetary stop control
+
+In **Risk → Risk limits**, the monetary stop control accepts account-currency values such as `0,269` or `0.269`. Limits are saved separately by currency, so switching between demo USD and real GBP preserves each limit. If another currency has a limit but the connected currency has not been configured, new entries are blocked until its limit is set or “Use strategy stop” is selected explicitly for that currency. Saving applies to new entries; existing positions keep their stops. The engine uses the normalized order lots and loss-side tick value to turn the amount into an SL distance, rounded inward to broker ticks. MetaTrader OrderCheck validates the broker minimum using live prices; cached broker floors and the configured minimum stop distance do not block monetary stops locally. When the live spread plus one tick is wider than the monetary stop distance, the entry is rejected instead of widening the SL above the configured amount. This avoids MT5 `Invalid stops` rejections and prevents the monetary-stop monitor from immediately closing a position whose spread loss already exceeds the cap. It also rejects entries when the amount cannot fund one executable tick or the final distance exceeds the configured maximum stop distance. This is estimated price-to-stop risk, excluding execution slippage, gaps and costs. Clearing the monetary setting for a currency restores strategy stop distances for that currency. The optional database fields default to null; adding the control does not activate a monetary stop automatically.
+
+
+The bridge determines market availability from the broker's MT5 trading-session schedule in server time, trading permissions and valid, recent quotes. A zero spread does not mean the market is closed. Overnight windows and 24-hour sessions are supported. Quotes older than five minutes are labeled stale. Rejection messages distinguish session closure, unavailable session data, disabled trading, missing quotes and stale quotes. Restart the updated AurumBridge service to publish `marketStatus`; older snapshots report an unavailable market without claiming the trading session is closed.

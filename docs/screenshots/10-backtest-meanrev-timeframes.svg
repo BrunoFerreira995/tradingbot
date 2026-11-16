@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="580" viewBox="0 0 960 580" role="img" aria-label="Mean reversal BB+RSI por timeframe">
+<rect width="960" height="580" fill="#ffffff"/>
+<text x="84" y="42" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif" font-size="24" font-weight="700" fill="#0f172a">Mean reversal BB+RSI por timeframe</text>
+<text x="84" y="68" font-family="ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif" font-size="13" fill="#64748b">Parâmetros fixos (BB 20 / 2,0 · RSI 14 · stop 0,2% · alvo 2R) · 0,01 lote · resultado líquido em USD</text>
+<rect x="84" y="86" width="12" height="12" rx="2" fill="#2563eb"/>
+<text x="102" y="97" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12" fill="#0f172a">Treino</text>
+<rect x="170" y="86" width="12" height="12" rx="2" fill="#16a34a"/>
+<text x="188" y="97" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12" fill="#0f172a">Holdout</text>
+<rect x="263" y="86" width="12" height="12" rx="2" fill="#f59e0b"/>
+<text x="281" y="97" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12" fill="#0f172a">Holdout 1,5x spread</text>
+<line x1="84" y1="454.0" x2="924" y2="454.0" stroke="#e2e8f0" stroke-width="1"/>
+<text x="72" y="458.0" text-anchor="end" font-family="ui-monospace,monospace" font-size="11" fill="#64748b">-$10,00</text>
+<line x1="84" y1="388.8" x2="924" y2="388.8" stroke="#e2e8f0" stroke-width="1"/>
+<text x="72" y="392.8" text-anchor="end" font-family="ui-monospace,monospace" font-size="11" fill="#64748b">$0,00</text>
+<line x1="84" y1="323.6" x2="924" y2="323.6" stroke="#e2e8f0" stroke-width="1"/>
+<text x="72" y="327.6" text-anchor="end" font-family="ui-monospace,monospace" font-size="11" fill="#64748b">$10,00</text>
+<line x1="84" y1="258.4" x2="924" y2="258.4" stroke="#e2e8f0" stroke-width="1"/>
+<text x="72" y="262.4" text-anchor="end" font-family="ui-monospace,monospace" font-size="11" fill="#64748b">$20,00</text>
+<line x1="84" y1="193.2" x2="924" y2="193.2" stroke="#e2e8f0" stroke-width="1"/>
+<text x="72" y="197.2" text-anchor="end" font-family="ui-monospace,monospace" font-size="11" fill="#64748b">$30,00</text>
+<line x1="84" y1="128.0" x2="924" y2="128.0" stroke="#e2e8f0" stroke-width="1"/>
+<text x="72" y="132.0" text-anchor="end" font-family="ui-monospace,monospace" font-size="11" fill="#64748b">$40,00</text>
+<line x1="84" y1="388.8" x2="924" y2="388.8" stroke="#0f172a" stroke-width="1.4"/>
+<rect x="129.0" y="176.3" width="58.0" height="212.5" rx="3" fill="#2563eb" fill-opacity="0.9"/>
+<text x="158.0" y="169.3" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" font-weight="700" fill="#0f172a">$32,59</text>
+<rect x="195.0" y="355.0" width="58.0" height="33.8" rx="3" fill="#16a34a" fill-opacity="0.9"/>
+<text x="224.0" y="348.0" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" font-weight="700" fill="#0f172a">$5,18</text>
+<rect x="261.0" y="367.2" width="58.0" height="21.6" rx="3" fill="#f59e0b" fill-opacity="0.9"/>
+<text x="290.0" y="360.2" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" font-weight="700" fill="#0f172a">$3,32</text>
+<text x="224.0" y="488.0" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13" font-weight="600" fill="#0f172a">M30</text>
+<text x="224.0" y="506.0" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" fill="#64748b">n=12 / 25 / 26</text>
+<rect x="409.0" y="351.0" width="58.0" height="37.8" rx="3" fill="#2563eb" fill-opacity="0.9"/>
+<text x="438.0" y="344.0" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" font-weight="700" fill="#0f172a">$5,80</text>
+<rect x="475.0" y="209.7" width="58.0" height="179.1" rx="3" fill="#16a34a" fill-opacity="0.9"/>
+<text x="504.0" y="202.7" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" font-weight="700" fill="#0f172a">$27,47</text>
+<rect x="541.0" y="225.6" width="58.0" height="163.2" rx="3" fill="#f59e0b" fill-opacity="0.9"/>
+<text x="570.0" y="218.6" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" font-weight="700" fill="#0f172a">$25,03</text>
+<text x="504.0" y="488.0" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13" font-weight="600" fill="#0f172a">H1</text>
+<text x="504.0" y="506.0" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" fill="#64748b">n=22 / 23 / 24</text>
+<rect x="689.0" y="363.1" width="58.0" height="25.7" rx="3" fill="#2563eb" fill-opacity="0.9"/>
+<text x="718.0" y="356.1" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" font-weight="700" fill="#0f172a">$3,94</text>
+<rect x="755.0" y="388.1" width="58.0" height="1.0" rx="3" fill="#16a34a" fill-opacity="0.9"/>
+<text x="784.0" y="381.1" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" font-weight="700" fill="#0f172a">$0,10</text>
+<rect x="821.0" y="388.8" width="58.0" height="1.8" rx="3" fill="#f59e0b" fill-opacity="0.9"/>
+<text x="850.0" y="405.6" text-anchor="middle" font-family="ui-monospace,monospace" font-size="11" font-weight="600" fill="#0f172a">-$0,27</text>
+<text x="784.0" y="488.0" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13" font-weight="600" fill="#0f172a">H4</text>
+<text x="784.0" y="506.0" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" fill="#64748b">n=2 / 9 / 9</text>
+<text x="84" y="562" font-family="ui-sans-serif,system-ui,sans-serif" font-size="10" fill="#64748b">Resultados históricos de pesquisa. Não são garantia de resultado futuro.</text>
+</svg>

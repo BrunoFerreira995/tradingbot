@@ -13,6 +13,7 @@
     "format": "bunx prettier --write .",
     "test": "bun test",
     "research:strategies": "python3 reports/backtest_all_strategies.py",
+    "research:plot": "python3 reports/plot_backtests.py",
     "research:meanrev-timeframes": "python3 reports/backtest_meanrev_timeframes.py",
     "research:meanrev-h1": "python3 reports/optimize_meanrev_h1.py",
     "build": "bun --filter '@trade/web' build && bun build apps/api/src/index.ts --target bun --outdir dist/api",
