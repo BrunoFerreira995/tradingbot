@@ -1,8 +1,32 @@
 # Aurum Terminal
 
-MetaTrader 5 terminal → MQL5 service bridge → Elysia API → PostgreSQL → risk engine → real-time Next.js dashboard. Bun/TypeScript monorepo. There is no simulated broker: the terminal is the only source of market data, account state, positions and orders. A TradingView webhook can still inject a signal that someone else decided on. See [Pepperstone / MT5](#pepperstone--mt5).
+**Em resumo:** um bot de trading auto-hospedado com painel web em português. Ele recebe sinais (de uma estratégia embutida ou de um webhook do TradingView), aplica limites de risco e envia as ordens para o MetaTrader 5. Não existe broker simulado: o MT5 é a única fonte de preços, conta, posições e execução.
+
+Architecture: MetaTrader 5 terminal → MQL5 service bridge → Elysia API → PostgreSQL → risk engine → real-time Next.js dashboard. Bun/TypeScript monorepo. A TradingView webhook can still inject a signal that someone else decided on. See [Pepperstone / MT5](#pepperstone--mt5).
 
 The bot decides, the terminal executes. Nothing is attached to a chart and no Expert Advisor runs on a symbol; the only MQL5 code is the bridge service, and all strategy logic lives in `packages/strategy`.
+
+## Tour rápido
+
+O dashboard é um terminal web em português com sete áreas de trabalho. Todas as telas abaixo são de uma conta **demo** conectada ao MetaTrader 5, com mercado real. Clique em qualquer imagem para abrir o print completo.
+
+| Tela | O que você acompanha |
+| --- | --- |
+| <a href="docs/screenshots/01-overview.png"><img src="docs/screenshots/01-overview.png" width="360" alt="Overview"></a> | **Overview** — saldo, equity, margem livre, P&L diário e aberto, win rate, resultado líquido por período, drawdown, gráfico de saldo/equity, cotação ao vivo do símbolo principal, último sinal do TradingView e sinais recentes. É a primeira tela depois do login. |
+| <a href="docs/screenshots/02-trading.png"><img src="docs/screenshots/02-trading.png" width="360" alt="Trading"></a> | **Trading** — o *strategy runner* avalia cada par no fechamento da vela: RSI, distância até o gatilho, distância da banda, fechamento, próxima vela e status (`WAITING_BAR`, `SIGNAL`, `BLOCKED`). Abaixo, leitura de direção/atrito por símbolo e abas de Signals, Orders e Positions. |
+| <a href="docs/screenshots/03-ciclos.png"><img src="docs/screenshots/03-ciclos.png" width="360" alt="Ciclos"></a> | **Ciclos** — projeta capital composto a partir de parâmetros (capital inicial, lucro e stop por 0,01 lote, número de ciclos). Destaca em qual ciclo o saldo atual da conta está e permite restaurar os padrões. |
+| <a href="docs/screenshots/04-trades.png"><img src="docs/screenshots/04-trades.png" width="360" alt="Trades"></a> | **Trades** — estatísticas da conta, gráfico de saldo/equity, posições abertas e histórico de trades fechados com lado, lote, entrada, saída e P&L. Exporta trades e sessões do bot em CSV. |
+| <a href="docs/screenshots/05-graficos.png"><img src="docs/screenshots/05-graficos.png" width="360" alt="Gráficos de trades"></a> | **Gráficos** — os últimos 10 trades fechados em candles, com entrada, stop, alvo e saída marcados. O timeframe pode ser automático (o do trade) ou trocado manualmente para inspecionar o contexto da decisão. |
+| <a href="docs/screenshots/06-risk-control.png"><img src="docs/screenshots/06-risk-control.png" width="360" alt="Risk Control"></a> | **Risk Control** — liga/desliga auto trading, aciona o emergency stop, inverte sinais, define lote máximo, posições, perda diária, política de posição, stop obrigatório, horários das sessões Forex, stop monetário por operação, limite diário de trades e símbolos permitidos. |
+| <a href="docs/screenshots/07-broker.png"><img src="docs/screenshots/07-broker.png" width="360" alt="Broker"></a> | **Broker** — estado da ponte com o MetaTrader 5: provider, modo (demo/real), conexão, login da conta, saldo e equity. Se algo não executa, comece por aqui e por `/health`. |
+
+Fluxo típico de uso:
+
+1. Abra **Broker** e confirme `Connected` e a conta correta.
+2. Em **Risk Control**, revise símbolos permitidos, lote máximo, perda diária e sessões. Deixe *Auto trading* desligado até validar os sinais.
+3. Em **Trading**, confira se o *strategy runner* está avaliando os pares (não pode ficar `BLOCKED`).
+4. Acompanhe entradas e rejeições em **Trading → Signals/Orders/Positions** e o resultado em **Trades** e **Overview**.
+5. Só então habilite *Auto trading*. O botão **EMERGENCY STOP** bloqueia novas ordens imediatamente, mas não fecha posições existentes.
 
 ## Start locally
 
@@ -70,7 +94,7 @@ docker compose up -d postgres
 bun db:migrate
 bun dev
 ```
-
+STRATEGY_RUNNER=market_forces bun --filter '@trade/api' dev
 Local development opens the dashboard at `http://localhost:3002`; set `WEB_ORIGIN=http://localhost:3002` in `.env`. The API is at `http://localhost:3001/health`, and the webhook accepts POST at `http://localhost:3001/api/webhooks/tradingview`. In production the dashboard uses HTTP Basic authentication. Run `bun typecheck`, `bun lint`, `bun test`, and `bun run build` before deployment.
 
 For an all-container run, set the required variables in `.env` and run `docker compose up --build`. The API container runs migrations at startup. The web container proxies dashboard data and SSE through `API_INTERNAL_URL`, keeping the admin key on the server.
@@ -219,13 +243,10 @@ on MN1. Lower timeframes evaluate more often on less history.
 when the last closed candle touches the lower Bollinger band with oversold RSI,
 sell on the mirrored setup. Three things make it safe to run unattended:
 
-The project fallback uses H1, Bollinger length 10 with multiplier 1.5, RSI(14)
-thresholds 20/80, a 0.2% stop, and a 0.4% take-profit (2R). This is the candidate
-that was positive in training, holdout and both 1.5x-spread stress runs, but the
-sample is short and selected from a grid: treat it as a fallback, not a validated
-edge. The timeframe is selected by `STRATEGY_TIMEFRAME`; if unset, the API
-defaults to H1 for `meanrev-bb-rsi-v1` (M30 for the other runners). The original
-EA defaults remain available as `defaultMeanReversionConfig` (BB 20/2.0).
+The configured BB/RSI setup uses H1, Bollinger length 20 with multiplier 2,
+RSI(14) thresholds 20/80, a 0.2% stop, and a 0.4% take-profit (2R). The
+timeframe is selected by `STRATEGY_TIMEFRAME`; if unset, the API defaults to
+M30.
 
 Compare this fixed BB/RSI setup across M30, H1, and H4 with
 `bun run research:meanrev-timeframes`. H4 is aggregated from complete hourly
