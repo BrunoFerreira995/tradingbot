@@ -1175,6 +1175,98 @@ function TradingPanel({
   );
 }
 
+function Mt5Maintenance() {
+  const [busy, setBusy] = React.useState<'install' | 'doctor' | null>(null);
+  const [result, setResult] = React.useState<{
+    action: 'install' | 'doctor';
+    ok: boolean;
+    exitCode: number | null;
+    output: string;
+  } | null>(null);
+  const [error, setError] = React.useState('');
+  const run = async (action: 'install' | 'doctor') => {
+    setBusy(action);
+    setError('');
+    setResult(null);
+    try {
+      const response = await fetch('/api/mt5', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      const json = (await response.json()) as {
+        error?: string;
+        action?: 'install' | 'doctor';
+        ok?: boolean;
+        exitCode?: number | null;
+        output?: string;
+      };
+      if (!response.ok)
+        throw new Error(json.error ?? `Request failed: ${response.status}`);
+      setResult({
+        action: json.action ?? action,
+        ok: Boolean(json.ok),
+        exitCode: json.exitCode ?? null,
+        output: json.output ?? '',
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error');
+    } finally {
+      setBusy(null);
+    }
+  };
+  return (
+    <section className="panel p-4 sm:col-span-2">
+      <h2 className="text-lg font-bold">Bridge MT5</h2>
+      <p className="muted my-2 text-xs">
+        Recompila e instala o serviço AurumBridge no terminal. O diagnóstico é
+        somente leitura e verifica heartbeat, conta, watch list e fila de
+        comandos.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          className="btn"
+          disabled={busy !== null}
+          onClick={() => void run('install')}
+        >
+          {busy === 'install' ? 'Instalando…' : 'Instalar / atualizar bridge'}
+        </button>
+        <button
+          type="button"
+          className="btn"
+          disabled={busy !== null}
+          onClick={() => void run('doctor')}
+        >
+          {busy === 'doctor' ? 'Diagnosticando…' : 'Diagnosticar conexão'}
+        </button>
+      </div>
+      {error && (
+        <p role="alert" className="red mt-3 text-xs">
+          {error}
+        </p>
+      )}
+      {result && (
+        <div className="mt-4">
+          <p
+            role="status"
+            className={`text-xs font-semibold ${result.ok ? 'green' : 'red'}`}
+          >
+            {result.ok
+              ? result.action === 'install'
+                ? 'Bridge instalada com sucesso.'
+                : 'Bridge pronta.'
+              : `Falha (código ${result.exitCode ?? '—'}).`}
+          </p>
+          <pre className="mt-2 max-h-80 overflow-auto whitespace-pre-wrap rounded-lg border border-slate-800 bg-slate-950 p-3 text-xs text-slate-300">
+            {result.output || 'Sem saída.'}
+          </pre>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function Dashboard({ section }: { section: string }) {
   const { data, error } = useDashboard();
   const isTrading = ['trading', 'signals', 'orders', 'positions'].includes(
@@ -1268,6 +1360,7 @@ export function Dashboard({ section }: { section: string }) {
             label="Equity"
             value={money(data.account.equity, data.account.currency)}
           />
+          <Mt5Maintenance />
         </div>
       ) : section === 'logs' ? (
         <Logs />

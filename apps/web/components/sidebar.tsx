@@ -9,7 +9,6 @@ import {
   Gauge,
   LayoutDashboard,
   Repeat,
-  Settings,
   Shield,
   SlidersHorizontal,
   Wallet,
@@ -24,7 +23,6 @@ const links = [
   { href: '/risk', label: 'Risk Control', icon: Shield },
   { href: '/broker', label: 'Broker', icon: Wallet },
   { href: '/logs', label: 'Audit Logs', icon: FileText },
-  { href: '/settings', label: 'Settings', icon: Settings },
 ];
 export function Sidebar() {
   const pathname = usePathname();

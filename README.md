@@ -8,7 +8,7 @@ Bot de trading auto-hospedado para **MetaTrader 5**, com painel web em portuguê
 
 ## Download (macOS)
 
-[**Baixar TradingBot para macOS (Apple Silicon, arm64)**](https://github.com/BrunoFerreira995/tradingbot/raw/main/apps/desktop/releases/TradingBot_0.1.0_aarch64.dmg) — DMG de 3,4 MB.
+[**Baixar TradingBot para macOS (Apple Silicon, arm64)**](https://github.com/BrunoFerreira995/tradingbot/raw/main/apps/desktop/releases/TradingBot_0.1.1_aarch64.dmg) — DMG de 3,4 MB.
 
 > Build não assinado. O app abre o dashboard em `http://localhost:3002`, então a API e o painel precisam estar rodando localmente. Para distribuir fora do próprio Mac, é necessário assinar e notarizar com a Apple.
 

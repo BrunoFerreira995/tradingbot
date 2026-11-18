@@ -123,7 +123,7 @@ try {
     ''
   )
     .split(',')
-    .map((symbol) => symbol.trim().toUpperCase())
+    .map((symbol) => symbol.trim())
     .filter(Boolean);
 
   if (configured.length === 0) {
@@ -136,7 +136,13 @@ try {
       );
     } else check('symbols', true, `${names.length} in the watch list`);
   } else {
-    const missing = configured.filter((symbol) => !states[symbol]);
+    // Broker symbol names are case-sensitive (e.g. "Gasoline"), while an env
+    // list is often written in another case. Match case-insensitively so a
+    // correct watch list is not reported as missing.
+    const watched = new Set(names.map((name) => name.toUpperCase()));
+    const missing = configured.filter(
+      (symbol) => !watched.has(symbol.toUpperCase()),
+    );
     check(
       'watch list',
       missing.length === 0,
@@ -148,12 +154,15 @@ try {
     // Ask the terminal what it actually carries instead of guessing suffixes.
     // A failure here must not mask the finding above, so it stays contained.
     for (const symbol of missing.slice(0, 3)) {
-      const base = symbol
-        .replace(/[._#].*$/, '')
-        .toUpperCase()
-        .slice(0, 3);
+      const base = symbol.replace(/[._#].*$/, '').slice(0, 3);
       try {
-        const matches = await bridge.findSymbols(base);
+        let matches: string[] = [];
+        // find_symbols is case-sensitive too, so try the configured name first
+        // and fall back to the short base used for suffix discovery.
+        for (const query of [...new Set([symbol, base])]) {
+          matches = await bridge.findSymbols(query);
+          if (matches.length > 0) break;
+        }
         console.log(
           matches.length > 0
             ? `      did you mean: ${matches.join(', ')}`

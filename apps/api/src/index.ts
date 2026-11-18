@@ -26,6 +26,10 @@ import { tradeServer } from './services/trade-telemetry';
 import { botSessionsCsv } from './services/bot-sessions-export';
 import { tradesCsv } from './services/trades-export';
 import {
+  isMt5MaintenanceAction,
+  runMt5Maintenance,
+} from './services/mt5-maintenance';
+import {
   exportTradeMetadata,
   observeTradeExcursions,
 } from './services/trade-telemetry';
@@ -1056,6 +1060,19 @@ app.patch(
   },
   { body: t.Object({ timeframe: t.Optional(t.String()), symbol: t.Optional(t.String()), config: t.Optional(t.Any()) }) },
 );
+
+app.post('/api/mt5/:action', async ({ params, request, set }) => {
+  if (!adminKey || !safeEqual(request.headers.get('x-admin-key') ?? '', adminKey)) {
+    set.status = 403;
+    return { error: 'Admin key required' };
+  }
+  const action = params.action;
+  if (!isMt5MaintenanceAction(action)) {
+    set.status = 400;
+    return { error: 'Expected action install or doctor' };
+  }
+  return runMt5Maintenance(action);
+});
 
 app.post('/api/strategy/backtest', async ({ body, request, set }) => {
   if (!adminKey || !safeEqual(request.headers.get('x-admin-key') ?? '', adminKey)) {
