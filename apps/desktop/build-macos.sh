@@ -32,4 +32,7 @@ hdiutil create \
   "$out"
 hdiutil verify "$out"
 
-ls -lh "$app" "$out"
+mkdir -p releases
+cp "$out" "releases/"
+
+ls -lh "$app" "$out" "releases/$(basename "$out")"
