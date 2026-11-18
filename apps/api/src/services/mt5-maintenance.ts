@@ -2,7 +2,9 @@ import { join } from 'node:path';
 
 export type Mt5MaintenanceAction = 'install' | 'doctor';
 
-const root = join(import.meta.dir, '../../../..');
+const root =
+  process.env.TRADINGBOT_ROOT ?? join(import.meta.dir, '../../../..');
+const bun = process.env.BUN_BINARY ?? process.execPath;
 
 const commands: Record<Mt5MaintenanceAction, { file: string[]; timeoutMs: number }> = {
   install: {
@@ -10,7 +12,7 @@ const commands: Record<Mt5MaintenanceAction, { file: string[]; timeoutMs: number
     timeoutMs: 120_000,
   },
   doctor: {
-    file: [process.execPath, join(root, 'packages/broker/scripts/doctor-mt5.ts')],
+    file: [bun, join(root, 'packages/broker/scripts/doctor-mt5.ts')],
     timeoutMs: 60_000,
   },
 };

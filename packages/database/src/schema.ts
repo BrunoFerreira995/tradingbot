@@ -51,6 +51,8 @@ export const strategies = pgTable('strategies', {
     .default({})
     .notNull(),
   enabled: boolean('enabled').default(true).notNull(),
+  /** Last timeframe selected from the dashboard, persisted across restarts. */
+  timeframe: varchar('timeframe', { length: 20 }),
   allowedSymbols: jsonb('allowed_symbols')
     .$type<string[]>()
     .default(['XAUUSD'])

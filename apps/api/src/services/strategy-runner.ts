@@ -879,7 +879,6 @@ export class StrategyRunner {
     if (reading.atr === null || !(reading.atr > 0))
       return finish('BLOCKED', 'ATR inválido para dimensionar o stop de candle');
 
-    const price = await this.broker.getPrice(symbol);
     if (timeframe !== this.timeframe) return { status: 'WAITING_BAR' };
     const signal = this.buildSignal(
       symbol,

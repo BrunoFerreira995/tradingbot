@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TradingBot</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      }
+      body {
+        align-items: center;
+        background: #080d15;
+        color: #e2e8f0;
+        display: flex;
+        height: 100vh;
+        justify-content: center;
+        margin: 0;
+      }
+      main {
+        max-width: 32rem;
+        padding: 2rem;
+        text-align: center;
+      }
+      .mark {
+        color: #fbbf24;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+      }
+      h1 {
+        font-size: 1.5rem;
+        margin: 0.75rem 0;
+      }
+      p {
+        color: #94a3b8;
+        font-size: 0.9rem;
+        line-height: 1.6;
+        white-space: pre-wrap;
+      }
+      .loader {
+        animation: spin 1s linear infinite;
+        border: 2px solid #1e293b;
+        border-radius: 9999px;
+        border-top-color: #fbbf24;
+        height: 2rem;
+        margin: 1.5rem auto;
+        width: 2rem;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="mark">Aurum Terminal</div>
+      <h1>TradingBot</h1>
+      <div class="loader" id="loader"></div>
+      <p id="status">Iniciando a API e o dashboard embutidos…</p>
+    </main>
+  </body>
+</html>

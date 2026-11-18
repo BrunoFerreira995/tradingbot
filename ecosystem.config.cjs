@@ -20,6 +20,7 @@ module.exports = {
       time: true,
       env: {
         NODE_ENV: 'production',
+        API_PORT: '3001',
       },
     },
     {
@@ -39,6 +40,7 @@ module.exports = {
       time: true,
       env: {
         NODE_ENV: 'production',
+        API_INTERNAL_URL: 'http://127.0.0.1:3001',
         NEXT_TELEMETRY_DISABLED: '1',
       },
     },

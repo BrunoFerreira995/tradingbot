@@ -1,5 +1,6 @@
 import { Elysia, t } from 'elysia';
 import { db, schema, sql } from '@trade/database';
+import { runMigrations } from '@trade/database/migrate';
 import { desc, eq, sql as dsql } from 'drizzle-orm';
 import { atr, backtestSmaMicroTrend, candlePatternsSchema, defaultSmaMicroTrendConfig, evaluateSmaMicroTrend, macroTrendAt, resolveMacroTimeframe, sma, smaMicroTrendSchema } from '@trade/strategy';
 import { diversifiedTrendSchema, TREND_FOREX_SYMBOLS } from '@trade/strategy';
@@ -36,6 +37,21 @@ import {
 import { StrategyRunner, ensureStrategy } from './services/strategy-runner';
 import { resolveAccountMode, type TradingMode, type TradingModePolicy } from './services/account-mode';
 import { monetaryStopForCurrency } from '@trade/trading';
+
+if (process.env.AUTO_MIGRATE === 'true') {
+  try {
+    await runMigrations(
+      process.env.MIGRATIONS_DIR ?? './packages/database/drizzle',
+      false,
+    );
+    console.log('[database] migrations applied');
+  } catch (error) {
+    console.error(
+      '[database] automatic migration failed',
+      error instanceof Error ? error.message : error,
+    );
+  }
+}
 
 // The application trades MetaTrader 5 and nothing else. There is no mock
 // provider to fall back to: an unreachable terminal is reported as
@@ -828,9 +844,22 @@ const app = new Elysia({ serve: { maxRequestBodySize: 16 * 1024 } })
           runner.blockStartup(readiness.detail);
         }
       }
+      let emergencyClose:
+        | Awaited<ReturnType<typeof engine.closeAllPositions>>
+        | undefined;
+      let emergencyCloseError: string | undefined;
       if (body.emergencyStop === true) {
         await emit('risk.emergency_stop', { enabled: true });
         await audit('RISK', 'emergency_stop_enabled');
+        try {
+          emergencyClose = await engine.closeAllPositions('EMERGENCY_STOP');
+        } catch (error) {
+          emergencyCloseError =
+            error instanceof Error ? error.message : String(error);
+          await audit('RISK', 'emergency_close_failed', undefined, undefined, {
+            reason: emergencyCloseError,
+          });
+        }
       }
       if (body.autoTradingEnabled === false)
         await audit('RISK', 'auto_trading_disabled');
@@ -840,13 +869,24 @@ const app = new Elysia({ serve: { maxRequestBodySize: 16 * 1024 } })
         await emit('risk.signal_inversion', {
           enabled: body.invertIncomingSignals,
         });
-      return monetaryAccount ? {
-        ...updated,
-        stopRiskAmount: monetaryStopForCurrency(updated, monetaryAccount.currency) ?? null,
-        stopRiskCurrency: monetaryAccount.currency,
-        stopRiskBySymbol: updated.stopRiskBySymbol?.[monetaryAccount.currency] ?? {},
-        stopRiskNeedsConfig: monetaryStopForCurrency(updated, monetaryAccount.currency) === undefined,
-      } : updated;
+      return {
+        ...(monetaryAccount
+          ? {
+              ...updated,
+              stopRiskAmount:
+                monetaryStopForCurrency(updated, monetaryAccount.currency) ??
+                null,
+              stopRiskCurrency: monetaryAccount.currency,
+              stopRiskBySymbol:
+                updated.stopRiskBySymbol?.[monetaryAccount.currency] ?? {},
+              stopRiskNeedsConfig:
+                monetaryStopForCurrency(updated, monetaryAccount.currency) ===
+                undefined,
+            }
+          : updated),
+        ...(emergencyClose ? { emergencyClose } : {}),
+        ...(emergencyCloseError ? { emergencyCloseError } : {}),
+      };
     },
     {
       body: t.Object({
@@ -959,6 +999,17 @@ if (runnerStrategy) {
     }
   }
   const readiness = await ensureStrategy(runnerStrategy, watchedSymbols);
+  const savedStrategy = await db.query.strategies.findFirst({
+    where: eq(schema.strategies.name, runnerStrategy),
+  });
+  const savedTimeframe = savedStrategy?.timeframe;
+  if (
+    savedTimeframe &&
+    isTimeframe(savedTimeframe) &&
+    (runnerStrategy !== 'diversified_trend' || savedTimeframe === 'D1')
+  ) {
+    runner.setTimeframe(savedTimeframe);
+  }
   if (!readiness.ok) {
     runner.blockStartup(readiness.detail);
     console.error(
@@ -972,7 +1023,7 @@ if (runnerStrategy) {
     runner.start();
     runnerStarted = true;
     console.log(
-      `[strategy] ${runnerStrategy} watching ${watchedSymbols.join(', ')} ${timeframe} (${readiness.detail})`,
+      `[strategy] ${runnerStrategy} watching ${watchedSymbols.join(', ')} ${runner.state.timeframe} (${readiness.detail})`,
     );
   }
 }
@@ -1045,6 +1096,17 @@ app.patch(
       return { ...runner.state, configs: Object.fromEntries(watchedSymbols.map((symbol) => [symbol, runner!.scopedSmaConfig(symbol)])) };
     }
     const previous = runner.state.timeframe;
+    const strategyRow = await db.query.strategies.findFirst({
+      where: eq(schema.strategies.name, runnerStrategy),
+    });
+    if (!strategyRow) {
+      set.status = 409;
+      return { error: 'Strategy is not registered' };
+    }
+    await db
+      .update(schema.strategies)
+      .set({ timeframe, updatedAt: new Date() })
+      .where(eq(schema.strategies.id, strategyRow.id));
     runner.setTimeframe(timeframe);
     await recordBotSessionParameters('timeframe', {
       strategy: runnerStrategy,
@@ -1161,7 +1223,9 @@ if (process.env.NODE_ENV !== 'test') {
   process.on('SIGINT', () => {
     void shutdown('SIGINT');
   });
-  app.listen(3001);
+  app.listen(Number(process.env.API_PORT ?? 3001));
 }
-console.log('API listening on http://localhost:3001');
+console.log(
+  `API listening on http://localhost:${Number(process.env.API_PORT ?? 3001)}`,
+);
 export { app, broker };

@@ -105,6 +105,49 @@ export class TradingEngine {
     });
   }
 
+  /**
+   * Flattens every open position through the same account queue used by signal
+   * execution, so an entry cannot slip in between the emergency-stop update and
+   * the close pass. Individual failures are collected instead of aborting the
+   * loop: one stuck position must not leave the rest open.
+   */
+  closeAllPositions(reason = 'EMERGENCY_STOP') {
+    return accountExecutions.run(this.accountId, async () => {
+      if (!this.broker.connected) throw new Error('Broker disconnected');
+      await this.broker.refreshState?.();
+      const positions = await this.broker.getPositions();
+      const failed: Array<{
+        positionId: string;
+        symbol: string;
+        reason: string;
+      }> = [];
+      let closed = 0;
+      for (const position of positions) {
+        try {
+          await this.close(position, '', reason);
+          closed++;
+        } catch (error) {
+          const detail =
+            error instanceof Error ? error.message : String(error);
+          failed.push({
+            positionId: position.id,
+            symbol: position.symbol,
+            reason: detail,
+          });
+          await audit('RISK', 'emergency_close_failed', undefined, undefined, {
+            positionId: position.id,
+            symbol: position.symbol,
+            reason: detail,
+          });
+        }
+      }
+      const result = { total: positions.length, closed, failed };
+      await audit('RISK', 'emergency_close_completed', undefined, undefined, result);
+      await emit('risk.emergency_positions_closed', result);
+      return result;
+    });
+  }
+
   private async processSignal(
     signal: TradingSignal,
     context: { requestId: string; ip: string; receivedAt: number },

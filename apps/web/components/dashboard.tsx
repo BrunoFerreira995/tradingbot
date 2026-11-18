@@ -382,7 +382,7 @@ function Risk({ data }: { data: DashboardData }) {
         </div>
         <p className="muted mb-6 text-sm">
           Changes require the server side admin API key. Emergency stop blocks
-          new orders immediately and does not close existing positions.
+          new orders immediately and closes all open positions.
         </p>
         <Control
           name="Auto trading"
@@ -830,24 +830,63 @@ function Control({
 }) {
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState('');
+  const [message, setMessage] = React.useState('');
   const change = async () => {
     if (
       danger &&
       !value &&
       !window.confirm(
-        'Ativar EMERGENCY STOP? Novas ordens serão bloqueadas imediatamente. Posições abertas permanecerão abertas.',
+        'Ativar EMERGENCY STOP? Todas as posições abertas serão fechadas a mercado e novas ordens serão bloqueadas imediatamente.',
       )
     )
       return;
     setBusy(true);
     setError('');
+    setMessage('');
     try {
       const response = await fetch('/api/control', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [field]: !value }),
       });
-      if (!response.ok) throw new Error(`Request failed: ${response.status}`);
+      const result = (await response.json().catch(() => null)) as {
+        error?: string;
+        emergencyClose?: {
+          total: number;
+          closed: number;
+          failed: Array<{
+            positionId: string;
+            symbol: string;
+            reason: string;
+          }>;
+        };
+        emergencyCloseError?: string;
+      } | null;
+      if (!response.ok)
+        throw new Error(
+          result?.error ?? `Request failed: ${response.status}`,
+        );
+      if (field === 'emergencyStop' && !value) {
+        if (result?.emergencyCloseError)
+          setError(
+            `EMERGENCY STOP ativado, mas o fechamento falhou: ${result.emergencyCloseError}`,
+          );
+        else if (result?.emergencyClose) {
+          const { total, closed, failed } = result.emergencyClose;
+          if (failed.length > 0)
+            setError(
+              `EMERGENCY STOP ativado. ${closed}/${total} posição(ões) fechada(s). Falhas: ${failed
+                .map((item) => `${item.symbol} (${item.reason})`)
+                .join(', ')}`,
+            );
+          else
+            setMessage(
+              total === 0
+                ? 'EMERGENCY STOP ativado. Nenhuma posição aberta.'
+                : `EMERGENCY STOP ativado. ${closed} posição(ões) fechada(s).`,
+            );
+        } else setMessage('EMERGENCY STOP ativado.');
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error');
     } finally {
@@ -867,6 +906,11 @@ function Control({
           {value ? 'Enabled' : 'Disabled'}
         </div>
         {error && <div className="red mt-2 text-xs">{error}</div>}
+        {message && (
+          <div className="green mt-2 text-xs" role="status">
+            {message}
+          </div>
+        )}
       </div>
       <button
         disabled={busy}

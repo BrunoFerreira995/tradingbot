@@ -12,9 +12,18 @@ Monorepo Bun/TypeScript. O mesmo painel pode rodar no navegador ou em um app des
 
 ## Download (macOS)
 
-[**Baixar TradingBot para macOS (Apple Silicon, arm64)**](https://github.com/BrunoFerreira995/tradingbot/raw/main/apps/desktop/releases/TradingBot_0.1.1_aarch64.dmg) — DMG de 3,4 MB.
+[**Baixar TradingBot para macOS (Apple Silicon, arm64)**](https://github.com/BrunoFerreira995/tradingbot/raw/main/apps/desktop/releases/TradingBot_0.1.2_aarch64.dmg) — DMG de 93 MB.
 
-> Build não assinado. O app abre o dashboard em `http://localhost:3002`, então a API e o painel precisam estar rodando localmente. Para distribuir fora do próprio Mac, é necessário assinar e notarizar com a Apple.
+> Build não assinado. O app já embute API, dashboard, runtime Bun, migrações e PostgreSQL 16. Ele só precisa do MT5 com a ponte `AurumBridge` para operar. Para distribuir fora do próprio Mac, é necessário assinar e notarizar com a Apple.
+
+### Instalar o app
+
+1. Baixe o DMG e arraste **TradingBot** para **Applications**.
+2. Abra o app. No primeiro uso ele inicializa o PostgreSQL embutido, aplica as migrações e abre o dashboard.
+3. A configuração fica em `~/Library/Application Support/com.tradingbot.desktop/.env`; os dados ficam em `postgres-data`, no mesmo diretório.
+4. No MT5, instale o `AurumBridge` pelo botão **Broker → Instalar / atualizar bridge** ou rode `bun run mt5:install` no repositório.
+
+Não é necessário instalar PostgreSQL nem iniciar API/dashboard manualmente. O app usa `DATABASE_MODE=embedded` por padrão; para apontar para um PostgreSQL existente, use `DATABASE_MODE=external` e `DATABASE_URL`.
 
 ## Principais recursos
 
@@ -24,7 +33,7 @@ Monorepo Bun/TypeScript. O mesmo painel pode rodar no navegador ou em um app des
 - **Painel em tempo real** com saldo, equity, margem, P&L, posições, sinais, ordens, trades, gráficos de candles e drawdown.
 - **Auditoria e exportação** de trades e sessões do bot em CSV.
 - **Proteções de segurança**: Auto trading desligado por padrão, emergency stop, confirmação explícita para conta real, autenticação básica no dashboard e admin key entre web e API.
-- **Operação local simplificada**: scripts para instalar/diagnosticar a ponte MT5, rodar com PM2 e gerar o app desktop macOS.
+- **Operação local simplificada**: app desktop com API, dashboard e PostgreSQL embutidos, scripts para instalar/diagnosticar a ponte MT5 e execução via PM2 ou Docker.
 
 ## Telas
 
@@ -40,7 +49,7 @@ Veja todas as telas e o tour completo em [docs/reference.md](docs/reference.md).
 
 | Camada              | Responsabilidade                                                                       |
 | ------------------- | -------------------------------------------------------------------------------------- |
-| `apps/desktop`      | App Tauri para macOS que abre o dashboard local em uma janela nativa.                  |
+| `apps/desktop`      | App Tauri para macOS com API, dashboard, PostgreSQL e migrações embutidos.             |
 | `apps/web`          | Dashboard Next.js, proxy autenticado para a API, SSE e controles operacionais.         |
 | `apps/api`          | Webhook, API, strategy runner, auditoria, SSE, health check e orquestração das ordens. |
 | `packages/trading`  | Lote, risco, política de posições, stops e envio de ordens.                            |
@@ -62,13 +71,15 @@ A API pode iniciar sem o MT5 conectado, mas dados de conta, preços e execução
 ## Requisitos
 
 - **Bun 1.3+**
-- **PostgreSQL 16**
+- **PostgreSQL 16** para desenvolvimento, PM2 e Docker; o DMG já inclui o banco
 - **MetaTrader 5** com o serviço `AurumBridge` para dados e execução
 - **macOS** para a ponte MT5 via Wine e para o app desktop
 - **Docker** e **Docker Compose** opcionais
-- **Rust** e Xcode Command Line Tools apenas para compilar o app desktop
+- **Rust**, Xcode Command Line Tools, **Python 3** e **PostgreSQL 16** apenas para compilar o app desktop
 
-## Início rápido (macOS local)
+## Início rápido para desenvolvimento (macOS local)
+
+> Para apenas usar o app, baixe o DMG acima. Esta seção é para rodar o monorepo com Bun e um PostgreSQL externo.
 
 Instale e inicie o PostgreSQL uma vez:
 
@@ -170,28 +181,29 @@ Se a watch list acusar símbolo ausente, confira se o código existe na **Observ
 
 As variáveis completas estão em [.env.example](.env.example). As principais:
 
-| Variável                                                 | Para que serve                                                                         |
-| -------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `DATABASE_URL`                                           | Conexão PostgreSQL.                                                                    |
-| `ADMIN_API_KEY`                                          | Chave server-side entre dashboard e API; nunca vai para o navegador.                   |
-| `DASHBOARD_USER` / `DASHBOARD_PASSWORD`                  | Autenticação HTTP Basic do dashboard.                                                  |
-| `TRADINGVIEW_WEBHOOK_SECRET` / `TRADINGVIEW_HMAC_SECRET` | Autenticação dos webhooks do TradingView.                                              |
-| `TRADING_MODE`                                           | `auto`, `paper` ou `live`. Em `auto`, o modo é detectado pelo heartbeat do MT5.        |
-| `AUTO_TRADING_ENABLED`                                   | Valor inicial do Auto trading; o dashboard tem precedência após o primeiro salvamento. |
-| `MT5_BRIDGE_DIR`                                         | Pasta `Common\Files` da ponte vista pelo processo da API.                              |
-| `MT5_HOST_BRIDGE_DIR`                                    | Caminho no host usado pelo Compose para montar a ponte no container.                   |
-| `MT5_PRIMARY_SYMBOL` / `MT5_SYMBOLS`                     | Símbolo principal e lista de símbolos avaliados e negociados.                          |
-| `MT5_MAGIC`                                              | Magic number das ordens enviadas pelo bot.                                             |
-| `MT5_LIVE_ACK`                                           | Confirmação do login da conta real; obrigatório para operar em live.                   |
-| `MT5_RECONNECT_MS`                                       | Intervalo de nova tentativa enquanto o terminal está desconectado.                     |
-| `STRATEGY_RUNNER` / `STRATEGY_TIMEFRAME`                 | Estratégia embutida e timeframe avaliados no fechamento da vela.                       |
-| `MAX_LOT_SIZE` / `MAX_OPEN_POSITIONS`                    | Lote máximo e limite de posições abertas.                                              |
-| `RESERVED_POSITION_SYMBOLS`                              | Símbolos com uma posição adicional fora do limite comum.                               |
-| `MAX_DAILY_LOSS` / `MAX_DAILY_PROFIT`                    | Perda máxima e meta opcional de lucro diário na moeda da conta.                        |
-| `MAX_DAILY_TRADES`                                       | Limite de operações novas por dia.                                                     |
-| `CLOSE_ON_OPPOSITE_SIGNAL`                               | Fecha a posição oposta em vez de abrir uma nova.                                       |
-| `WEB_ORIGIN`                                             | Origem permitida para CORS e SSE.                                                      |
-| `REPORT_TIMEZONE`                                        | Fuso dos relatórios diários e mensais.                                                 |
+| Variável                                                 | Para que serve                                                                                |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `DATABASE_MODE`                                          | No app desktop: `embedded` (padrão) usa o PostgreSQL incluído; `external` usa `DATABASE_URL`. |
+| `DATABASE_URL`                                           | Conexão PostgreSQL externa; usado no desenvolvimento ou com `DATABASE_MODE=external`.         |
+| `ADMIN_API_KEY`                                          | Chave server-side entre dashboard e API; nunca vai para o navegador.                          |
+| `DASHBOARD_USER` / `DASHBOARD_PASSWORD`                  | Autenticação HTTP Basic do dashboard.                                                         |
+| `TRADINGVIEW_WEBHOOK_SECRET` / `TRADINGVIEW_HMAC_SECRET` | Autenticação dos webhooks do TradingView.                                                     |
+| `TRADING_MODE`                                           | `auto`, `paper` ou `live`. Em `auto`, o modo é detectado pelo heartbeat do MT5.               |
+| `AUTO_TRADING_ENABLED`                                   | Valor inicial do Auto trading; o dashboard tem precedência após o primeiro salvamento.        |
+| `MT5_BRIDGE_DIR`                                         | Pasta `Common\Files` da ponte vista pelo processo da API.                                     |
+| `MT5_HOST_BRIDGE_DIR`                                    | Caminho no host usado pelo Compose para montar a ponte no container.                          |
+| `MT5_PRIMARY_SYMBOL` / `MT5_SYMBOLS`                     | Símbolo principal e lista de símbolos avaliados e negociados.                                 |
+| `MT5_MAGIC`                                              | Magic number das ordens enviadas pelo bot.                                                    |
+| `MT5_LIVE_ACK`                                           | Confirmação do login da conta real; obrigatório para operar em live.                          |
+| `MT5_RECONNECT_MS`                                       | Intervalo de nova tentativa enquanto o terminal está desconectado.                            |
+| `STRATEGY_RUNNER` / `STRATEGY_TIMEFRAME`                 | Estratégia embutida e timeframe avaliados no fechamento da vela.                              |
+| `MAX_LOT_SIZE` / `MAX_OPEN_POSITIONS`                    | Lote máximo e limite de posições abertas.                                                     |
+| `RESERVED_POSITION_SYMBOLS`                              | Símbolos com uma posição adicional fora do limite comum.                                      |
+| `MAX_DAILY_LOSS` / `MAX_DAILY_PROFIT`                    | Perda máxima e meta opcional de lucro diário na moeda da conta.                               |
+| `MAX_DAILY_TRADES`                                       | Limite de operações novas por dia.                                                            |
+| `CLOSE_ON_OPPOSITE_SIGNAL`                               | Fecha a posição oposta em vez de abrir uma nova.                                              |
+| `WEB_ORIGIN`                                             | Origem permitida para CORS e SSE.                                                             |
+| `REPORT_TIMEZONE`                                        | Fuso dos relatórios diários e mensais.                                                        |
 
 ## Uso diário
 
@@ -201,7 +213,7 @@ As variáveis completas estão em [.env.example](.env.example). As principais:
 4. Acompanhe sinais, ordens e posições em **Trading** e os resultados em **Trades** e **Overview**.
 5. Só então habilite o **Auto trading**.
 
-> Teste sempre em conta demo primeiro. O **EMERGENCY STOP** bloqueia novas ordens imediatamente, mas **não fecha** posições existentes.
+> Teste sempre em conta demo primeiro. O **EMERGENCY STOP** bloqueia novas ordens e fecha todas as posições abertas a mercado.
 
 ### Regras de risco
 
@@ -275,29 +287,41 @@ Detalhes do formato e um exemplo em Pine Script: [docs/tradingview.md](docs/trad
 
 ## App desktop (macOS)
 
-O app Tauri apenas abre o dashboard local em uma janela nativa. Ele não embute API nem banco.
+O app Tauri embute a API compilada, o dashboard Next.js standalone, o runtime Bun, as migrações e o PostgreSQL 16. Ao abrir, ele inicializa um cluster local em `~/Library/Application Support/com.tradingbot.desktop/postgres-data`, inicia a API em `127.0.0.1:3201` e o dashboard em `127.0.0.1:3202`, e carrega o painel na janela nativa.
+
+Para compilar o DMG, instale Rust, Xcode Command Line Tools, Python 3 e `postgresql@16` (`brew install postgresql@16`) ou defina `PG_PREFIX` para um prefixo PostgreSQL 16. O build empacota os binários e as bibliotecas do PostgreSQL local.
 
 ```sh
 bun run desktop:dev
 bun run desktop:build:mac
 ```
 
-O build gera `.app` e `.dmg` em `apps/desktop/src-tauri/target/release/bundle/` e copia o DMG para [apps/desktop/releases](apps/desktop/releases). A versão atual é **0.1.1**.
+No primeiro uso, o app cria a configuração em:
+
+```text
+~/Library/Application Support/com.tradingbot.desktop/.env
+```
+
+O padrão é `DATABASE_MODE=embedded`. Para usar um PostgreSQL externo, defina `DATABASE_MODE=external` e `DATABASE_URL`. Os logs ficam no mesmo diretório (`api.log`, `web.log`, `postgres.log` e `postgres-init.log`). Se a API ou o banco não subirem, a tela inicial mostra o erro e o caminho dos logs.
+
+Os dados do banco embutido ficam em `postgres-data`. Para migrar dados de uma instalação antiga, faça `pg_dump` no banco externo e restaure no banco embutido, ou continue com `DATABASE_MODE=external`.
+
+O build gera `.app` e `.dmg` em `apps/desktop/src-tauri/target/release/bundle/` e copia o DMG para [apps/desktop/releases](apps/desktop/releases). A versão atual é **0.1.2**.
 
 ## Estrutura do monorepo
 
-| Caminho             | Conteúdo                                                     |
-| ------------------- | ------------------------------------------------------------ |
-| `apps/api`          | API Elysia, strategy runner, webhook, auditoria e SSE.       |
-| `apps/web`          | Dashboard Next.js e proxies autenticados.                    |
-| `apps/desktop`      | App Tauri, ícones e script de build macOS.                   |
-| `packages/broker`   | Ponte MT5, serviço MQL5 e scripts de instalação/diagnóstico. |
-| `packages/database` | Schema Drizzle e migrações.                                  |
-| `packages/strategy` | Indicadores, estratégias e backtests em TypeScript.          |
-| `packages/trading`  | Risk engine, dimensionamento e execução.                     |
-| `packages/shared`   | Tipos e utilitários compartilhados.                          |
-| `docs`              | Referência técnica, estratégias, TradingView e screenshots.  |
-| `reports`           | Backtests e análises de pesquisa.                            |
+| Caminho             | Conteúdo                                                        |
+| ------------------- | --------------------------------------------------------------- |
+| `apps/api`          | API Elysia, strategy runner, webhook, auditoria e SSE.          |
+| `apps/web`          | Dashboard Next.js e proxies autenticados.                       |
+| `apps/desktop`      | App Tauri, ícones, PostgreSQL embutido e script de build macOS. |
+| `packages/broker`   | Ponte MT5, serviço MQL5 e scripts de instalação/diagnóstico.    |
+| `packages/database` | Schema Drizzle e migrações.                                     |
+| `packages/strategy` | Indicadores, estratégias e backtests em TypeScript.             |
+| `packages/trading`  | Risk engine, dimensionamento e execução.                        |
+| `packages/shared`   | Tipos e utilitários compartilhados.                             |
+| `docs`              | Referência técnica, estratégias, TradingView e screenshots.     |
+| `reports`           | Backtests e análises de pesquisa.                               |
 
 ## Comandos úteis
 
@@ -337,19 +361,21 @@ Boas práticas:
 
 - mantenha `AUTO_TRADING_ENABLED=false` e o auto trading desligado no dashboard até validar a conexão e os sinais;
 - use uma conta demo até o fluxo inteiro estar estável;
-- faça backup do PostgreSQL e guarde os segredos apenas no `.env` local;
+- no app embutido, feche o app e faça backup de `~/Library/Application Support/com.tradingbot.desktop/postgres-data`; no modo externo, faça backup do PostgreSQL;
+- guarde os segredos apenas no `.env` local;
 - monitore `GET /health` e os logs do PM2 ou do Docker;
 - se o dashboard ou a API reiniciarem, confirme se o heartbeat do MT5 continua atualizado;
 - nunca reutilize o holdout de pesquisa para escolher parâmetros em produção.
 
 ## Segurança
 
-- O dashboard usa HTTP Basic em produção.
+- O dashboard usa HTTP Basic em produção; no app desktop, a autenticação é dispensada apenas para o webview local em `127.0.0.1`.
 - O navegador nunca recebe `ADMIN_API_KEY`; o proxy do Next injeta a chave no servidor.
 - Webhooks exigem segredo ou HMAC e `signalId` único.
 - Ordens são idempotentes e o processamento por conta usa lock no PostgreSQL.
 - Conta real exige `MT5_LIVE_ACK` igual ao login conectado.
-- Emergency stop bloqueia novas ordens, mas não fecha posições existentes.
+- Emergency stop bloqueia novas ordens e fecha todas as posições abertas.
+- O PostgreSQL embutido escuta apenas em `127.0.0.1`, em porta dinâmica, com autenticação local `trust` restrita ao diretório de dados do usuário.
 - O app desktop e o DMG atual não são assinados nem notarizados.
 
 ## Documentação

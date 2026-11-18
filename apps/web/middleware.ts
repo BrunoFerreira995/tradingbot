@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 export function middleware(request: NextRequest) {
+  // The embedded desktop app binds to 127.0.0.1 and is protected by the OS
+  // session; the browser dashboard still requires Basic auth.
+  if (process.env.DASHBOARD_AUTH_DISABLED === 'true') return NextResponse.next();
   const user = process.env.DASHBOARD_USER;
   const password = process.env.DASHBOARD_PASSWORD;
   if (!user || !password)

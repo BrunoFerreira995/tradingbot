@@ -28,7 +28,7 @@ Fluxo típico de uso:
 2. Em **Risk Control**, revise símbolos permitidos, lote máximo, perda diária, meta de lucro diária e sessões. Deixe _Auto trading_ desligado até validar os sinais.
 3. Em **Trading**, confira se o _strategy runner_ está avaliando os pares (não pode ficar `BLOCKED`).
 4. Acompanhe entradas e rejeições em **Trading → Signals/Orders/Positions** e o resultado em **Trades** e **Overview**.
-5. Só então habilite _Auto trading_. O botão **EMERGENCY STOP** bloqueia novas ordens imediatamente, mas não fecha posições existentes.
+5. Só então habilite _Auto trading_. O botão **EMERGENCY STOP** bloqueia novas ordens e fecha todas as posições abertas a mercado.
 
 ## Start locally
 
@@ -104,6 +104,12 @@ For an all-container run, set the required variables in `.env` and run `docker c
 
 If ports 3000 or 3001 are occupied, set `WEB_PORT=3100`, `API_PORT=3101`, and `WEB_ORIGIN=http://localhost:3100` in `.env` before starting Compose. The dashboard proxies data and SSE requests to the API internally.
 
+### Embedded desktop app
+
+`bun run desktop:build:mac` builds the Next.js dashboard in standalone mode, bundles the API with Bun, packs the MT5 bridge scripts and migrations, and copies a relocatable PostgreSQL 16 distribution into the Tauri resources. The build machine needs `postgresql@16` installed (or `PG_PREFIX` pointing to a PostgreSQL 16 prefix). The app starts an embedded cluster on a dynamic loopback port, starts the API on `127.0.0.1:3201` and the dashboard on `127.0.0.1:3202`, waits for health, then navigates the native window to the dashboard. It stops the API, dashboard, and PostgreSQL when the app exits.
+
+The embedded database is initialized in `~/Library/Application Support/com.tradingbot.desktop/postgres-data`; the socket lives in `postgres-socket`. The default mode is `DATABASE_MODE=embedded`. Set `DATABASE_MODE=external` and `DATABASE_URL` to use an existing PostgreSQL server. On first launch the app writes `~/Library/Application Support/com.tradingbot.desktop/.env` with generated secrets and an embedded database configuration. Logs are written next to that file as `api.log`, `web.log`, `postgres.log`, and `postgres-init.log`. The dashboard authentication bypass applies only to the local webview; browser access keeps HTTP Basic authentication.
+
 ## TradingView
 
 See [tradingview.md](tradingview.md) for webhook JSON and a Pine Script example. A webhook can authenticate with the JSON `secret`, `X-Webhook-Secret`, or timestamped HMAC headers. It must contain a unique `signalId`. Test locally:
@@ -123,7 +129,7 @@ In development, `POST /api/test/signal` accepts `{ "action": "BUY" }`, `{ "actio
 - `packages/database`: Drizzle schema and SQL migrations. Migration seeds `gold-scalping-v1`.
 - `apps/web`: responsive dark terminal with signals, orders, positions, trades, risk, broker, strategies, and audit views.
 
-`AUTO_TRADING_ENABLED=false` registers but rejects signals. `EMERGENCY_STOP=true` blocks new orders. It does not close positions. `EMERGENCY_CLOSE_POSITIONS` is reserved for a separate confirmed workflow and has no automatic action. Risk settings are stored in PostgreSQL after first initialization and are editable from the dashboard; the defaults seed only once. The default maximum lot is 0.01 and the default policy is one position per symbol. The provider is MetaTrader 5 and nothing else: contract specifications, account, positions and orders all come from the terminal.
+`AUTO_TRADING_ENABLED=false` registers but rejects signals. `EMERGENCY_STOP=true` blocks new orders and requests the close of every open position through the same account execution queue. `EMERGENCY_CLOSE_POSITIONS` is reserved and has no separate automatic action. Risk settings are stored in PostgreSQL after first initialization and are editable from the dashboard; the defaults seed only once. The default maximum lot is 0.01 and the default policy is one position per symbol. The provider is MetaTrader 5 and nothing else: contract specifications, account, positions and orders all come from the terminal.
 
 `TRADING_MODE=auto` detects demo/contest or real from the terminal heartbeat and reports the detected mode in `/health` and the dashboard. Switching accounts does not require changing this setting. A real account still requires `MT5_LIVE_ACK` to equal its login; the broker rechecks this before every terminal operation, including order submission. `paper` and `live` remain available as strict policies for deployments that must refuse the other account type. The existing auto-trading, emergency-stop and risk settings still govern whether any order may be sent.
 
