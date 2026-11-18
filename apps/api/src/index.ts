@@ -882,6 +882,12 @@ const app = new Elysia({ serve: { maxRequestBodySize: 16 * 1024 } })
             ]),
           ),
         ),
+        maximumDailyProfit: t.Optional(
+          t.Union([
+            t.Number({ exclusiveMinimum: 0, maximum: 999999999 }),
+            t.Null(),
+          ]),
+        ),
         maximumDailyTrades: t.Optional(
           t.Integer({ minimum: 0, maximum: 2147483647 }),
         ),

@@ -25,6 +25,7 @@ export async function getSettings(): Promise<
         maximumLotSize: process.env.MAX_LOT_SIZE ?? '0.01',
         maximumOpenPositions: Number(process.env.MAX_OPEN_POSITIONS ?? 1),
         maximumDailyLoss: process.env.MAX_DAILY_LOSS || '100',
+        maximumDailyProfit: process.env.MAX_DAILY_PROFIT || null,
         maximumDailyTrades: Number(process.env.MAX_DAILY_TRADES ?? 10),
       })
       .onConflictDoNothing();
@@ -53,6 +54,8 @@ export async function getSettings(): Promise<
     ],
     maximumPositionsPerSymbol: row.maximumPositionsPerSymbol,
     maximumDailyLoss: Number(row.maximumDailyLoss ?? 100),
+    maximumDailyProfit:
+      row.maximumDailyProfit === null ? null : Number(row.maximumDailyProfit),
     maximumDailyTrades: row.maximumDailyTrades ?? 10,
     maximumExposure: Number(row.maximumExposure ?? 100000),
     maximumMarginUsagePercentage: Number(
@@ -80,6 +83,7 @@ export async function updateSettings(
       | 'positionPolicy'
       | 'allowedSymbols'
       | 'blockedSymbols'
+      | 'maximumDailyProfit'
       | 'maximumDailyTrades'
       | 'stopRiskAmount'
       | 'stopRiskCurrency'
@@ -119,6 +123,12 @@ export async function updateSettings(
           : patch.stopRiskAmount === null
             ? null
             : String(patch.stopRiskAmount),
+      maximumDailyProfit:
+        patch.maximumDailyProfit === undefined
+          ? undefined
+          : patch.maximumDailyProfit === null
+            ? null
+            : String(patch.maximumDailyProfit),
       stopRiskByCurrency: byCurrency,
       stopRiskBySymbol: bySymbol,
       updatedAt: new Date(),

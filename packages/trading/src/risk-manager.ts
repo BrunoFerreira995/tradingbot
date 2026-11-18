@@ -17,6 +17,7 @@ export interface RiskSettings {
   reservedPositionSymbols?: string[];
   maximumPositionsPerSymbol: number;
   maximumDailyLoss: number;
+  maximumDailyProfit?: number | null;
   maximumDailyTrades: number;
   maximumExposure: number;
   maximumMarginUsagePercentage: number;
@@ -156,6 +157,12 @@ export class RiskManager {
         dailyPnl <= -strategy.maxDailyLoss)
     )
       return reject('Daily loss limit exceeded');
+    if (
+      s.maximumDailyProfit != null &&
+      s.maximumDailyProfit > 0 &&
+      dailyPnl >= s.maximumDailyProfit
+    )
+      return reject('Daily profit target reached');
     if (
       dailyTrades >= s.maximumDailyTrades ||
       (strategy?.maxDailyTrades !== undefined &&

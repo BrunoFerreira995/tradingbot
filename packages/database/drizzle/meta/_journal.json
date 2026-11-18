@@ -71,6 +71,13 @@
       "when": 1794834372964,
       "tag": "0009_superb_ricochet",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794957334272,
+      "tag": "0010_violet_sumo",
+      "breakpoints": true
     }
   ]
 }

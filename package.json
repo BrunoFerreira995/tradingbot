@@ -19,6 +19,12 @@
     "build": "bun --filter '@trade/web' build && bun build apps/api/src/index.ts --target bun --outdir dist/api",
     "db:generate": "bunx drizzle-kit generate --config packages/database/drizzle.config.ts",
     "db:migrate": "bun packages/database/src/migrate.ts",
+    "pm2:start": "pm2 start ecosystem.config.cjs",
+    "pm2:restart": "pm2 restart ecosystem.config.cjs --update-env",
+    "pm2:stop": "pm2 delete tradingbot-api tradingbot-web",
+    "pm2:logs": "pm2 logs tradingbot-api tradingbot-web",
+    "desktop:dev": "cd apps/desktop && bunx tauri dev",
+    "desktop:build:mac": "bash apps/desktop/build-macos.sh",
     "mt5:doctor": "bun packages/broker/scripts/doctor-mt5.ts",
     "mt5:build": "./packages/broker/scripts/build-mq5.sh",
     "mt5:install": "./packages/broker/scripts/install-mt5-bridge.sh"
@@ -32,6 +38,7 @@
   "devDependencies": {
     "@eslint/js": "^9.0.0",
     "@next/eslint-plugin-next": "^15.5.27",
+    "@tauri-apps/cli": "^2.12.5",
     "@types/bun": "latest",
     "@types/node": "^22.0.0",
     "drizzle-kit": "^0.31.0",

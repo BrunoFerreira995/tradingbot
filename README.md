@@ -9,7 +9,7 @@ Bot de trading auto-hospedado para **MetaTrader 5**, com painel web em portuguê
 ## O que faz
 
 - **Sinais** de estratégias embutidas ou de um webhook do TradingView.
-- **Risk engine** com lote máximo, perda diária, limite de posições, stop obrigatório, sessões Forex, stop monetário por operação e por símbolo e símbolos permitidos.
+- **Risk engine** com lote máximo, perda e meta de lucro diária, limite de posições, stop obrigatório, sessões Forex, stop monetário por operação e por símbolo e símbolos permitidos.
 - **Execução no MT5** com `OrderCheck`, confirmação de posição, idempotência e auditoria.
 - **Painel em tempo real** com saldo, equity, P&L, posições, trades, gráficos e drawdown.
 - **Proteções**: Auto trading desligado por padrão, emergency stop e confirmação explícita para conta real.

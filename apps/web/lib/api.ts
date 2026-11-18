@@ -81,6 +81,7 @@ export interface DashboardData {
     maximumOpenPositions: number;
     reservedPositionSymbols?: string[];
     maximumDailyLoss: number;
+    maximumDailyProfit?: number | null;
     maximumDailyTrades: number;
     positionPolicy: string;
     allowedSymbols: string[];

@@ -171,6 +171,7 @@ export const riskSettings = pgTable('risk_settings', {
     .default(1)
     .notNull(),
   maximumDailyLoss: money('maximum_daily_loss'),
+  maximumDailyProfit: money('maximum_daily_profit'),
   maximumDailyTrades: integer('maximum_daily_trades'),
   maximumExposure: money('maximum_exposure'),
   maximumMarginUsagePercentage: money('maximum_margin_usage_percentage'),

@@ -1,0 +1,1 @@
+ALTER TABLE "risk_settings" ADD COLUMN "maximum_daily_profit" numeric(20, 8);

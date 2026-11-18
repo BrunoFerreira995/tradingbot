@@ -415,6 +415,12 @@ function Risk({ data }: { data: DashboardData }) {
             'Maximum daily loss',
             money(s.maximumDailyLoss, data.account.currency),
           ],
+          [
+            'Daily profit target',
+            s.maximumDailyProfit == null
+              ? 'Disabled'
+              : money(s.maximumDailyProfit, data.account.currency),
+          ],
           ['Position policy', s.positionPolicy],
           [
             'Close on opposite signal',
@@ -442,6 +448,11 @@ function Risk({ data }: { data: DashboardData }) {
         <DailyTradeLimitControl
           limit={s.maximumDailyTrades}
           tradesToday={data.stats.tradesToday}
+        />
+        <DailyProfitTargetControl
+          target={s.maximumDailyProfit ?? null}
+          currency={data.account.currency}
+          dailyPnl={data.stats.dailyPnl}
         />
         <AllowedSymbolsControl
           symbols={s.allowedSymbols}
@@ -544,6 +555,113 @@ function DailyTradeLimitControl({
       {success && (
         <p role="status" className="green mt-2 text-xs">
           Limite diário salvo.
+        </p>
+      )}
+    </form>
+  );
+}
+function DailyProfitTargetControl({
+  target,
+  currency,
+  dailyPnl,
+}: {
+  target: number | null;
+  currency: string;
+  dailyPnl: number;
+}) {
+  const format = (value: number | null) =>
+    value == null ? '' : String(value).replace('.', ',');
+  const [draft, setDraft] = React.useState(format(target));
+  const [savedTarget, setSavedTarget] = React.useState(target);
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState('');
+  const [success, setSuccess] = React.useState(false);
+  const previousTarget = React.useRef(target);
+  React.useEffect(() => {
+    const previous = previousTarget.current;
+    setDraft((current) =>
+      current === format(previous) ? format(target) : current,
+    );
+    setSavedTarget(target);
+    previousTarget.current = target;
+  }, [target]);
+  const save = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const text = draft.trim();
+    const value = Number(text.replace(',', '.'));
+    const maximumDailyProfit = text ? value : null;
+    if (
+      text &&
+      (!/^\d+(?:[.,]\d{1,8})?$/.test(text) ||
+        !Number.isFinite(value) ||
+        value <= 0 ||
+        value > 999999999)
+    ) {
+      setError('Informe um valor positivo, como 50, ou deixe vazio para desativar.');
+      return;
+    }
+    setBusy(true);
+    setError('');
+    setSuccess(false);
+    try {
+      const response = await fetch('/api/control', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ maximumDailyProfit }),
+      });
+      const result = await response.json();
+      if (!response.ok)
+        throw new Error(result.error ?? `Request failed: ${response.status}`);
+      setSavedTarget(result.maximumDailyProfit ?? null);
+      setDraft(format(result.maximumDailyProfit ?? null));
+      setSuccess(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <form onSubmit={save} className="mt-5">
+      <label htmlFor="daily-profit-target" className="text-sm font-semibold">
+        Take profit do dia ({currency})
+      </label>
+      <p id="daily-profit-target-help" className="muted my-2 text-xs">
+        Resultado realizado hoje: {money(dailyPnl, currency)}.
+        {savedTarget == null
+          ? ' Nenhuma meta configurada.'
+          : ` Meta atual: ${money(savedTarget, currency)}.`}{' '}
+        Ao atingir a meta, novas entradas são bloqueadas até o próximo dia. As
+        posições abertas continuam com seus próprios stops e take profits. Deixe
+        vazio para desativar.
+      </p>
+      <div className="flex gap-2">
+        <input
+          id="daily-profit-target"
+          aria-describedby="daily-profit-target-help"
+          type="text"
+          inputMode="decimal"
+          placeholder="ex.: 50,00"
+          value={draft}
+          disabled={busy}
+          onChange={(event) => {
+            setDraft(event.target.value);
+            setSuccess(false);
+          }}
+          className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm"
+        />
+        <button type="submit" disabled={busy} className="btn">
+          {busy ? 'Salvando…' : 'Salvar meta'}
+        </button>
+      </div>
+      {error && (
+        <p role="alert" className="red mt-2 text-xs">
+          {error}
+        </p>
+      )}
+      {success && (
+        <p role="status" className="green mt-2 text-xs">
+          Meta diária salva.
         </p>
       )}
     </form>

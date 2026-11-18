@@ -237,6 +237,28 @@ describe('risk gates', () => {
     );
   });
 
+  test('blocks new entries once the daily profit target is reached', () => {
+    const withTarget = { ...settings, maximumDailyProfit: 50 };
+    expect(
+      evaluate({ settings: withTarget, dailyPnl: 49.99 }).approved,
+    ).toBe(true);
+    expect(
+      evaluate({ settings: withTarget, dailyPnl: 50 }).reason,
+    ).toContain('Daily profit target');
+    expect(
+      evaluate({ settings: withTarget, dailyPnl: 75 }).approved,
+    ).toBe(false);
+    // A close signal must still pass, so reaching the target never traps an
+    // open position that the strategy wants to exit.
+    expect(
+      evaluate({
+        settings: withTarget,
+        dailyPnl: 75,
+        signal: { ...signal, action: 'CLOSE' },
+      }).approved,
+    ).toBe(true);
+  });
+
   test('explains existing-symbol policy before the global position limit', () => {
     const open: Position = {
       id: 'gold',
