@@ -308,6 +308,26 @@ Os dados do banco embutido ficam em `postgres-data`. Para migrar dados de uma in
 
 O build gera `.app` e `.dmg` em `apps/desktop/src-tauri/target/release/bundle/` e copia o DMG para [apps/desktop/releases](apps/desktop/releases). A versão atual é **0.1.4**.
 
+### Assinatura e notarização (Developer ID)
+
+Sem notarização, o macOS marca o DMG como não verificado e pode exibir o aviso de malware. Para assinar e notarizar de verdade:
+
+1. Instale o certificado **Developer ID Application** no Keychain (o script o detecta automaticamente, ou use `MACOS_SIGN_IDENTITY`).
+2. Guarde as credenciais de notarização uma vez:
+
+   ```bash
+   xcrun notarytool store-credentials "tradingbot-notary" \
+     --apple-id "SEU_APPLE_ID" --team-id "SEU_TEAM_ID" --password "SENHA_APP_ESPECIFICA"
+   ```
+
+3. Gere o build com o perfil:
+
+   ```bash
+   MACOS_NOTARY_PROFILE=tradingbot-notary bun run desktop:build:mac
+   ```
+
+Também aceita `APPLE_ID`, `APPLE_TEAM_ID` e `APPLE_APP_PASSWORD` no ambiente. O script assina todos os binários embutidos (Bun, PostgreSQL), notariza o `.app` e o `.dmg` e faz `staple` do ticket. Sem certificado, ele cai no modo ad-hoc e emite um aviso.
+
 ## Estrutura do monorepo
 
 | Caminho             | Conteúdo                                                        |
