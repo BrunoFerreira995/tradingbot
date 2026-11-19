@@ -12,7 +12,7 @@ Monorepo Bun/TypeScript. O mesmo painel pode rodar no navegador ou em um app des
 
 ## Download (macOS)
 
-[**Baixar TradingBot para macOS (Apple Silicon, arm64)**](https://github.com/BrunoFerreira995/tradingbot/raw/main/apps/desktop/releases/TradingBot_0.1.2_aarch64.dmg) — DMG de 93 MB.
+[**Baixar TradingBot para macOS (Apple Silicon, arm64)**](https://github.com/BrunoFerreira995/tradingbot/raw/main/apps/desktop/releases/TradingBot_0.1.3_aarch64.dmg) — DMG de 93 MB.
 
 > Build não assinado. O app já embute API, dashboard, runtime Bun, migrações e PostgreSQL 16. Ele só precisa do MT5 com a ponte `AurumBridge` para operar. Para distribuir fora do próprio Mac, é necessário assinar e notarizar com a Apple.
 
@@ -306,7 +306,7 @@ O padrão é `DATABASE_MODE=embedded`. Para usar um PostgreSQL externo, defina `
 
 Os dados do banco embutido ficam em `postgres-data`. Para migrar dados de uma instalação antiga, faça `pg_dump` no banco externo e restaure no banco embutido, ou continue com `DATABASE_MODE=external`.
 
-O build gera `.app` e `.dmg` em `apps/desktop/src-tauri/target/release/bundle/` e copia o DMG para [apps/desktop/releases](apps/desktop/releases). A versão atual é **0.1.2**.
+O build gera `.app` e `.dmg` em `apps/desktop/src-tauri/target/release/bundle/` e copia o DMG para [apps/desktop/releases](apps/desktop/releases). A versão atual é **0.1.3**.
 
 ## Estrutura do monorepo
 
