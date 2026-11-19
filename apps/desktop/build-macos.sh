@@ -50,6 +50,12 @@ bundle="src-tauri/target/release/bundle"
 app="$bundle/macos/TradingBot.app"
 out="$bundle/dmg/TradingBot_${version}_${target_arch}.dmg"
 
+# tauri build --no-sign leaves only the linker's ad-hoc signature, which does
+# not seal the embedded resources and makes macOS report the downloaded app as
+# damaged. Re-sign ad-hoc so Gatekeeper accepts the bundle as intact.
+codesign --force --deep --sign - "$app"
+codesign --verify --deep --strict "$app"
+
 find "$bundle/macos" -maxdepth 1 -name 'rw.*' -delete
 
 staging="$(mktemp -d /tmp/tradingbot-dmg.XXXXXX)"
