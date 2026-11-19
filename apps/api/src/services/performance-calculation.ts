@@ -205,6 +205,7 @@ export function calculatePerformance(input: {
       : null,
     historyAvailable: available,
     historyComplete: history?.complete ?? false,
+    serverOffsetSeconds: history?.serverOffsetSeconds ?? 0,
     observedSince: curve[0]?.at ?? null,
     curve: sample(curve),
     balanceCurve: sample(balanceCurve),

@@ -65,6 +65,8 @@ export interface PerformanceData {
   historyUpdatedAt: string | null;
   historyAvailable: boolean;
   historyComplete: boolean;
+  /** Broker server clock minus GMT, in seconds. Deals are stored in GMT. */
+  serverOffsetSeconds: number;
   observedSince: string | null;
   curve: CapitalPoint[];
   balanceCurve: Array<{ at: string; balance: number }>;

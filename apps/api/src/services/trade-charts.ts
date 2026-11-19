@@ -141,6 +141,11 @@ export async function getTradeCharts(input: {
   if (!performance.historyAvailable)
     return { trades: [], detail: 'MT5 history is unavailable' };
 
+  // Deals are stored in GMT but MT5 candles carry the broker server clock, so
+  // the rate window must be requested on the server clock and then shifted back
+  // to GMT. Otherwise the entry marker lands a few bars off the real candle.
+  const serverOffsetSeconds = performance.serverOffsetSeconds;
+
   const metadata = await exportTradeMetadata(
     input.account.id,
     input.account.currency,
@@ -154,13 +159,15 @@ export async function getTradeCharts(input: {
     const merged = mergeMetadata(trade, metadata.get(trade.id));
     const timeframe = input.timeframe ?? merged.tradeTimeframe;
     const tfSeconds = timeframeSeconds[timeframe];
+    const openedAt = Math.floor(opened / 1000);
+    const closedAt = Math.floor(closed / 1000);
     requests.push({
       ...merged,
       timeframe,
-      entryTime: Math.floor(opened / 1000),
-      exitTime: Math.floor(closed / 1000),
-      from: Math.floor(opened / 1000) - PAD_BARS * tfSeconds,
-      to: Math.floor(closed / 1000) + PAD_BARS * tfSeconds,
+      entryTime: openedAt,
+      exitTime: closedAt,
+      from: openedAt + serverOffsetSeconds - PAD_BARS * tfSeconds,
+      to: closedAt + serverOffsetSeconds + PAD_BARS * tfSeconds,
     });
   }
 
@@ -220,11 +227,20 @@ export async function getTradeCharts(input: {
     const bars =
       barsByKey.get(`${request.trade.symbol}:${request.timeframe}`) ?? [];
     const tfSeconds = timeframeSeconds[request.timeframe];
-    const candles = chartWindow(bars, request.from, request.to, tfSeconds);
+    const candles = chartWindow(
+      bars,
+      request.from,
+      request.to,
+      tfSeconds,
+    ).map((bar) =>
+      serverOffsetSeconds ? { ...bar, t: bar.t - serverOffsetSeconds } : bar,
+    );
+    const entryServer = request.entryTime + serverOffsetSeconds;
+    const exitServer = request.exitTime + serverOffsetSeconds;
     const covered =
       bars.length > 0 &&
-      bars[0]!.t <= request.entryTime &&
-      bars.at(-1)!.t + tfSeconds >= request.exitTime;
+      bars[0]!.t <= entryServer &&
+      bars.at(-1)!.t + tfSeconds >= exitServer;
     trades.push({
       id: request.trade.id,
       symbol: request.trade.symbol,
