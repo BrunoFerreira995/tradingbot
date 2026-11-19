@@ -12,6 +12,7 @@ export interface RiskSettings {
   closeOnOppositeSignal?: boolean;
   emergencyStop: boolean;
   maximumLotSize: number;
+  fixedLotSize?: number | null;
   minimumLotSize: number;
   maximumOpenPositions: number;
   reservedPositionSymbols?: string[];
@@ -236,12 +237,19 @@ export class RiskManager {
         `Stop distance ${distance.toFixed(5)} above maximum ${s.maximumStopDistance} after applying broker minimum ${symbol.stopsLevel}`,
       );
     const maxLot = Math.min(s.maximumLotSize, strategy?.maxLot ?? Infinity);
-    if ((signal.lots ?? 0) > maxLot) return reject('Lot exceeds maximum');
+    const fixedLot = s.fixedLotSize ?? null;
+    if (fixedLot !== null && (!Number.isFinite(fixedLot) || fixedLot <= 0))
+      return reject('Invalid fixed lot');
+    if (fixedLot === null && (signal.lots ?? 0) > maxLot)
+      return reject('Lot exceeds maximum');
     let lots: number;
     try {
       lots = this.calculator.calculate({
-        mode: strategy?.riskPercentage ? 'RISK_PERCENTAGE' : 'FIXED_LOT',
-        fixedLots: signal.lots,
+        mode:
+          fixedLot === null && strategy?.riskPercentage
+            ? 'RISK_PERCENTAGE'
+            : 'FIXED_LOT',
+        fixedLots: fixedLot ?? signal.lots,
         riskPercentage: strategy?.riskPercentage,
         account,
         symbol,

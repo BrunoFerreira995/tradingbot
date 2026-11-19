@@ -926,6 +926,15 @@ const app = new Elysia({ serve: { maxRequestBodySize: 16 * 1024 } })
             ]),
           ),
         ),
+        maximumLotSize: t.Optional(
+          t.Number({ exclusiveMinimum: 0, maximum: 999999999 }),
+        ),
+        fixedLotSize: t.Optional(
+          t.Union([
+            t.Number({ exclusiveMinimum: 0, maximum: 999999999 }),
+            t.Null(),
+          ]),
+        ),
         maximumDailyProfit: t.Optional(
           t.Union([
             t.Number({ exclusiveMinimum: 0, maximum: 999999999 }),

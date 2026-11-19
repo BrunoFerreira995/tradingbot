@@ -1,0 +1,1 @@
+ALTER TABLE "risk_settings" ADD COLUMN "fixed_lot_size" numeric(20, 8);

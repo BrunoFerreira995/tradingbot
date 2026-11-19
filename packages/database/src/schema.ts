@@ -167,6 +167,7 @@ export const riskSettings = pgTable('risk_settings', {
     .default(false)
     .notNull(),
   maximumLotSize: money('maximum_lot_size').default('0.01').notNull(),
+  fixedLotSize: money('fixed_lot_size'),
   minimumLotSize: money('minimum_lot_size'),
   maximumOpenPositions: integer('maximum_open_positions').default(1).notNull(),
   maximumPositionsPerSymbol: integer('maximum_positions_per_symbol')

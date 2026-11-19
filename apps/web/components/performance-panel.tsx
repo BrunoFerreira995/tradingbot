@@ -52,24 +52,42 @@ function formatAxisTime(value: number, timezone: string, span: number) {
   });
 }
 
+type ChartPoint = { at: string; value: number };
 function CapitalChart({ performance }: { performance: PerformanceData }) {
   const [period, setPeriod] = useState<'day' | 'week' | 'all'>('all');
   const [mode, setMode] = useState<'observed' | 'balance'>('observed');
   const [selected, setSelected] = useState<number | null>(null);
-  const source =
-    mode === 'observed'
-      ? performance.curve
-      : performance.balanceCurve.map((p) => ({ ...p, equity: p.balance }));
-  const latest = source.at(-1);
+  const showEquity = mode === 'observed';
+  // Balance comes from the complete deal history (it only moves on deals);
+  // equity only exists in the samples collected while the API is running.
+  const balanceSeries = performance.balanceCurve.length
+    ? performance.balanceCurve
+    : performance.curve.map((p) => ({ at: p.at, balance: p.balance }));
+  const equitySeries = showEquity ? performance.curve : [];
+  const times = [...balanceSeries, ...equitySeries]
+    .map((p) => Date.parse(p.at))
+    .filter(Number.isFinite);
+  const latest = times.length ? Math.max(...times) : Date.now();
   const cutoff =
     period === 'all'
       ? -Infinity
-      : Date.parse(latest?.at ?? '') -
-        (period === 'day' ? 86400000 : 7 * 86400000);
-  const points = source.filter((p) => Date.parse(p.at) >= cutoff);
-  const values = points.flatMap((p) =>
-    mode === 'observed' ? [p.balance, p.equity] : [p.balance],
-  );
+      : latest - (period === 'day' ? 86400000 : 7 * 86400000);
+  const windowed = <T extends { at: string }>(series: T[]) => {
+    const before = series.filter((p) => Date.parse(p.at) < cutoff).at(-1);
+    const kept = series.filter((p) => Date.parse(p.at) >= cutoff);
+    return before ? [before, ...kept] : kept;
+  };
+  const balancePoints = windowed(balanceSeries);
+  const equityPoints = windowed(equitySeries);
+  const balanceGraph: ChartPoint[] = balancePoints.map((p) => ({
+    at: p.at,
+    value: p.balance,
+  }));
+  const equityGraph: ChartPoint[] = equityPoints.map((p) => ({
+    at: p.at,
+    value: p.equity,
+  }));
+  const values = [...balanceGraph, ...equityGraph].map((p) => p.value);
   const rawMin = values.length ? Math.min(...values) : 0;
   const rawMax = values.length ? Math.max(...values) : 1;
   const spread = rawMax - rawMin;
@@ -77,8 +95,14 @@ function CapitalChart({ performance }: { performance: PerformanceData }) {
     spread > 0 ? spread * 0.08 : Math.max(1, Math.abs(rawMax) * 0.01);
   const min = rawMin - padding;
   const max = rawMax + padding;
-  const start = Date.parse(points[0]?.at ?? '');
-  const end = Date.parse(points.at(-1)?.at ?? '');
+  const start = Math.min(
+    ...balanceGraph.map((p) => Date.parse(p.at)),
+    ...equityGraph.map((p) => Date.parse(p.at)),
+  );
+  const end = Math.max(
+    ...balanceGraph.map((p) => Date.parse(p.at)),
+    ...equityGraph.map((p) => Date.parse(p.at)),
+  );
   const span = Math.max(1, end - start);
   const width = 1000;
   const height = 340;
@@ -96,25 +120,57 @@ function CapitalChart({ performance }: { performance: PerformanceData }) {
   };
   const y = (value: number) =>
     top + (1 - (value - min) / Math.max(1, max - min)) * plotHeight;
-  const linePath = (field: 'balance' | 'equity') =>
+  // Balance changes in steps when a deal closes; equity is a continuous sample.
+  const linePath = (points: ChartPoint[], step = false) =>
     points
-      .map(
-        (point, index) =>
-          `${index === 0 ? 'M' : 'L'} ${x(point.at)} ${y(point[field])}`,
+      .map((point, index) =>
+        index === 0
+          ? `M ${x(point.at)} ${y(point.value)}`
+          : step
+            ? `H ${x(point.at)} V ${y(point.value)}`
+            : `L ${x(point.at)} ${y(point.value)}`,
       )
       .join(' ');
-  const areaPath = (field: 'balance' | 'equity') => {
+  const areaPath = (points: ChartPoint[], step = false) => {
     const first = points[0];
     const last = points.at(-1);
     if (!first || !last) return '';
     return [
       `M ${x(first.at)} ${top + plotHeight}`,
-      ...points.map((point) => `L ${x(point.at)} ${y(point[field])}`),
+      `L ${x(first.at)} ${y(first.value)}`,
+      ...points.slice(1).map((point) =>
+        step
+          ? `H ${x(point.at)} V ${y(point.value)}`
+          : `L ${x(point.at)} ${y(point.value)}`,
+      ),
       `L ${x(last.at)} ${top + plotHeight}`,
       'Z',
     ].join(' ');
   };
-  const active = points[selected ?? points.length - 1];
+  // Merge both series so the tooltip can show balance and equity at any time.
+  const hover = (() => {
+    const rows: Array<{
+      at: string;
+      balance?: number;
+      equity?: number;
+    }> = [];
+    for (const p of balancePoints) rows.push({ at: p.at, balance: p.balance });
+    if (showEquity)
+      for (const p of equityPoints) rows.push({ at: p.at, equity: p.equity });
+    rows.sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+    let balance: number | null = null;
+    let equity: number | null = null;
+    return rows.map((row) => {
+      if (row.balance !== undefined) balance = row.balance;
+      if (row.equity !== undefined) equity = row.equity;
+      return { at: row.at, balance, equity };
+    });
+  })();
+  const active = hover[selected ?? hover.length - 1];
+  const cash = (value: number | null | undefined) =>
+    value === null || value === undefined
+      ? '—'
+      : money(value, performance.currency);
   const yTicks = [0, 1, 2, 3, 4].map(
     (index) => min + ((max - min) * index) / 4,
   );
@@ -132,10 +188,10 @@ function CapitalChart({ performance }: { performance: PerformanceData }) {
     );
     const target = start + ratio * span;
     let nearest = 0;
-    for (let index = 1; index < points.length; index++)
+    for (let index = 1; index < hover.length; index++)
       if (
-        Math.abs(Date.parse(points[index]!.at) - target) <
-        Math.abs(Date.parse(points[nearest]!.at) - target)
+        Math.abs(Date.parse(hover[index]!.at) - target) <
+        Math.abs(Date.parse(hover[nearest]!.at) - target)
       )
         nearest = index;
     setSelected(nearest);
@@ -181,20 +237,20 @@ function CapitalChart({ performance }: { performance: PerformanceData }) {
           </div>
         </div>
       </div>
-      {points.length ? (
+      {hover.length ? (
         <>
           <div className="mb-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
             <span className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-amber-400" />
               <span className="muted">Saldo</span>
-              <strong>{money(active?.balance, performance.currency)}</strong>
+              <strong>{cash(active?.balance)}</strong>
             </span>
-            {mode === 'observed' && (
+            {showEquity && (
               <span className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-emerald-400" />
                 <span className="muted">Equity</span>
                 <strong className="text-emerald-400">
-                  {money(active?.equity, performance.currency)}
+                  {cash(active?.equity)}
                 </strong>
               </span>
             )}
@@ -283,21 +339,27 @@ function CapitalChart({ performance }: { performance: PerformanceData }) {
                 </text>
               </g>
             ))}
-            <path d={areaPath('balance')} fill="url(#capital-balance-area)" />
-            {mode === 'observed' && (
-              <path d={areaPath('equity')} fill="url(#capital-equity-area)" />
+            <path
+              d={areaPath(balanceGraph, true)}
+              fill="url(#capital-balance-area)"
+            />
+            {showEquity && (
+              <path
+                d={areaPath(equityGraph)}
+                fill="url(#capital-equity-area)"
+              />
             )}
             <path
-              d={linePath('balance')}
+              d={linePath(balanceGraph, true)}
               fill="none"
               stroke="#fbbf24"
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
             />
-            {mode === 'observed' && (
+            {showEquity && (
               <path
-                d={linePath('equity')}
+                d={linePath(equityGraph)}
                 fill="none"
                 stroke="#34d399"
                 strokeWidth="2.5"
@@ -315,15 +377,17 @@ function CapitalChart({ performance }: { performance: PerformanceData }) {
                   stroke="#64748b"
                   strokeDasharray="4 4"
                 />
-                <circle
-                  cx={x(active.at)}
-                  cy={y(active.balance)}
-                  r="5"
-                  fill="#fbbf24"
-                  stroke="#0f172a"
-                  strokeWidth="2"
-                />
-                {mode === 'observed' && (
+                {active.balance !== null && (
+                  <circle
+                    cx={x(active.at)}
+                    cy={y(active.balance)}
+                    r="5"
+                    fill="#fbbf24"
+                    stroke="#0f172a"
+                    strokeWidth="2"
+                  />
+                )}
+                {showEquity && active.equity !== null && (
                   <circle
                     cx={x(active.at)}
                     cy={y(active.equity)}
@@ -338,7 +402,7 @@ function CapitalChart({ performance }: { performance: PerformanceData }) {
           </svg>
           <p className="muted text-xs">
             {mode === 'observed'
-              ? `Equity disponível desde ${date(performance.observedSince, performance.timezone)}. Amostras por minuto enquanto a API está ativa.`
+              ? `Saldo reconstruído com os negócios do terminal; equity disponível desde ${date(performance.observedSince, performance.timezone)}, amostrada por minuto enquanto a API está ativa.`
               : 'Saldo reconstruído com os negócios do terminal. Aportes também alteram esta curva.'}
           </p>
         </>

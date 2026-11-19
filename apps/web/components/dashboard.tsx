@@ -405,7 +405,6 @@ function Risk({ data }: { data: DashboardData }) {
       <div className="panel p-6">
         <h2 className="mb-5 text-lg font-semibold">Risk limits</h2>
         {[
-          ['Maximum lot', s.maximumLotSize],
           ['Maximum non-reserved positions', s.maximumOpenPositions],
           [
             'Reserved positions (1 each)',
@@ -436,6 +435,8 @@ function Risk({ data }: { data: DashboardData }) {
             <span className="text-right font-semibold">{value}</span>
           </div>
         ))}
+        <MaximumLotControl maximumLotSize={s.maximumLotSize} />
+        <FixedLotControl fixedLotSize={s.fixedLotSize ?? null} />
         <MarketSessionsControl windows={s.marketSessions} />
         <MonetaryStopControl
           amount={s.stopRiskAmount}
@@ -460,6 +461,195 @@ function Risk({ data }: { data: DashboardData }) {
         />
       </div>
     </div>
+  );
+}
+function MaximumLotControl({ maximumLotSize }: { maximumLotSize: number }) {
+  const format = (value: number) => String(value).replace('.', ',');
+  const [draft, setDraft] = React.useState(format(maximumLotSize));
+  const [saved, setSaved] = React.useState(maximumLotSize);
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState('');
+  const [success, setSuccess] = React.useState(false);
+  const previous = React.useRef(maximumLotSize);
+  React.useEffect(() => {
+    const last = previous.current;
+    setDraft((current) =>
+      current === format(last) ? format(maximumLotSize) : current,
+    );
+    setSaved(maximumLotSize);
+    previous.current = maximumLotSize;
+  }, [maximumLotSize]);
+  const save = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const text = draft.trim();
+    const value = Number(text.replace(',', '.'));
+    if (
+      !/^\d+(?:[.,]\d{1,8})?$/.test(text) ||
+      !Number.isFinite(value) ||
+      value <= 0 ||
+      value > 999999999
+    ) {
+      setError('Informe um lote positivo, como 0,10 ou 1.');
+      return;
+    }
+    setBusy(true);
+    setError('');
+    setSuccess(false);
+    try {
+      const response = await fetch('/api/control', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ maximumLotSize: value }),
+      });
+      const result = await response.json();
+      if (!response.ok)
+        throw new Error(result.error ?? `Request failed: ${response.status}`);
+      setSaved(result.maximumLotSize);
+      setDraft(format(result.maximumLotSize));
+      setSuccess(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <form onSubmit={save} className="mt-5">
+      <label htmlFor="maximum-lot" className="text-sm font-semibold">
+        Lote máximo
+      </label>
+      <p id="maximum-lot-help" className="muted my-2 text-xs">
+        Lote máximo atual: {format(saved)}. Este é um limite de segurança, não o
+        lote usado na operação. Para definir o lote real de cada entrada, use
+        “Lote fixo por operação” abaixo.
+      </p>
+      <div className="flex gap-2">
+        <input
+          id="maximum-lot"
+          aria-describedby="maximum-lot-help"
+          type="text"
+          inputMode="decimal"
+          placeholder="ex.: 0,10"
+          value={draft}
+          disabled={busy}
+          onChange={(event) => {
+            setDraft(event.target.value);
+            setSuccess(false);
+          }}
+          className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm"
+        />
+        <button type="submit" disabled={busy} className="btn">
+          {busy ? 'Salvando…' : 'Salvar lote'}
+        </button>
+      </div>
+      {error && (
+        <p role="alert" className="red mt-2 text-xs">
+          {error}
+        </p>
+      )}
+      {success && (
+        <p role="status" className="green mt-2 text-xs">
+          Lote máximo salvo.
+        </p>
+      )}
+    </form>
+  );
+}
+function FixedLotControl({ fixedLotSize }: { fixedLotSize: number | null }) {
+  const format = (value: number | null) =>
+    value == null ? '' : String(value).replace('.', ',');
+  const [draft, setDraft] = React.useState(format(fixedLotSize));
+  const [saved, setSaved] = React.useState(fixedLotSize);
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState('');
+  const [success, setSuccess] = React.useState(false);
+  const previous = React.useRef(fixedLotSize);
+  React.useEffect(() => {
+    const last = previous.current;
+    setDraft((current) =>
+      current === format(last) ? format(fixedLotSize) : current,
+    );
+    setSaved(fixedLotSize);
+    previous.current = fixedLotSize;
+  }, [fixedLotSize]);
+  const save = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const text = draft.trim();
+    const value = Number(text.replace(',', '.'));
+    const nextFixedLot = text ? value : null;
+    if (
+      text &&
+      (!/^\d+(?:[.,]\d{1,8})?$/.test(text) ||
+        !Number.isFinite(value) ||
+        value <= 0 ||
+        value > 999999999)
+    ) {
+      setError('Informe um lote positivo, ou deixe vazio para desativar.');
+      return;
+    }
+    setBusy(true);
+    setError('');
+    setSuccess(false);
+    try {
+      const response = await fetch('/api/control', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fixedLotSize: nextFixedLot }),
+      });
+      const result = await response.json();
+      if (!response.ok)
+        throw new Error(result.error ?? `Request failed: ${response.status}`);
+      setSaved(result.fixedLotSize ?? null);
+      setDraft(format(result.fixedLotSize ?? null));
+      setSuccess(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <form onSubmit={save} className="mt-5">
+      <label htmlFor="fixed-lot" className="text-sm font-semibold">
+        Lote fixo por operação
+      </label>
+      <p id="fixed-lot-help" className="muted my-2 text-xs">
+        {saved == null
+          ? 'Desativado: cada entrada usa o lote do sinal ou o risco % da estratégia.'
+          : `Lote real atual: ${format(saved)}. Todas as novas entradas usam este lote, ignorando o lote do sinal e o risco % da estratégia.`}{' '}
+        Ainda é limitado pelo lote máximo, pelo máximo do símbolo na corretora e
+        pelo limite da estratégia. Deixe vazio para desativar.
+      </p>
+      <div className="flex gap-2">
+        <input
+          id="fixed-lot"
+          aria-describedby="fixed-lot-help"
+          type="text"
+          inputMode="decimal"
+          placeholder="ex.: 0,14"
+          value={draft}
+          disabled={busy}
+          onChange={(event) => {
+            setDraft(event.target.value);
+            setSuccess(false);
+          }}
+          className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm"
+        />
+        <button type="submit" disabled={busy} className="btn">
+          {busy ? 'Salvando…' : 'Salvar lote'}
+        </button>
+      </div>
+      {error && (
+        <p role="alert" className="red mt-2 text-xs">
+          {error}
+        </p>
+      )}
+      {success && (
+        <p role="status" className="green mt-2 text-xs">
+          Lote fixo salvo.
+        </p>
+      )}
+    </form>
   );
 }
 function DailyTradeLimitControl({

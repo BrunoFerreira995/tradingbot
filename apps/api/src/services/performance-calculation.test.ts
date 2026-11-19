@@ -153,6 +153,18 @@ test('daily net uses account report timezone at the midnight boundary', () => {
   expect(p.netDaily).toBe(-3);
   expect(p.netMonthly).toBe(-5);
 });
+test('balance curve follows deal history and reaches the latest heartbeat', () => {
+  const p = calculate(
+    history([
+      deal({ id: 'deposit', profit: 100, at: at - 300 }),
+      deal({ id: 'trade', type: 0, positionId: 'p', profit: -10, at: at - 200 }),
+    ]),
+  );
+  expect(p.balanceCurve.map((point) => point.balance)).toEqual([
+    1110, 1100, 1100,
+  ]);
+  expect(p.balanceCurve.at(-1)?.at).toBe(new Date(at * 1000).toISOString());
+});
 test('win rate uses fully closed positions including opening commission', () => {
   const entry = deal({
     type: 0,

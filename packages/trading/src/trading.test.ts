@@ -217,6 +217,21 @@ describe('risk gates', () => {
       evaluate({ settings: { ...settings, allowedSymbols: [] } }).reason,
     ).toContain('Symbol not allowed');
   });
+  test('uses the configured fixed lot instead of the signal lot', () => {
+    const decision = evaluate({
+      settings: { ...settings, maximumLotSize: 1, fixedLotSize: 0.14 },
+      signal: { ...signal, lots: 5 },
+    });
+    expect(decision.approved).toBe(true);
+    expect(decision.lots).toBe(0.14);
+  });
+  test('caps the fixed lot at the maximum lot', () => {
+    const decision = evaluate({
+      settings: { ...settings, maximumLotSize: 0.1, fixedLotSize: 0.5 },
+    });
+    expect(decision.approved).toBe(true);
+    expect(decision.lots).toBe(0.1);
+  });
   test('blocks missing stop, daily loss and position limit', () => {
     expect(
       evaluate({ signal: { ...signal, stopLoss: undefined } }).reason,

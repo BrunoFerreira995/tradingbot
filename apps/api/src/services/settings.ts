@@ -42,6 +42,8 @@ export async function getSettings(): Promise<
     closeOnOppositeSignal: bool(process.env.CLOSE_ON_OPPOSITE_SIGNAL),
     emergencyStop: row.emergencyStop,
     maximumLotSize: Number(row.maximumLotSize),
+    fixedLotSize:
+      row.fixedLotSize === null ? null : Number(row.fixedLotSize),
     minimumLotSize: Number(row.minimumLotSize ?? 0.01),
     maximumOpenPositions: row.maximumOpenPositions,
     reservedPositionSymbols: [
@@ -83,6 +85,8 @@ export async function updateSettings(
       | 'positionPolicy'
       | 'allowedSymbols'
       | 'blockedSymbols'
+      | 'maximumLotSize'
+      | 'fixedLotSize'
       | 'maximumDailyProfit'
       | 'maximumDailyTrades'
       | 'stopRiskAmount'
@@ -117,6 +121,16 @@ export async function updateSettings(
     .update(schema.riskSettings)
     .set({
       ...patch,
+      maximumLotSize:
+        patch.maximumLotSize === undefined
+          ? undefined
+          : String(patch.maximumLotSize),
+      fixedLotSize:
+        patch.fixedLotSize === undefined
+          ? undefined
+          : patch.fixedLotSize === null
+            ? null
+            : String(patch.fixedLotSize),
       stopRiskAmount:
         patch.stopRiskAmount === undefined
           ? undefined

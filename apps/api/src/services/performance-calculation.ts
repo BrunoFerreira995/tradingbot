@@ -126,6 +126,16 @@ export function calculatePerformance(input: {
     if (d.type !== 3) balance += net(d);
     return { at: new Date(d.at * 1000).toISOString(), balance };
   });
+  // Balance only moves on deals; carry the last value to the latest heartbeat so
+  // the curve reaches the same point in time as the observed equity.
+  const balanceTail = balanceCurve.at(-1);
+  const extendTo = updatedAt ?? new Date(now).toISOString();
+  if (
+    available &&
+    balanceTail &&
+    Date.parse(extendTo) > Date.parse(balanceTail.at)
+  )
+    balanceCurve.push({ at: extendTo, balance: balanceTail.balance });
   const grouped = new Map<string, TerminalDeal[]>();
   for (const d of deals.filter(
     (d) => (d.type === 0 || d.type === 1) && d.positionId !== '0',

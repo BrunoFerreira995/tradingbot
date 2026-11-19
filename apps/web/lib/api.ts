@@ -78,6 +78,7 @@ export interface DashboardData {
     emergencyStop: boolean;
     invertIncomingSignals: boolean;
     maximumLotSize: number;
+    fixedLotSize?: number | null;
     maximumOpenPositions: number;
     reservedPositionSymbols?: string[];
     maximumDailyLoss: number;

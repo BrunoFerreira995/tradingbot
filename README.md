@@ -12,7 +12,7 @@ Monorepo Bun/TypeScript. O mesmo painel pode rodar no navegador ou em um app des
 
 ## Download (macOS)
 
-[**Baixar TradingBot para macOS (Apple Silicon, arm64)**](https://github.com/BrunoFerreira995/tradingbot/raw/main/apps/desktop/releases/TradingBot_0.1.4_aarch64.dmg) — DMG de 93 MB.
+[**Baixar TradingBot para macOS (Apple Silicon, arm64)**](https://github.com/BrunoFerreira995/tradingbot/raw/main/apps/desktop/releases/TradingBot_0.1.6_aarch64.dmg) — DMG de 93 MB.
 
 > O `.app` é assinado ad-hoc (não notarizado). Se o macOS bloquear na primeira abertura, clique com o botão direito em **TradingBot** → **Abrir**, ou rode `xattr -dr com.apple.quarantine /Applications/TradingBot.app`. Para distribuir fora do próprio Mac, é necessário assinar e notarizar com a Apple. Ele só precisa do MT5 com a ponte `AurumBridge` para operar.
 
@@ -28,7 +28,7 @@ Não é necessário instalar PostgreSQL nem iniciar API/dashboard manualmente. O
 ## Principais recursos
 
 - **Execução real no MT5** com `OrderCheck`, confirmação de posição, idempotência por `signalId` e prevenção de ordens duplicadas.
-- **Risk engine** com lote máximo, limite de posições, perda e meta de lucro diárias, limite de trades por dia, stop obrigatório, sessões Forex, símbolos permitidos e stop monetário por operação ou por símbolo.
+- **Risk engine** com lote máximo, lote fixo por operação, limite de posições, perda e meta de lucro diárias, limite de trades por dia, stop obrigatório, sessões Forex, símbolos permitidos e stop monetário por operação ou por símbolo.
 - **Estratégias embutidas** executadas pelo strategy runner no fechamento da vela, além de sinais externos via webhook do TradingView.
 - **Painel em tempo real** com saldo, equity, margem, P&L, posições, sinais, ordens, trades, gráficos de candles e drawdown.
 - **Auditoria e exportação** de trades e sessões do bot em CSV.
@@ -306,7 +306,7 @@ O padrão é `DATABASE_MODE=embedded`. Para usar um PostgreSQL externo, defina `
 
 Os dados do banco embutido ficam em `postgres-data`. Para migrar dados de uma instalação antiga, faça `pg_dump` no banco externo e restaure no banco embutido, ou continue com `DATABASE_MODE=external`.
 
-O build gera `.app` e `.dmg` em `apps/desktop/src-tauri/target/release/bundle/` e copia o DMG para [apps/desktop/releases](apps/desktop/releases). A versão atual é **0.1.4**.
+O build gera `.app` e `.dmg` em `apps/desktop/src-tauri/target/release/bundle/` e copia o DMG para [apps/desktop/releases](apps/desktop/releases). A versão atual é **0.1.6**.
 
 ### Assinatura e notarização (Developer ID)
 
